@@ -28,20 +28,16 @@ const userSchema = new Schema(
       minlength: 6,
       select: false // no devolver la contraseña por defecto
     },
+    // Campo para cédula
+    cedula: {
+      type: String,
+      unique: true,
+      sparse: true  // Permite valores nulos
+    },
     role: {
       type: String,
-      enum: ['collaborator', 'designer', 'manager', 'admin', 'gerente_comunicaciones', 'disenador_grafico', 'practicante'],
-      default: 'collaborator'
-    },
-    capacity: {
-      type: Number,
-      default: 5, // Número máximo de tareas simultáneas
-      min: 1,
-      max: 20
-    },
-    availability: {
-      type: Boolean,
-      default: true
+      enum: ['admin', 'gerente', 'diseñador', 'practicante', 'usuario'],
+      default: 'usuario'
     },
     department: {
       type: String,
@@ -57,6 +53,90 @@ const userSchema = new Schema(
         'Fenalempleo'
       ],
       default: 'Comunicaciones'
+    },
+    // NUEVO: Perfil de ejecutor (subdocumento)
+    executorProfile: {
+      // Capacidad de tareas simultáneas
+      capacity: {
+        type: Number,
+        default: function() {
+          switch(this.role) {
+            case 'gerente': return 15;
+            case 'diseñador': return 8;
+            case 'practicante': return 5;
+            default: return 0;
+          }
+        }
+      },
+      
+      // Nivel de prioridad para asignación automática
+      // 1 = máxima prioridad, 3 = mínima prioridad
+      priority: {
+        type: Number,
+        default: function() {
+          switch(this.role) {
+            case 'gerente': return 1;
+            case 'diseñador': return 2;
+            case 'practicante': return 3;
+            default: return 999;
+          }
+        }
+      },
+      
+      // Tipos de diseño que puede ejecutar
+      // ['all'] significa que puede ejecutar todos los tipos
+      allowedDesignTypes: {
+        type: [String],
+        default: function() {
+          switch(this.role) {
+            case 'gerente': 
+              return ['all']; // Puede hacer todo
+            case 'diseñador': 
+              return ['redes', 'pieza_impresa', 'presentacion', 'video', 'banner'];
+            case 'practicante': 
+              return ['redes', 'pieza_impresa']; // Solo tareas básicas
+            default: 
+              return [];
+          }
+        }
+      },
+      
+      // Especialidades del ejecutor (opcional)
+      specialties: [{
+        type: String,
+        enum: [
+          'social_media',
+          'branding', 
+          'editorial',
+          'video',
+          'motion_graphics',
+          'ilustracion'
+        ]
+      }],
+      
+      // Disponibilidad actual
+      available: {
+        type: Boolean,
+        default: true
+      },
+      
+      // Razón de no disponibilidad
+      unavailableReason: {
+        type: String,
+        enum: ['vacaciones', 'incapacidad', 'proyecto_externo', 'otra'],
+        default: null
+      },
+      
+      // Fecha hasta la cual no está disponible
+      unavailableUntil: Date,
+      
+      // Estadísticas del ejecutor
+      stats: {
+        totalCompleted: { type: Number, default: 0 },
+        averageCompletionTime: { type: Number, default: 0 }, // en días
+        onTimeDeliveryRate: { type: Number, default: 100 }, // porcentaje
+        currentLoad: { type: Number, default: 0 } // tareas actuales
+      }
     },
     phone: {
       type: String,
@@ -101,7 +181,76 @@ userSchema.pre('save', async function (next) {
 
 // Método para comparar contraseña en login
 userSchema.methods.comparePassword = async function (candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password); // devuelve true/false[web:119][web:134]
+  return bcrypt.compare(candidatePassword, this.password);
+};
+
+// Método para verificar si es un ejecutor
+userSchema.methods.isExecutor = function() {
+  return ['gerente', 'diseñador', 'practicante'].includes(this.role);
+};
+
+// Método para verificar si tiene capacidad disponible
+userSchema.methods.hasCapacity = async function() {
+  if (!this.isExecutor()) return false;
+  if (!this.executorProfile.available) return false;
+  
+  const Request = mongoose.model('Request');
+  const currentLoad = await Request.countDocuments({
+    assignedTo: this._id,
+    status: { $in: ['pending', 'in-process', 'review'] }
+  });
+  
+  return currentLoad < this.executorProfile.capacity;
+};
+
+// Método para verificar si puede ejecutar un tipo de diseño
+userSchema.methods.canExecuteType = function(designType) {
+  if (!this.isExecutor()) return false;
+  if (this.executorProfile.allowedDesignTypes.includes('all')) return true;
+  return this.executorProfile.allowedDesignTypes.includes(designType);
+};
+
+// Método para obtener carga actual
+userSchema.methods.getCurrentLoad = async function() {
+  const Request = mongoose.model('Request');
+  return await Request.countDocuments({
+    assignedTo: this._id,
+    status: { $in: ['pending', 'in-process', 'review'] }
+  });
+};
+
+// Método para actualizar estadísticas
+userSchema.methods.updateStats = async function() {
+  const Request = mongoose.model('Request');
+  
+  const completedRequests = await Request.find({
+    assignedTo: this._id,
+    status: 'completed'
+  });
+  
+  this.executorProfile.stats.totalCompleted = completedRequests.length;
+  
+  if (completedRequests.length > 0) {
+    // Calcular tiempo promedio
+    const totalTime = completedRequests.reduce((acc, req) => {
+      const days = (new Date(req.completedAt) - new Date(req.createdAt)) / (1000 * 60 * 60 * 24);
+      return acc + days;
+    }, 0);
+    this.executorProfile.stats.averageCompletionTime = totalTime / completedRequests.length;
+    
+    // Calcular tasa de entrega a tiempo
+    const onTime = completedRequests.filter(req => {
+      const deadline = new Date(req.deadline);
+      const completed = new Date(req.completedAt);
+      return completed <= deadline;
+    }).length;
+    this.executorProfile.stats.onTimeDeliveryRate = (onTime / completedRequests.length) * 100;
+  }
+  
+  // Actualizar carga actual
+  this.executorProfile.stats.currentLoad = await this.getCurrentLoad();
+  
+  await this.save();
 };
 
 // Índices para optimizar queries

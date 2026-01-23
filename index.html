@@ -261,6 +261,20 @@
             <span class="font-medium">Reportes</span>
           </a>
           
+          <a @click="currentTab = 'calendario'" 
+             :class="currentTab === 'calendario' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
+             class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
+            <i class="ri-calendar-line text-xl mr-3"></i>
+            <span class="font-medium">Calendario</span>
+          </a>
+          
+          <a x-show="user?.role === 'admin'" @click="currentTab = 'ejecutores'; loadExecutors()" 
+             :class="currentTab === 'ejecutores' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
+             class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
+            <i class="ri-team-line text-xl mr-3"></i>
+            <span class="font-medium">Ejecutores</span>
+          </a>
+          
           <a x-show="user?.role === 'admin'" @click="currentTab = 'admin'" 
              :class="currentTab === 'admin' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
              class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
@@ -302,7 +316,57 @@
           <h1 class="text-2xl font-bold text-fenalco-blue" x-text="getTabTitle()"></h1>
           
           <div class="flex items-center space-x-4">
-            <span class="text-gray-600 text-sm hidden md:block" x-text="new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })"></span>
+            <div class="relative" x-data="{ openNotifications: false }">
+              <button @click="openNotifications = !openNotifications" class="relative p-2 text-gray-600 hover:text-fenalco-blue transition">
+                <i class="ri-notification-3-line text-2xl"></i>
+                <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              </button>
+              
+              <div x-show="openNotifications" @click.away="openNotifications = false" x-cloak
+                   class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                <div class="p-4 border-b border-gray-200">
+                  <h3 class="font-semibold text-gray-800">Notificaciones</h3>
+                </div>
+                <div class="max-h-96 overflow-y-auto">
+                  <div class="p-4 hover:bg-gray-50 border-b border-gray-100 cursor-pointer">
+                    <div class="flex gap-3">
+                      <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <i class="ri-file-list-line text-blue-600"></i>
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-800">Nueva solicitud asignada</p>
+                        <p class="text-xs text-gray-500">Banner Fenalco 2026</p>
+                        <p class="text-xs text-gray-400 mt-1">Hace 5 minutos</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="p-4 hover:bg-gray-50 border-b border-gray-100 cursor-pointer">
+                    <div class="flex gap-3">
+                      <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                        <i class="ri-check-line text-green-600"></i>
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-800">Solicitud completada</p>
+                        <p class="text-xs text-gray-500">Post redes sociales</p>
+                        <p class="text-xs text-gray-400 mt-1">Hace 1 hora</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="p-3 text-center border-t border-gray-200">
+                  <button class="text-sm text-fenalco-blue hover:text-fenalco-blue-600 font-medium">Ver todas</button>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 pl-4 border-l border-gray-200">
+              <div class="text-right hidden md:block">
+                <p class="text-sm font-semibold text-gray-800" x-text="user?.firstName + ' ' + user?.lastName"></p>
+                <p class="text-xs text-gray-500" x-text="user?.role"></p>
+              </div>
+              <div class="w-10 h-10 rounded-full bg-fenalco-green text-white flex items-center justify-center font-bold">
+                <span x-text="user?.firstName?.charAt(0)"></span>
+              </div>
+            </div>
           </div>
         </div>
       </header>
@@ -494,15 +558,20 @@
                       class="px-4 py-2 rounded-lg font-medium transition">
                 <i class="ri-list-check mr-2"></i>Lista
               </button>
-              <button @click="requestView = 'kanban'" 
-                      :class="requestView === 'kanban' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
+              <button @click="requestView = 'grid'" 
+                      :class="requestView === 'grid' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
                       class="px-4 py-2 rounded-lg font-medium transition">
-                <i class="ri-layout-grid-line mr-2"></i>Kanban
+                <i class="ri-layout-grid-line mr-2"></i>Cuadrícula
+              </button>
+              <button @click="requestView = 'timeline'" 
+                      :class="requestView === 'timeline' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
+                      class="px-4 py-2 rounded-lg font-medium transition">
+                <i class="ri-time-line mr-2"></i>Cronológica
               </button>
             </div>
             
-            <button @click="openNewRequestModal()" class="btn-primary">
-              <i class="ri-add-line mr-2"></i>Nueva Solicitud
+            <button @click="showCreateRequestModal = true" class="px-4 py-2 bg-fenalco-green text-white rounded-lg hover:bg-green-600 transition flex items-center gap-2">
+              <i class="ri-add-line"></i>Nueva Solicitud
             </button>
           </div>
           
@@ -623,9 +692,696 @@
               </template>
             </div>
           </div>
+          
+          <!-- Grid View -->
+          <div x-show="requestView === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <template x-for="request in requests" :key="request._id">
+              <div class="card hover:shadow-lg transition-shadow cursor-pointer">
+                <div class="flex items-start justify-between mb-3">
+                  <span class="text-xs px-2 py-1 rounded-full font-medium"
+                        :class="{
+                          'bg-yellow-100 text-yellow-700': request.status === 'pending',
+                          'bg-blue-100 text-blue-700': request.status === 'in-process',
+                          'bg-green-100 text-green-700': request.status === 'completed'
+                        }"
+                        x-text="getStatusLabel(request.status)"></span>
+                  <span class="text-xs px-2 py-1 rounded-full"
+                        :class="{
+                          'bg-red-100 text-red-700': request.urgency === 'express',
+                          'bg-yellow-100 text-yellow-700': request.urgency === 'urgent',
+                          'bg-green-100 text-green-700': request.urgency === 'normal'
+                        }"
+                        x-text="request.urgency"></span>
+                </div>
+                <h3 class="font-bold text-gray-800 mb-2" x-text="request.title"></h3>
+                <p class="text-sm text-gray-600 mb-3" x-text="request.description || 'Sin descripción'"></p>
+                <div class="border-t pt-3 flex items-center justify-between text-sm">
+                  <span class="text-gray-500" x-text="request.requestNumber"></span>
+                  <button class="text-fenalco-blue hover:text-fenalco-blue-600 font-medium">
+                    Ver detalles →
+                  </button>
+                </div>
+              </div>
+            </template>
+            
+            <div x-show="requests.length === 0" class="col-span-3 text-center py-12 text-gray-500">
+              <i class="ri-inbox-line text-6xl mb-4"></i>
+              <p>No hay solicitudes. ¡Crea una para comenzar!</p>
+            </div>
+          </div>
+          
+          <!-- Timeline View -->
+          <div x-show="requestView === 'timeline'" class="max-w-4xl mx-auto">
+            <template x-for="request in requests" :key="request._id">
+              <div class="relative pl-8 pb-8">
+                <!-- Timeline line -->
+                <div class="absolute left-3 top-0 w-0.5 h-full bg-gray-300"></div>
+                
+                <!-- Timeline dot -->
+                <div class="absolute left-0 top-2 w-6 h-6 rounded-full border-4 border-white"
+                     :class="{
+                       'bg-yellow-500': request.status === 'pending',
+                       'bg-blue-500': request.status === 'in-process',
+                       'bg-green-500': request.status === 'completed'
+                     }"></div>
+                
+                <!-- Content card -->
+                <div class="card hover:shadow-lg transition-shadow">
+                  <div class="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 class="font-bold text-gray-800 mb-1" x-text="request.title"></h3>
+                      <p class="text-xs text-gray-500" x-text="request.requestNumber"></p>
+                    </div>
+                    <span class="text-xs px-2 py-1 rounded-full"
+                          :class="{
+                            'bg-red-100 text-red-700': request.urgency === 'express',
+                            'bg-yellow-100 text-yellow-700': request.urgency === 'urgent',
+                            'bg-green-100 text-green-700': request.urgency === 'normal'
+                          }"
+                          x-text="request.urgency"></span>
+                  </div>
+                  <p class="text-sm text-gray-600 mb-3" x-text="request.description || 'Sin descripción'"></p>
+                  <div class="flex items-center justify-between text-xs text-gray-500">
+                    <span x-text="request.type"></span>
+                    <span x-text="new Date(request.createdAt).toLocaleDateString('es-ES')"></span>
+                  </div>
+                </div>
+              </div>
+            </template>
+            
+            <div x-show="requests.length === 0" class="text-center py-12 text-gray-500">
+              <i class="ri-inbox-line text-6xl mb-4"></i>
+              <p>No hay solicitudes. ¡Crea una para comenzar!</p>
+            </div>
+          </div>
         </div>
 
         <!-- Reportes Tab -->
+        <div x-show="currentTab === 'reportes'">
+          <div class="mb-6">
+            <div class="flex flex-wrap items-center gap-4 mb-6">
+              <!-- Period buttons -->
+              <div class="flex space-x-4">
+                <button @click="reportPeriod = 'today'" 
+                        :class="reportPeriod === 'today' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
+                        class="px-4 py-2 rounded-lg font-medium transition">
+                  <i class="ri-calendar-today-line mr-2"></i>Hoy
+                </button>
+                <button @click="reportPeriod = 'week'" 
+                        :class="reportPeriod === 'week' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
+                        class="px-4 py-2 rounded-lg font-medium transition">
+                <i class="ri-calendar-week-line mr-2"></i>Semana
+              </button>
+              <button @click="reportPeriod = 'month'" 
+                      :class="reportPeriod === 'month' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
+                      class="px-4 py-2 rounded-lg font-medium transition">
+                <i class="ri-calendar-line mr-2"></i>Mes
+              </button>
+              </div>
+              
+              <!-- Month/Year selectors -->
+              <div class="flex gap-4 ml-auto">
+                <select x-model="reportMonth" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fenalco-blue">
+                  <option value="1">Enero</option>
+                  <option value="2">Febrero</option>
+                  <option value="3">Marzo</option>
+                  <option value="4">Abril</option>
+                  <option value="5">Mayo</option>
+                  <option value="6">Junio</option>
+                  <option value="7">Julio</option>
+                  <option value="8">Agosto</option>
+                  <option value="9">Septiembre</option>
+                  <option value="10">Octubre</option>
+                  <option value="11">Noviembre</option>
+                  <option value="12">Diciembre</option>
+                </select>
+                <select x-model="reportYear" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fenalco-blue">
+                  <option value="2026">2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- Métricas del período -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div class="card">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-gray-600 text-sm">Total Solicitudes</p>
+                    <p class="text-3xl font-bold text-fenalco-blue">12</p>
+                    <p class="text-xs text-green-600 mt-1">+3 vs anterior</p>
+                  </div>
+                  <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <i class="ri-file-list-3-line text-2xl text-fenalco-blue"></i>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="card">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-gray-600 text-sm">Completadas</p>
+                    <p class="text-3xl font-bold text-green-600">8</p>
+                    <p class="text-xs text-gray-500 mt-1">66.7% tasa</p>
+                  </div>
+                  <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                    <i class="ri-checkbox-circle-line text-2xl text-green-600"></i>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="card">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-gray-600 text-sm">En Proceso</p>
+                    <p class="text-3xl font-bold text-blue-600">3</p>
+                    <p class="text-xs text-gray-500 mt-1">25.0%</p>
+                  </div>
+                  <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <i class="ri-loader-4-line text-2xl text-blue-600"></i>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="card">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-gray-600 text-sm">Tiempo Prom.</p>
+                    <p class="text-3xl font-bold text-orange-600">3.2</p>
+                    <p class="text-xs text-gray-500 mt-1">días</p>
+                  </div>
+                  <div class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
+                    <i class="ri-time-line text-2xl text-orange-600"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Gráficas -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <div class="card">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Distribución por Estado</h3>
+                <div class="h-64">
+                  <canvas id="chartStatus"></canvas>
+                </div>
+              </div>
+              
+              <div class="card">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Tendencia Diaria</h3>
+                <div class="h-64">
+                  <canvas id="chartDaily"></canvas>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Top Departamentos -->
+            <div class="card">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">Departamentos más Activos</h3>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">1</div>
+                    <div>
+                      <p class="font-semibold text-gray-800">Comercial</p>
+                      <p class="text-xs text-gray-500">15 solicitudes</p>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-lg font-bold text-gray-800">85%</p>
+                    <p class="text-xs text-gray-500">completitud</p>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">2</div>
+                    <div>
+                      <p class="font-semibold text-gray-800">Formación Empresarial</p>
+                      <p class="text-xs text-gray-500">12 solicitudes</p>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-lg font-bold text-gray-800">92%</p>
+                    <p class="text-xs text-gray-500">completitud</p>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">3</div>
+                    <div>
+                      <p class="font-semibold text-gray-800">Comunicaciones</p>
+                      <p class="text-xs text-gray-500">10 solicitudes</p>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-lg font-bold text-gray-800">90%</p>
+                    <p class="text-xs text-gray-500">completitud</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Calendario Tab -->
+        <div x-show="currentTab === 'calendario'">
+          <!-- Executor Capacity Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="card">
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <h4 class="font-bold text-gray-800">Gerente de Comunicaciones</h4>
+                  <p class="text-xs text-gray-500">María González</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-2xl font-bold text-fenalco-green">3/5</p>
+                  <p class="text-xs text-gray-500">Marzo 2026</p>
+                </div>
+              </div>
+              <div class="mb-2">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div class="bg-fenalco-green h-2 rounded-full" style="width: 60%"></div>
+                </div>
+              </div>
+              <p class="text-xs text-fenalco-green font-medium">Disponible • 2 tareas libres</p>
+            </div>
+            
+            <div class="card">
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <h4 class="font-bold text-gray-800">Diseñador Gráfico</h4>
+                  <p class="text-xs text-gray-500">Carlos Ruiz</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-2xl font-bold text-yellow-500">4/5</p>
+                  <p class="text-xs text-gray-500">Marzo 2026</p>
+                </div>
+              </div>
+              <div class="mb-2">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div class="bg-yellow-500 h-2 rounded-full" style="width: 80%"></div>
+                </div>
+              </div>
+              <p class="text-xs text-yellow-600 font-medium">Alta carga • 1 tarea libre</p>
+            </div>
+            
+            <div class="card">
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <h4 class="font-bold text-gray-800">Practicante</h4>
+                  <p class="text-xs text-gray-500">Ana Martínez</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-2xl font-bold text-orange-500">2/3</p>
+                  <p class="text-xs text-gray-500">Marzo 2026</p>
+                </div>
+              </div>
+              <div class="mb-2">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div class="bg-orange-500 h-2 rounded-full" style="width: 67%"></div>
+                </div>
+              </div>
+              <p class="text-xs text-orange-600 font-medium">Moderada • 1 tarea libre</p>
+            </div>
+          </div>
+          
+          <!-- Calendar Controls -->
+          <div class="card mb-6">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+              <!-- Today + Month/Year selectors -->
+              <div class="flex items-center gap-4">
+                <button class="px-4 py-2 bg-fenalco-green text-white rounded-lg font-medium">
+                  <i class="ri-calendar-today-line mr-2"></i>Hoy
+                </button>
+                <select x-model="calendarMonth" class="px-4 py-2 border rounded-lg">
+                  <option value="1">Enero</option>
+                  <option value="2">Febrero</option>
+                  <option value="3">Marzo</option>
+                  <option value="4">Abril</option>
+                  <option value="5">Mayo</option>
+                  <option value="6">Junio</option>
+                  <option value="7">Julio</option>
+                  <option value="8">Agosto</option>
+                  <option value="9">Septiembre</option>
+                  <option value="10">Octubre</option>
+                  <option value="11">Noviembre</option>
+                  <option value="12">Diciembre</option>
+                </select>
+                <select x-model="calendarYear" class="px-4 py-2 border rounded-lg">
+                  <option value="2026">2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                </select>
+              </div>
+              
+              <!-- View tabs -->
+              <div class="flex space-x-2">
+                <button @click="calendarView = 'day'" 
+                        :class="calendarView === 'day' ? 'bg-fenalco-green text-white' : 'bg-gray-200 text-gray-700'"
+                        class="px-4 py-2 rounded-lg font-medium transition">
+                  Día
+                </button>
+                <button @click="calendarView = 'week'" 
+                        :class="calendarView === 'week' ? 'bg-fenalco-green text-white' : 'bg-gray-200 text-gray-700'"
+                        class="px-4 py-2 rounded-lg font-medium transition">
+                  Semana
+                </button>
+                <button @click="calendarView = 'month'" 
+                        :class="calendarView === 'month' ? 'bg-fenalco-green text-white' : 'bg-gray-200 text-gray-700'"
+                        class="px-4 py-2 rounded-lg font-medium transition">
+                  Mes
+                </button>
+              </div>
+            </div>
+            
+            <!-- Day View -->
+            <div x-show="calendarView === 'day'">
+              <div class="border rounded-lg overflow-hidden">
+                <div class="bg-gray-50 p-4 border-b">
+                  <h3 class="font-bold text-lg">Lunes, 24 de Marzo 2026</h3>
+                </div>
+                <div class="grid grid-cols-1 divide-y">
+                  <div class="flex">
+                    <div class="w-20 p-4 text-sm text-gray-600 border-r">6:00</div>
+                    <div class="flex-1 p-4">
+                      <div class="bg-blue-100 border-l-4 border-blue-500 p-2 rounded">
+                        <p class="font-medium text-sm">Banner Fenalco 2026</p>
+                        <p class="text-xs text-gray-600">Carlos Ruiz</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex">
+                    <div class="w-20 p-4 text-sm text-gray-600 border-r">8:00</div>
+                    <div class="flex-1 p-4">
+                      <div class="bg-green-100 border-l-4 border-green-500 p-2 rounded">
+                        <p class="font-medium text-sm">Post Redes Sociales</p>
+                        <p class="text-xs text-gray-600">Ana Martínez</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex">
+                    <div class="w-20 p-4 text-sm text-gray-600 border-r">10:00</div>
+                    <div class="flex-1 p-4 bg-gray-50"></div>
+                  </div>
+                  <div class="flex">
+                    <div class="w-20 p-4 text-sm text-gray-600 border-r">12:00</div>
+                    <div class="flex-1 p-4">
+                      <div class="bg-purple-100 border-l-4 border-purple-500 p-2 rounded">
+                        <p class="font-medium text-sm">Presentación Resultados</p>
+                        <p class="text-xs text-gray-600">María González</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Week View -->
+            <div x-show="calendarView === 'week'">
+              <div class="border rounded-lg overflow-x-auto">
+                <div class="min-w-full">
+                  <div class="grid grid-cols-8 bg-gray-50 border-b">
+                    <div class="p-3 border-r"></div>
+                    <div class="p-3 text-center font-medium border-r">Lun 24</div>
+                    <div class="p-3 text-center font-medium border-r">Mar 25</div>
+                    <div class="p-3 text-center font-medium border-r">Mié 26</div>
+                    <div class="p-3 text-center font-medium border-r">Jue 27</div>
+                    <div class="p-3 text-center font-medium border-r">Vie 28</div>
+                    <div class="p-3 text-center font-medium border-r text-gray-400">Sáb 29</div>
+                    <div class="p-3 text-center font-medium text-gray-400">Dom 30</div>
+                  </div>
+                  <div class="grid grid-cols-8">
+                    <div class="p-3 text-sm text-gray-600 border-r border-b">6:00</div>
+                    <div class="p-2 border-r border-b">
+                      <div class="bg-blue-100 border-l-2 border-blue-500 p-1 rounded text-xs">
+                        <p class="font-medium">Banner</p>
+                      </div>
+                    </div>
+                    <div class="p-2 border-r border-b"></div>
+                    <div class="p-2 border-r border-b">
+                      <div class="bg-green-100 border-l-2 border-green-500 p-1 rounded text-xs">
+                        <p class="font-medium">Post</p>
+                      </div>
+                    </div>
+                    <div class="p-2 border-r border-b"></div>
+                    <div class="p-2 border-r border-b">
+                      <div class="bg-purple-100 border-l-2 border-purple-500 p-1 rounded text-xs">
+                        <p class="font-medium">Presentación</p>
+                      </div>
+                    </div>
+                    <div class="p-2 border-r border-b bg-gray-50"></div>
+                    <div class="p-2 border-b bg-gray-50"></div>
+                  </div>
+                  <div class="grid grid-cols-8">
+                    <div class="p-3 text-sm text-gray-600 border-r border-b">8:00</div>
+                    <div class="p-2 border-r border-b"></div>
+                    <div class="p-2 border-r border-b">
+                      <div class="bg-green-100 border-l-2 border-green-500 p-1 rounded text-xs">
+                        <p class="font-medium">Diseño Logo</p>
+                      </div>
+                    </div>
+                    <div class="p-2 border-r border-b"></div>
+                    <div class="p-2 border-r border-b"></div>
+                    <div class="p-2 border-r border-b"></div>
+                    <div class="p-2 border-r border-b bg-gray-50"></div>
+                    <div class="p-2 border-b bg-gray-50"></div>
+                  </div>
+                  <div class="grid grid-cols-8">
+                    <div class="p-3 text-sm text-gray-600 border-r border-b">10:00</div>
+                    <div class="p-2 border-r border-b"></div>
+                    <div class="p-2 border-r border-b">
+                      <div class="bg-yellow-100 border-l-2 border-yellow-500 p-1 rounded text-xs">
+                        <p class="font-medium">Video</p>
+                      </div>
+                    </div>
+                    <div class="p-2 border-r border-b"></div>
+                    <div class="p-2 border-r border-b">
+                      <div class="bg-red-100 border-l-2 border-red-500 p-1 rounded text-xs">
+                        <p class="font-medium">Urgente</p>
+                      </div>
+                    </div>
+                    <div class="p-2 border-r border-b"></div>
+                    <div class="p-2 border-r border-b bg-gray-50"></div>
+                    <div class="p-2 border-b bg-gray-50"></div>
+                  </div>
+                  <div class="grid grid-cols-8">
+                    <div class="p-3 text-sm text-gray-600 border-r border-b">12:00</div>
+                    <div class="p-2 border-r border-b">
+                      <div class="bg-orange-100 border-l-2 border-orange-500 p-1 rounded text-xs">
+                        <p class="font-medium">Reunión</p>
+                      </div>
+                    </div>
+                    <div class="p-2 border-r border-b"></div>
+                    <div class="p-2 border-r border-b"></div>
+                    <div class="p-2 border-r border-b"></div>
+                    <div class="p-2 border-r border-b">
+                      <div class="bg-blue-100 border-l-2 border-blue-500 p-1 rounded text-xs">
+                        <p class="font-medium">Revisión</p>
+                      </div>
+                    </div>
+                    <div class="p-2 border-r border-b bg-gray-50"></div>
+                    <div class="p-2 border-b bg-gray-50"></div>
+                  </div>
+                  <div class="grid grid-cols-8">
+                    <div class="p-3 text-sm text-gray-600 border-r border-b">14:00</div>
+                    <div class="p-2 border-r border-b"></div>
+                    <div class="p-2 border-r border-b"></div>
+                    <div class="p-2 border-r border-b">
+                      <div class="bg-purple-100 border-l-2 border-purple-500 p-1 rounded text-xs">
+                        <p class="font-medium">Informe</p>
+                      </div>
+                    </div>
+                    <div class="p-2 border-r border-b"></div>
+                    <div class="p-2 border-r border-b"></div>
+                    <div class="p-2 border-r border-b bg-gray-50"></div>
+                    <div class="p-2 border-b bg-gray-50"></div>
+                  </div>
+                  <div class="grid grid-cols-8">
+                    <div class="p-3 text-sm text-gray-600 border-r">16:00</div>
+                    <div class="p-2 border-r"></div>
+                    <div class="p-2 border-r"></div>
+                    <div class="p-2 border-r"></div>
+                    <div class="p-2 border-r">
+                      <div class="bg-pink-100 border-l-2 border-pink-500 p-1 rounded text-xs">
+                        <p class="font-medium">Correcciones</p>
+                      </div>
+                    </div>
+                    <div class="p-2 border-r"></div>
+                    <div class="p-2 border-r bg-gray-50"></div>
+                    <div class="p-2 bg-gray-50"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Month View -->
+            <div x-show="calendarView === 'month'">
+              <div class="border rounded-lg overflow-hidden">
+                <div class="grid grid-cols-7 bg-gray-50 border-b">
+                  <div class="p-3 text-center font-medium">Lun</div>
+                  <div class="p-3 text-center font-medium">Mar</div>
+                  <div class="p-3 text-center font-medium">Mié</div>
+                  <div class="p-3 text-center font-medium">Jue</div>
+                  <div class="p-3 text-center font-medium">Vie</div>
+                  <div class="p-3 text-center font-medium text-gray-400">Sáb</div>
+                  <div class="p-3 text-center font-medium text-gray-400">Dom</div>
+                </div>
+                <div class="grid grid-cols-7">
+                  <div class="aspect-square p-2 border-r border-b text-gray-400">
+                    <p class="text-sm">28</p>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b text-gray-400">
+                    <p class="text-sm">29</p>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b text-gray-400">
+                    <p class="text-sm">30</p>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b text-gray-400">
+                    <p class="text-sm">31</p>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm font-bold">1</p>
+                    <div class="mt-1 space-y-1">
+                      <div class="w-full h-1 bg-blue-500 rounded"></div>
+                      <div class="w-full h-1 bg-green-500 rounded"></div>
+                    </div>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b bg-gray-50">
+                    <p class="text-sm">2</p>
+                  </div>
+                  <div class="aspect-square p-2 border-b bg-gray-50">
+                    <p class="text-sm">3</p>
+                  </div>
+                  
+                  <!-- More days -->
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">4</p>
+                    <div class="mt-1 space-y-1">
+                      <div class="w-full h-1 bg-purple-500 rounded"></div>
+                    </div>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">5</p>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">6</p>
+                    <div class="mt-1 space-y-1">
+                      <div class="w-full h-1 bg-yellow-500 rounded"></div>
+                      <div class="w-full h-1 bg-red-500 rounded"></div>
+                      <div class="w-full h-1 bg-blue-500 rounded"></div>
+                    </div>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">7</p>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">8</p>
+                    <div class="mt-1 space-y-1">
+                      <div class="w-full h-1 bg-green-500 rounded"></div>
+                    </div>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b bg-gray-50">
+                    <p class="text-sm">9</p>
+                  </div>
+                  <div class="aspect-square p-2 border-b bg-gray-50">
+                    <p class="text-sm">10</p>
+                  </div>
+                  
+                  <!-- Semana 3 -->
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">11</p>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">12</p>
+                    <div class="mt-1 space-y-1">
+                      <div class="w-full h-1 bg-orange-500 rounded"></div>
+                    </div>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">13</p>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">14</p>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">15</p>
+                    <div class="mt-1 space-y-1">
+                      <div class="w-full h-1 bg-blue-500 rounded"></div>
+                      <div class="w-full h-1 bg-purple-500 rounded"></div>
+                    </div>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b bg-gray-50">
+                    <p class="text-sm">16</p>
+                  </div>
+                  <div class="aspect-square p-2 border-b bg-gray-50">
+                    <p class="text-sm">17</p>
+                  </div>
+                  
+                  <!-- Semana 4 -->
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">18</p>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">19</p>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">20</p>
+                    <div class="mt-1 space-y-1">
+                      <div class="w-full h-1 bg-green-500 rounded"></div>
+                    </div>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">21</p>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">22</p>
+                    <div class="mt-1 space-y-1">
+                      <div class="w-full h-1 bg-yellow-500 rounded"></div>
+                    </div>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b bg-gray-50">
+                    <p class="text-sm">23</p>
+                  </div>
+                  <div class="aspect-square p-2 border-b bg-gray-50">
+                    <p class="text-sm">24</p>
+                  </div>
+                  
+                  <!-- Semana 5 -->
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm font-bold bg-fenalco-green bg-opacity-10">25</p>
+                    <div class="mt-1 space-y-1">
+                      <div class="w-full h-1 bg-red-500 rounded"></div>
+                      <div class="w-full h-1 bg-blue-500 rounded"></div>
+                    </div>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">26</p>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">27</p>
+                    <div class="mt-1 space-y-1">
+                      <div class="w-full h-1 bg-purple-500 rounded"></div>
+                    </div>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">28</p>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b">
+                    <p class="text-sm">29</p>
+                  </div>
+                  <div class="aspect-square p-2 border-r border-b bg-gray-50">
+                    <p class="text-sm">30</p>
+                  </div>
+                  <div class="aspect-square p-2 border-b bg-gray-50">
+                    <p class="text-sm">31</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ejecutores Section -->
         <div x-show="currentTab === 'reportes'">
           <div class="card mb-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Análisis de Solicitudes</h3>
@@ -647,14 +1403,459 @@
         </div>
 
         <!-- Admin Tab -->
-        <div x-show="currentTab === 'admin'" x-show="user?.role === 'admin'">
-          <div class="card">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Gestión de Usuarios</h3>
-            <p class="text-gray-600">Panel de administración disponible solo para administradores</p>
+        <div x-show="currentTab === 'admin'">
+          <!-- Para usuarios admin: Gestión de usuarios -->
+          <div x-show="user?.role === 'admin'">
+            <div class="flex justify-between items-center mb-6">
+              <h2 class="text-2xl font-bold text-gray-800">Gestión de Usuarios</h2>
+              <button class="px-4 py-2 bg-fenalco-green text-white rounded-lg font-medium flex items-center gap-2 hover:bg-opacity-90 transition">
+                <i class="ri-user-add-line"></i> Nuevo Usuario
+              </button>
+            </div>
+            
+            <div class="card overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="border-b border-gray-200">
+                    <th class="text-left p-4 font-semibold text-gray-700">Email</th>
+                    <th class="text-left p-4 font-semibold text-gray-700">Nombre</th>
+                    <th class="text-left p-4 font-semibold text-gray-700">Rol</th>
+                    <th class="text-left p-4 font-semibold text-gray-700">Área</th>
+                    <th class="text-left p-4 font-semibold text-gray-700">Estado</th>
+                    <th class="text-left p-4 font-semibold text-gray-700">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="p-4 text-sm">asistentedireccion@fenalcosantander.com.co</td>
+                    <td class="p-4 text-sm font-medium">Ana María López</td>
+                    <td class="p-4">
+                      <span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">Admin</span>
+                    </td>
+                    <td class="p-4 text-sm">Dirección</td>
+                    <td class="p-4">
+                      <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span>
+                    </td>
+                    <td class="p-4">
+                      <div class="flex gap-2">
+                        <button class="text-blue-600 hover:text-blue-800" title="Editar">
+                          <i class="ri-edit-line"></i>
+                        </button>
+                        <button class="text-red-600 hover:text-red-800" title="Eliminar">
+                          <i class="ri-delete-bin-line"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="p-4 text-sm">gerente@fenalcosantander.com.co</td>
+                    <td class="p-4 text-sm font-medium">María González</td>
+                    <td class="p-4">
+                      <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">Gerente</span>
+                    </td>
+                    <td class="p-4 text-sm">Comunicaciones</td>
+                    <td class="p-4">
+                      <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span>
+                    </td>
+                    <td class="p-4">
+                      <div class="flex gap-2">
+                        <button class="text-blue-600 hover:text-blue-800" title="Editar">
+                          <i class="ri-edit-line"></i>
+                        </button>
+                        <button class="text-red-600 hover:text-red-800" title="Eliminar">
+                          <i class="ri-delete-bin-line"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="p-4 text-sm">disenador@fenalcosantander.com.co</td>
+                    <td class="p-4 text-sm font-medium">Carlos Ruiz</td>
+                    <td class="p-4">
+                      <span class="px-2 py-1 bg-teal-100 text-teal-700 text-xs rounded-full">Diseñador</span>
+                    </td>
+                    <td class="p-4 text-sm">Comunicaciones</td>
+                    <td class="p-4">
+                      <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span>
+                    </td>
+                    <td class="p-4">
+                      <div class="flex gap-2">
+                        <button class="text-blue-600 hover:text-blue-800" title="Editar">
+                          <i class="ri-edit-line"></i>
+                        </button>
+                        <button class="text-red-600 hover:text-red-800" title="Eliminar">
+                          <i class="ri-delete-bin-line"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="p-4 text-sm">practicante@fenalcosantander.com.co</td>
+                    <td class="p-4 text-sm font-medium">Ana Martínez</td>
+                    <td class="p-4">
+                      <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Practicante</span>
+                    </td>
+                    <td class="p-4 text-sm">Comunicaciones</td>
+                    <td class="p-4">
+                      <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span>
+                    </td>
+                    <td class="p-4">
+                      <div class="flex gap-2">
+                        <button class="text-blue-600 hover:text-blue-800" title="Editar">
+                          <i class="ri-edit-line"></i>
+                        </button>
+                        <button class="text-red-600 hover:text-red-800" title="Eliminar">
+                          <i class="ri-delete-bin-line"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="p-4 text-sm">comercial@fenalcosantander.com.co</td>
+                    <td class="p-4 text-sm font-medium">Pedro Sánchez</td>
+                    <td class="p-4">
+                      <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">Usuario</span>
+                    </td>
+                    <td class="p-4 text-sm">Comercial</td>
+                    <td class="p-4">
+                      <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span>
+                    </td>
+                    <td class="p-4">
+                      <div class="flex gap-2">
+                        <button class="text-blue-600 hover:text-blue-800" title="Editar">
+                          <i class="ri-edit-line"></i>
+                        </button>
+                        <button class="text-red-600 hover:text-red-800" title="Eliminar">
+                          <i class="ri-delete-bin-line"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <!-- Para usuarios regulares: Perfil personal -->
+          <div x-show="user?.role !== 'admin'">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Mi Perfil</h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <!-- Información del usuario -->
+              <div class="lg:col-span-1">
+                <div class="card text-center">
+                  <div class="w-24 h-24 rounded-full bg-fenalco-green text-white flex items-center justify-center text-3xl font-bold mx-auto mb-4">
+                    <span x-text="user?.firstName?.charAt(0) + user?.lastName?.charAt(0)"></span>
+                  </div>
+                  <h3 class="text-xl font-bold text-gray-800 mb-2" x-text="user?.firstName + ' ' + user?.lastName"></h3>
+                  <p class="text-gray-600 mb-4" x-text="user?.email"></p>
+                  <div class="space-y-2 text-sm text-left">
+                    <div class="flex justify-between py-2 border-b">
+                      <span class="text-gray-600">Rol:</span>
+                      <span class="font-medium" x-text="user?.role"></span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b">
+                      <span class="text-gray-600">Departamento:</span>
+                      <span class="font-medium" x-text="user?.department"></span>
+                    </div>
+                    <div class="flex justify-between py-2">
+                      <span class="text-gray-600">Estado:</span>
+                      <span class="text-green-600 font-medium">
+                        <i class="ri-checkbox-circle-fill"></i> Activo
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Cambiar contraseña -->
+              <div class="lg:col-span-2">
+                <div class="card">
+                  <h3 class="text-lg font-bold text-gray-800 mb-4">Cambiar Contraseña</h3>
+                  <form @submit.prevent="changePassword()" class="space-y-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña Actual</label>
+                      <input type="password" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
+                      <input type="password" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar Nueva Contraseña</label>
+                      <input type="password" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                    </div>
+                    <button type="submit" class="px-6 py-2 bg-fenalco-green text-white rounded-lg font-medium hover:bg-opacity-90 transition">
+                      <i class="ri-lock-password-line mr-2"></i>Actualizar Contraseña
+                    </button>
+                  </form>
+                </div>
+                
+                <!-- Mis estadísticas -->
+                <div class="card mt-6">
+                  <h3 class="text-lg font-bold text-gray-800 mb-4">Mis Estadísticas</h3>
+                  <div class="grid grid-cols-3 gap-4">
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                      <p class="text-2xl font-bold text-blue-600" x-text="stats.total || 0"></p>
+                      <p class="text-sm text-gray-600">Total Solicitudes</p>
+                    </div>
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                      <p class="text-2xl font-bold text-green-600" x-text="stats.completed || 0"></p>
+                      <p class="text-sm text-gray-600">Completadas</p>
+                    </div>
+                    <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                      <p class="text-2xl font-bold text-yellow-600" x-text="stats.inProcess || 0"></p>
+                      <p class="text-sm text-gray-600">En Proceso</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
       </main>
+    </div>
+  </div>
+
+  <!-- Modal: Crear/Editar Ejecutor -->
+  <div x-show="showExecutorModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="showExecutorModal = false">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+      <div class="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+        <h3 class="text-2xl font-bold text-gray-800" x-text="executorForm.id ? 'Editar Ejecutor' : 'Nuevo Ejecutor'"></h3>
+        <button @click="showExecutorModal = false" class="text-gray-400 hover:text-gray-600 text-2xl">
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+      
+      <form @submit.prevent="saveExecutor()" class="p-6 space-y-4">
+        <!-- Información Personal -->
+        <div class="space-y-4">
+          <h4 class="font-semibold text-gray-700 flex items-center gap-2">
+            <i class="ri-user-line"></i> Información Personal
+          </h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+              <input type="text" x-model="executorForm.firstName" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Apellido *</label>
+              <input type="text" x-model="executorForm.lastName" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+              <input type="email" x-model="executorForm.email" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Cédula</label>
+              <input type="text" x-model="executorForm.cedula" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+              <input type="tel" x-model="executorForm.phone" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Rol *</label>
+              <select x-model="executorForm.role" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" @change="executorForm.capacity = executorForm.role === 'gerente' ? 15 : executorForm.role === 'diseñador' ? 8 : 5; executorForm.priority = executorForm.role === 'gerente' ? 1 : executorForm.role === 'diseñador' ? 2 : 3">
+                <option value="gerente">Gerente</option>
+                <option value="diseñador">Diseñador</option>
+                <option value="practicante">Practicante</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Configuración de Capacidad -->
+        <div class="space-y-4 pt-4 border-t">
+          <h4 class="font-semibold text-gray-700 flex items-center gap-2">
+            <i class="ri-settings-3-line"></i> Configuración
+          </h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Capacidad (tareas simultáneas) *</label>
+              <input type="number" x-model.number="executorForm.capacity" required min="1" max="50" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Prioridad (1=alta, 3=baja) *</label>
+              <input type="number" x-model.number="executorForm.priority" required min="1" max="3" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+            </div>
+          </div>
+        </div>
+
+        <!-- Acciones -->
+        <div class="flex justify-end gap-3 pt-4 border-t">
+          <button type="button" @click="showExecutorModal = false" class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
+            Cancelar
+          </button>
+          <button type="submit" class="px-6 py-2 bg-fenalco-green text-white rounded-lg hover:bg-green-600 transition">
+            <i class="ri-save-line mr-1"></i> Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Detalles de Ejecutor -->
+  <div x-show="showExecutorDetailsModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="showExecutorDetailsModal = false">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto m-4">
+      <template x-if="currentExecutor">
+        <div>
+          <!-- Header -->
+          <div class="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+            <div class="flex items-center gap-4">
+              <div class="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold"
+                   :class="{
+                     'bg-purple-500': currentExecutor.executor.role === 'gerente',
+                     'bg-blue-500': currentExecutor.executor.role === 'diseñador',
+                     'bg-green-500': currentExecutor.executor.role === 'practicante'
+                   }">
+                <span x-text="currentExecutor.executor.firstName.charAt(0) + currentExecutor.executor.lastName.charAt(0)"></span>
+              </div>
+              <div>
+                <h3 class="text-2xl font-bold text-gray-800" x-text="currentExecutor.executor.firstName + ' ' + currentExecutor.executor.lastName"></h3>
+                <p class="text-gray-600" x-text="currentExecutor.executor.email"></p>
+              </div>
+            </div>
+            <button @click="showExecutorDetailsModal = false" class="text-gray-400 hover:text-gray-600 text-2xl">
+              <i class="ri-close-line"></i>
+            </button>
+          </div>
+
+          <div class="p-6">
+            <!-- Estadísticas -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div class="bg-blue-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-600">Carga Actual</p>
+                <p class="text-2xl font-bold text-blue-600" x-text="currentExecutor.statistics.currentLoad + '/' + currentExecutor.executor.executorProfile.capacity"></p>
+              </div>
+              <div class="bg-green-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-600">Completadas</p>
+                <p class="text-2xl font-bold text-green-600" x-text="currentExecutor.executor.executorProfile.stats.totalCompleted"></p>
+              </div>
+              <div class="bg-yellow-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-600">Prom. Días</p>
+                <p class="text-2xl font-bold text-yellow-600" x-text="currentExecutor.executor.executorProfile.stats.averageCompletionTime.toFixed(1)"></p>
+              </div>
+              <div class="bg-purple-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-600">A Tiempo</p>
+                <p class="text-2xl font-bold text-purple-600" x-text="Math.round(currentExecutor.executor.executorProfile.stats.onTimeDeliveryRate) + '%'"></p>
+              </div>
+            </div>
+
+            <!-- Solicitudes Activas -->
+            <div class="mb-6">
+              <h4 class="text-lg font-semibold mb-3">Solicitudes Activas (<span x-text="currentExecutor.activeRequests.length"></span>)</h4>
+              <div class="space-y-2 max-h-60 overflow-y-auto">
+                <template x-for="request in currentExecutor.activeRequests" :key="request._id">
+                  <div class="border rounded-lg p-3 hover:bg-gray-50">
+                    <div class="flex justify-between items-start">
+                      <div class="flex-1">
+                        <p class="font-medium text-gray-800" x-text="request.title"></p>
+                        <p class="text-sm text-gray-600" x-text="request.requestedBy.firstName + ' ' + request.requestedBy.lastName"></p>
+                      </div>
+                      <span class="text-xs px-2 py-1 rounded-full"
+                            :class="{
+                              'bg-yellow-100 text-yellow-700': request.status === 'pending',
+                              'bg-blue-100 text-blue-700': request.status === 'in-process',
+                              'bg-purple-100 text-purple-700': request.status === 'review'
+                            }"
+                            x-text="request.status"></span>
+                    </div>
+                  </div>
+                </template>
+                <div x-show="currentExecutor.activeRequests.length === 0" class="text-center py-8 text-gray-500">
+                  <i class="ri-inbox-line text-4xl mb-2"></i>
+                  <p>No hay solicitudes activas</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Últimas Completadas -->
+            <div>
+              <h4 class="text-lg font-semibold mb-3">Últimas Completadas</h4>
+              <div class="space-y-2 max-h-60 overflow-y-auto">
+                <template x-for="request in currentExecutor.recentCompletedRequests" :key="request._id">
+                  <div class="border rounded-lg p-3 bg-green-50">
+                    <div class="flex justify-between items-start">
+                      <div class="flex-1">
+                        <p class="font-medium text-gray-800" x-text="request.title"></p>
+                        <p class="text-sm text-gray-600" x-text="request.requestedBy.firstName + ' ' + request.requestedBy.lastName"></p>
+                      </div>
+                      <span class="text-xs text-green-700">
+                        <i class="ri-checkbox-circle-fill"></i> Completada
+                      </span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- Modal: Nueva Solicitud -->
+  <div x-show="showCreateRequestModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="showCreateRequestModal = false">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+      <div class="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+        <h3 class="text-2xl font-bold text-gray-800">Nueva Solicitud</h3>
+        <button @click="showCreateRequestModal = false" class="text-gray-400 hover:text-gray-600 text-2xl">
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+      
+      <form @submit.prevent="createRequest()" class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Título *</label>
+          <input type="text" x-model="newRequest.title" required 
+                 class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" 
+                 placeholder="Ej: Banner para evento">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Descripción *</label>
+          <textarea x-model="newRequest.description" required rows="3"
+                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green"
+                    placeholder="Describe los detalles de tu solicitud"></textarea>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
+            <select x-model="newRequest.type" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+              <option value="">Seleccionar...</option>
+              <option value="redes">Redes Sociales</option>
+              <option value="pieza_impresa">Pieza Impresa</option>
+              <option value="presentacion">Presentación</option>
+              <option value="video">Video</option>
+              <option value="banner">Banner</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Urgencia *</label>
+            <select x-model="newRequest.urgency" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+              <option value="normal">Normal (3 días)</option>
+              <option value="urgente">Urgente (2 días)</option>
+              <option value="express">Express (1 día)</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="flex justify-end gap-3 pt-4 border-t">
+          <button type="button" @click="showCreateRequestModal = false" 
+                  class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
+            Cancelar
+          </button>
+          <button type="submit" 
+                  class="px-6 py-2 bg-fenalco-green text-white rounded-lg hover:bg-green-600 transition">
+            <i class="ri-add-line mr-1"></i> Crear Solicitud
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -665,10 +1866,13 @@
       return {
         isAuthenticated: false,
         user: null,
+        token: null,
         showPassword: false,
         sidebarOpen: false,
         currentTab: 'dashboard',
         requestView: 'list',
+        reportPeriod: 'today',
+        showCreateRequestModal: false,
         loginForm: {
           email: 'asistentedireccion@fenalcosantander.com.co',
           password: 'password123'
@@ -682,15 +1886,70 @@
         },
         requests: [],
         
+        // Nueva Solicitud
+        newRequest: {
+          title: '',
+          description: '',
+          type: '',
+          urgency: 'normal'
+        },
+        
+        // Reportes
+        reportMonth: new Date().getMonth() + 1,
+        reportYear: new Date().getFullYear(),
+        
+        // Calendario
+        calendarView: 'day',
+        calendarMonth: new Date().getMonth() + 1,
+        calendarYear: new Date().getFullYear(),
+        
+        // Ejecutores
+        executors: [],
+        executorStats: {},
+        executorFilters: {
+          role: '',
+          available: ''
+        },
+        currentExecutor: null,
+        showExecutorModal: false,
+        showExecutorDetailsModal: false,
+        executorForm: {
+          email: '',
+          firstName: '',
+          lastName: '',
+          cedula: '',
+          role: 'diseñador',
+          phone: '',
+          capacity: 8,
+          priority: 2,
+          allowedDesignTypes: [],
+          specialties: []
+        },
+        
         init() {
           const token = localStorage.getItem('token');
           const user = localStorage.getItem('user');
           
-          if (token && user) {
-            this.user = JSON.parse(user);
-            this.isAuthenticated = true;
-            this.loadDashboard();
-            this.loadRequests();
+          // Validar que el token tenga formato JWT válido (3 partes separadas por puntos)
+          if (token && user && token.split('.').length === 3) {
+            try {
+              this.user = JSON.parse(user);
+              this.isAuthenticated = true;
+              this.token = token;
+              this.loadDashboard();
+              this.loadRequests();
+            } catch (error) {
+              console.error('Error al parsear usuario:', error);
+              // Limpiar localStorage si hay error
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              this.isAuthenticated = false;
+            }
+          } else {
+            // Token inválido o ausente, limpiar localStorage
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            this.isAuthenticated = false;
           }
         },
         
@@ -708,6 +1967,7 @@
             if (data.success) {
               localStorage.setItem('token', data.token);
               localStorage.setItem('user', JSON.stringify(data.user));
+              this.token = data.token;
               this.user = data.user;
               this.isAuthenticated = true;
               this.loadDashboard();
@@ -835,13 +2095,74 @@
               }
             });
           }
+          
+          // Gráfico para Reportes: Distribución por Estado
+          const ctxStatus = document.getElementById('chartStatus');
+          if (ctxStatus) {
+            new Chart(ctxStatus, {
+              type: 'doughnut',
+              data: {
+                labels: ['Pendiente', 'En Proceso', 'Completada'],
+                datasets: [{
+                  data: [11, 21, 97],
+                  backgroundColor: ['#FFB549', '#4FC3F7', '#00CE7C'],
+                  borderWidth: 0
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { 
+                    position: 'bottom',
+                    labels: {
+                      padding: 15,
+                      font: { size: 12 }
+                    }
+                  }
+                },
+                cutout: '60%'
+              }
+            });
+          }
+          
+          // Gráfico para Reportes: Tendencia Diaria
+          const ctxDaily = document.getElementById('chartDaily');
+          if (ctxDaily) {
+            new Chart(ctxDaily, {
+              type: 'line',
+              data: {
+                labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+                datasets: [{
+                  label: 'Solicitudes',
+                  data: [3, 5, 4, 7, 6, 2, 1],
+                  borderColor: '#280071',
+                  backgroundColor: 'rgba(40, 0, 113, 0.1)',
+                  tension: 0.4,
+                  fill: true
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  y: { beginAtZero: true }
+                },
+                plugins: {
+                  legend: { display: false }
+                }
+              }
+            });
+          }
         },
         
         getTabTitle() {
           const titles = {
             dashboard: 'Dashboard',
             solicitudes: 'Mis Solicitudes',
-            reportes: 'Reportes',
+            reportes: 'Reportes y Análisis',
+            calendario: 'Calendario de Entregas',
+            ejecutores: 'Gestión de Ejecutores',
             admin: 'Administración'
           };
           return titles[this.currentTab] || 'Dashboard';
@@ -860,6 +2181,190 @@
         
         openNewRequestModal() {
           alert('Función de crear solicitud próximamente');
+        },
+        
+        async createRequest() {
+          try {
+            const response = await fetch(`${API_URL}/requests`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.token}`
+              },
+              body: JSON.stringify({
+                ...this.newRequest,
+                department: this.user.department,
+                requestedBy: this.user.id
+              })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+              alert('✅ Solicitud creada exitosamente: ' + data.request.requestNumber);
+              this.showCreateRequestModal = false;
+              this.newRequest = { title: '', description: '', type: '', urgency: 'normal' };
+              await this.loadRequests();
+            } else {
+              alert('❌ Error: ' + data.message);
+            }
+          } catch (error) {
+            console.error('Error al crear solicitud:', error);
+            alert('❌ Error de conexión al crear solicitud');
+          }
+        },
+        
+        // ===== FUNCIONES DE EJECUTORES =====
+        
+        async loadExecutors() {
+          try {
+            const params = new URLSearchParams();
+            if (this.executorFilters.role) params.append('role', this.executorFilters.role);
+            if (this.executorFilters.available) params.append('available', this.executorFilters.available);
+            
+            const response = await fetch(`/api/admin/executors?${params}`, {
+              headers: { 'Authorization': `Bearer ${this.token}` }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+              this.executors = data.executors;
+            }
+            
+            // Cargar estadísticas
+            await this.loadExecutorStats();
+          } catch (error) {
+            console.error('Error al cargar ejecutores:', error);
+          }
+        },
+        
+        async loadExecutorStats() {
+          try {
+            const response = await fetch('/api/admin/stats/executors', {
+              headers: { 'Authorization': `Bearer ${this.token}` }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+              this.executorStats = data;
+            }
+          } catch (error) {
+            console.error('Error al cargar estadísticas:', error);
+          }
+        },
+        
+        openExecutorModal(executor = null) {
+          if (executor) {
+            this.executorForm = {
+              id: executor._id,
+              email: executor.email,
+              firstName: executor.firstName,
+              lastName: executor.lastName,
+              cedula: executor.cedula || '',
+              role: executor.role,
+              phone: executor.phone || '',
+              capacity: executor.executorProfile.capacity,
+              priority: executor.executorProfile.priority,
+              allowedDesignTypes: executor.executorProfile.allowedDesignTypes,
+              specialties: executor.executorProfile.specialties
+            };
+          } else {
+            this.executorForm = {
+              email: '',
+              firstName: '',
+              lastName: '',
+              cedula: '',
+              role: 'diseñador',
+              phone: '',
+              capacity: 8,
+              priority: 2,
+              allowedDesignTypes: [],
+              specialties: []
+            };
+          }
+          this.showExecutorModal = true;
+        },
+        
+        async saveExecutor() {
+          try {
+            const url = this.executorForm.id 
+              ? `/api/admin/executors/${this.executorForm.id}`
+              : '/api/admin/executors';
+            const method = this.executorForm.id ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+              method,
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.token}`
+              },
+              body: JSON.stringify(this.executorForm)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+              alert(this.executorForm.id ? 'Ejecutor actualizado' : `Ejecutor creado. Contraseña temporal: ${data.temporaryPassword}`);
+              this.showExecutorModal = false;
+              await this.loadExecutors();
+            } else {
+              alert('Error: ' + data.message);
+            }
+          } catch (error) {
+            console.error('Error al guardar ejecutor:', error);
+            alert('Error al guardar ejecutor');
+          }
+        },
+        
+        editExecutor(executor) {
+          this.openExecutorModal(executor);
+        },
+        
+        async toggleExecutorAvailability(executorId, available) {
+          const reason = available ? null : prompt('Motivo de no disponibilidad:\n\n- vacaciones\n- incapacidad\n- proyecto_externo\n- otra');
+          
+          if (!available && !reason) return;
+          
+          try {
+            const response = await fetch(`/api/admin/executors/${executorId}/toggle-availability`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.token}`
+              },
+              body: JSON.stringify({
+                available,
+                unavailableReason: reason,
+                unavailableUntil: null
+              })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+              await this.loadExecutors();
+            } else {
+              alert('Error: ' + data.message);
+            }
+          } catch (error) {
+            console.error('Error al cambiar disponibilidad:', error);
+          }
+        },
+        
+        async openExecutorDetailsModal(executorId) {
+          try {
+            const response = await fetch(`/api/admin/executors/${executorId}/details`, {
+              headers: { 'Authorization': `Bearer ${this.token}` }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+              this.currentExecutor = data;
+              this.showExecutorDetailsModal = true;
+            }
+          } catch (error) {
+            console.error('Error al cargar detalles:', error);
+          }
         }
       }
     }

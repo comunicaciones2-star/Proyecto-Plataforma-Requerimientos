@@ -353,4 +353,499 @@ router.get('/export/requests', async (req, res) => {
   }
 });
 
+// =============================================================================
+// GESTIÓN DE EJECUTORES (GERENTES, DISEÑADORES, PRACTICANTES)
+// =============================================================================
+
+/**
+ * GET /api/admin/executors
+ * Listar todos los ejecutores con estadísticas en tiempo real
+ */
+router.get('/executors', async (req, res) => {
+  const logger = global.logger || console;
+  
+  try {
+    const { role, available } = req.query;
+    
+    // Construir filtro
+    const filter = {
+      role: { $in: ['gerente', 'diseñador', 'practicante'] },
+      isActive: true
+    };
+    
+    if (role) filter.role = role;
+    if (available !== undefined) filter['executorProfile.available'] = available === 'true';
+    
+    // Obtener ejecutores
+    const executors = await User.find(filter)
+      .select('-password')
+      .sort({ 'executorProfile.priority': 1, firstName: 1 });
+    
+    // Enriquecer con estadísticas en tiempo real
+    const executorsWithStats = await Promise.all(executors.map(async (executor) => {
+      const currentLoad = await executor.getCurrentLoad();
+      const loadPercentage = (currentLoad / executor.executorProfile.capacity) * 100;
+      
+      return {
+        ...executor.toObject(),
+        currentLoad,
+        loadPercentage: Math.round(loadPercentage),
+        hasCapacity: await executor.hasCapacity()
+      };
+    }));
+    
+    res.json({
+      success: true,
+      executors: executorsWithStats,
+      total: executorsWithStats.length
+    });
+  } catch (error) {
+    logger.error('Error al obtener ejecutores:', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener ejecutores'
+    });
+  }
+});
+
+/**
+ * POST /api/admin/executors
+ * Crear nuevo ejecutor
+ */
+router.post('/executors', async (req, res) => {
+  const logger = global.logger || console;
+  const { generateSecurePassword, createLog } = require('../utils/helpers');
+  
+  try {
+    const {
+      email,
+      firstName,
+      lastName,
+      cedula,
+      role,
+      department,
+      phone,
+      capacity,
+      priority,
+      allowedDesignTypes,
+      specialties
+    } = req.body;
+    
+    // Validar que sea un rol de ejecutor
+    if (!['gerente', 'diseñador', 'practicante'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'El rol debe ser gerente, diseñador o practicante'
+      });
+    }
+    
+    // Verificar que no exista el email
+    const exists = await User.findOne({ email });
+    if (exists) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ya existe un usuario con ese email'
+      });
+    }
+    
+    // Generar contraseña segura
+    const password = generateSecurePassword(12);
+    
+    // Crear usuario ejecutor
+    const executor = new User({
+      email,
+      firstName,
+      lastName,
+      cedula,
+      role,
+      department: department || 'Comunicaciones',
+      phone,
+      password,
+      executorProfile: {
+        capacity: capacity || (role === 'gerente' ? 15 : role === 'diseñador' ? 8 : 5),
+        priority: priority || (role === 'gerente' ? 1 : role === 'diseñador' ? 2 : 3),
+        allowedDesignTypes: allowedDesignTypes || (role === 'gerente' ? ['all'] : []),
+        specialties: specialties || [],
+        available: true
+      }
+    });
+    
+    await executor.save();
+    
+    // Log de auditoría
+    await createLog({
+      level: 'info',
+      userId: req.user.id,
+      userName: `${req.user.firstName} ${req.user.lastName}`,
+      action: 'executor_created',
+      details: {
+        executorId: executor._id,
+        executorEmail: executor.email,
+        role: executor.role
+      },
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+    
+    // TODO: Enviar email con credenciales
+    // await sendEmail(email, password);
+    
+    const executorSafe = executor.toObject();
+    delete executorSafe.password;
+    
+    res.status(201).json({
+      success: true,
+      executor: executorSafe,
+      temporaryPassword: password, // Solo para mostrar una vez
+      message: 'Ejecutor creado exitosamente'
+    });
+  } catch (error) {
+    logger.error('Error al crear ejecutor:', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al crear ejecutor'
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/executors/:id
+ * Actualizar perfil de ejecutor
+ */
+router.put('/executors/:id', async (req, res) => {
+  const logger = global.logger || console;
+  const { createLog } = require('../utils/helpers');
+  
+  try {
+    const { id } = req.params;
+    const {
+      firstName,
+      lastName,
+      cedula,
+      email,
+      phone,
+      capacity,
+      priority,
+      allowedDesignTypes,
+      specialties,
+      available,
+      unavailableReason,
+      unavailableUntil
+    } = req.body;
+    
+    const executor = await User.findById(id);
+    if (!executor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ejecutor no encontrado'
+      });
+    }
+    
+    // Verificar que es un ejecutor
+    if (!executor.isExecutor()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Este usuario no es un ejecutor'
+      });
+    }
+    
+    // Si cambia el email, verificar que no exista
+    if (email && email !== executor.email) {
+      const emailExists = await User.findOne({ email, _id: { $ne: id } });
+      if (emailExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Ya existe un usuario con ese email'
+        });
+      }
+      executor.email = email;
+    }
+    
+    // Actualizar campos básicos
+    if (firstName) executor.firstName = firstName;
+    if (lastName) executor.lastName = lastName;
+    if (cedula) executor.cedula = cedula;
+    if (phone) executor.phone = phone;
+    
+    // Actualizar perfil de ejecutor
+    if (capacity !== undefined) executor.executorProfile.capacity = capacity;
+    if (priority !== undefined) executor.executorProfile.priority = priority;
+    if (allowedDesignTypes) executor.executorProfile.allowedDesignTypes = allowedDesignTypes;
+    if (specialties) executor.executorProfile.specialties = specialties;
+    if (available !== undefined) executor.executorProfile.available = available;
+    if (unavailableReason) executor.executorProfile.unavailableReason = unavailableReason;
+    if (unavailableUntil) executor.executorProfile.unavailableUntil = unavailableUntil;
+    
+    await executor.save();
+    
+    // Log de auditoría
+    await createLog({
+      level: 'info',
+      userId: req.user.id,
+      userName: `${req.user.firstName} ${req.user.lastName}`,
+      action: 'executor_updated',
+      details: {
+        executorId: executor._id,
+        executorEmail: executor.email,
+        changes: req.body
+      },
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+    
+    const executorSafe = executor.toObject();
+    delete executorSafe.password;
+    
+    res.json({
+      success: true,
+      executor: executorSafe,
+      message: 'Ejecutor actualizado exitosamente'
+    });
+  } catch (error) {
+    logger.error('Error al actualizar ejecutor:', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al actualizar ejecutor'
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/executors/:id/toggle-availability
+ * Cambiar disponibilidad de ejecutor rápidamente
+ */
+router.put('/executors/:id/toggle-availability', async (req, res) => {
+  const logger = global.logger || console;
+  const { createLog } = require('../utils/helpers');
+  
+  try {
+    const { id } = req.params;
+    const { available, unavailableReason, unavailableUntil } = req.body;
+    
+    const executor = await User.findById(id);
+    if (!executor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ejecutor no encontrado'
+      });
+    }
+    
+    if (!executor.isExecutor()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Este usuario no es un ejecutor'
+      });
+    }
+    
+    executor.executorProfile.available = available;
+    
+    if (!available) {
+      executor.executorProfile.unavailableReason = unavailableReason || 'otra';
+      executor.executorProfile.unavailableUntil = unavailableUntil || null;
+    } else {
+      executor.executorProfile.unavailableReason = null;
+      executor.executorProfile.unavailableUntil = null;
+    }
+    
+    await executor.save();
+    
+    // Log de auditoría
+    await createLog({
+      level: 'info',
+      userId: req.user.id,
+      userName: `${req.user.firstName} ${req.user.lastName}`,
+      action: available ? 'executor_enabled' : 'executor_disabled',
+      details: {
+        executorId: executor._id,
+        executorEmail: executor.email,
+        unavailableReason,
+        unavailableUntil
+      },
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+    
+    const executorSafe = executor.toObject();
+    delete executorSafe.password;
+    
+    res.json({
+      success: true,
+      executor: executorSafe,
+      message: available ? 'Ejecutor habilitado' : 'Ejecutor deshabilitado'
+    });
+  } catch (error) {
+    logger.error('Error al cambiar disponibilidad:', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al cambiar disponibilidad'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/executors/:id/details
+ * Obtener detalles completos de un ejecutor incluyendo solicitudes activas
+ */
+router.get('/executors/:id/details', async (req, res) => {
+  const logger = global.logger || console;
+  
+  try {
+    const { id } = req.params;
+    
+    const executor = await User.findById(id).select('-password');
+    if (!executor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ejecutor no encontrado'
+      });
+    }
+    
+    if (!executor.isExecutor()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Este usuario no es un ejecutor'
+      });
+    }
+    
+    // Obtener solicitudes activas
+    const activeRequests = await Request.find({
+      assignedTo: id,
+      status: { $in: ['pending', 'in-process', 'review'] }
+    })
+    .populate('requestedBy', 'firstName lastName email department')
+    .sort({ createdAt: -1 });
+    
+    // Obtener últimas solicitudes completadas
+    const completedRequests = await Request.find({
+      assignedTo: id,
+      status: 'completed'
+    })
+    .populate('requestedBy', 'firstName lastName email department')
+    .sort({ completedAt: -1 })
+    .limit(10);
+    
+    // Calcular estadísticas en tiempo real
+    const currentLoad = await executor.getCurrentLoad();
+    const loadPercentage = (currentLoad / executor.executorProfile.capacity) * 100;
+    const hasCapacity = await executor.hasCapacity();
+    
+    res.json({
+      success: true,
+      executor: executor.toObject(),
+      statistics: {
+        currentLoad,
+        loadPercentage: Math.round(loadPercentage),
+        hasCapacity,
+        activeRequestsCount: activeRequests.length,
+        completedRequestsCount: executor.executorProfile.stats.totalCompleted
+      },
+      activeRequests,
+      recentCompletedRequests: completedRequests
+    });
+  } catch (error) {
+    logger.error('Error al obtener detalles de ejecutor:', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener detalles de ejecutor'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/stats/executors
+ * Obtener estadísticas agregadas de todos los ejecutores
+ */
+router.get('/stats/executors', async (req, res) => {
+  const logger = global.logger || console;
+  
+  try {
+    // Obtener todos los ejecutores activos
+    const executors = await User.find({
+      role: { $in: ['gerente', 'diseñador', 'practicante'] },
+      isActive: true
+    });
+    
+    // Calcular estadísticas por rol
+    const statsByRole = {};
+    
+    for (const role of ['gerente', 'diseñador', 'practicante']) {
+      const roleExecutors = executors.filter(e => e.role === role);
+      
+      if (roleExecutors.length === 0) {
+        statsByRole[role] = {
+          count: 0,
+          available: 0,
+          totalCapacity: 0,
+          currentLoad: 0,
+          utilizationRate: 0
+        };
+        continue;
+      }
+      
+      const available = roleExecutors.filter(e => e.executorProfile.available).length;
+      const totalCapacity = roleExecutors.reduce((sum, e) => sum + e.executorProfile.capacity, 0);
+      
+      let currentLoad = 0;
+      for (const executor of roleExecutors) {
+        currentLoad += await executor.getCurrentLoad();
+      }
+      
+      const utilizationRate = totalCapacity > 0 ? (currentLoad / totalCapacity) * 100 : 0;
+      
+      statsByRole[role] = {
+        count: roleExecutors.length,
+        available,
+        totalCapacity,
+        currentLoad,
+        utilizationRate: Math.round(utilizationRate)
+      };
+    }
+    
+    // Estadísticas globales
+    const totalExecutors = executors.length;
+    const totalAvailable = executors.filter(e => e.executorProfile.available).length;
+    const totalCapacity = executors.reduce((sum, e) => sum + e.executorProfile.capacity, 0);
+    
+    let totalCurrentLoad = 0;
+    for (const executor of executors) {
+      totalCurrentLoad += await executor.getCurrentLoad();
+    }
+    
+    const globalUtilizationRate = totalCapacity > 0 ? (totalCurrentLoad / totalCapacity) * 100 : 0;
+    
+    // Top performers
+    const topPerformers = executors
+      .filter(e => e.executorProfile.stats.totalCompleted > 0)
+      .sort((a, b) => b.executorProfile.stats.onTimeDeliveryRate - a.executorProfile.stats.onTimeDeliveryRate)
+      .slice(0, 5)
+      .map(e => ({
+        id: e._id,
+        name: `${e.firstName} ${e.lastName}`,
+        role: e.role,
+        totalCompleted: e.executorProfile.stats.totalCompleted,
+        onTimeDeliveryRate: Math.round(e.executorProfile.stats.onTimeDeliveryRate),
+        averageCompletionTime: Math.round(e.executorProfile.stats.averageCompletionTime * 10) / 10
+      }));
+    
+    res.json({
+      success: true,
+      global: {
+        totalExecutors,
+        totalAvailable,
+        totalCapacity,
+        totalCurrentLoad,
+        utilizationRate: Math.round(globalUtilizationRate)
+      },
+      byRole: statsByRole,
+      topPerformers
+    });
+  } catch (error) {
+    logger.error('Error al obtener estadísticas de ejecutores:', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener estadísticas'
+    });
+  }
+});
+
 module.exports = router;
