@@ -1,0 +1,13 @@
+<body class="vertical" x-data="main">
+  <div class="vertical lg:flex">
+    {{> sidebar }}
+    <div class="main-container w-full">
+      {{> topbar }}
+      <div class="main-content p-5">
+        {{> body-content }}
+      </div>
+      {{> footer }}
+    </div>
+  </div>
+  {{> vendor-scripts }}
+</body>

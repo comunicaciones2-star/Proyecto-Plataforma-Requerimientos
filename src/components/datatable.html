@@ -1,0 +1,237 @@
+<!-- DataTable Component with Fenalco Styling -->
+<div class="card" x-data="dataTable()">
+  <!-- Header with Search and Actions -->
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 pb-4 border-b">
+    <div class="relative flex-1">
+      <input 
+        type="text" 
+        placeholder="Buscar..." 
+        class="input-field pl-10" 
+        x-model="searchTerm"
+        @input="filterData()"
+      >
+      <i class="ri-search-line absolute left-3 top-3 text-gray-400"></i>
+    </div>
+    <div class="flex gap-2">
+      <button class="btn btn-secondary" title="Exportar CSV">
+        <i class="ri-download-line"></i> Exportar
+      </button>
+      <button class="btn btn-green" title="Agregar nuevo" @click="showModal = true">
+        <i class="ri-add-line"></i> Nuevo
+      </button>
+    </div>
+  </div>
+
+  <!-- Records per page selector -->
+  <div class="flex items-center gap-3 mb-4">
+    <label class="text-sm text-gray-600">Mostrar:</label>
+    <select class="input-field w-20" x-model.number="recordsPerPage" @change="currentPage = 1; filterData()">
+      <option value="10">10</option>
+      <option value="25">25</option>
+      <option value="50">50</option>
+      <option value="100">100</option>
+    </select>
+    <span class="text-sm text-gray-600">registros por página</span>
+  </div>
+
+  <!-- Table -->
+  <div class="overflow-x-auto">
+    <table class="table-hover w-full">
+      <thead>
+        <tr>
+          <th class="text-left">
+            <input type="checkbox" @change="selectAll($event)" class="w-4 h-4">
+          </th>
+          <template x-for="header in headers" :key="header">
+            <th class="text-left cursor-pointer hover:bg-gray-50" @click="sortBy(header)">
+              <div class="flex items-center gap-2">
+                <span x-text="header"></span>
+                <i class="ri-sort-desc-line text-gray-400" x-show="sortField === header"></i>
+              </div>
+            </th>
+          </template>
+          <th class="text-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <template x-for="row in paginatedData" :key="row.id">
+          <tr>
+            <td>
+              <input type="checkbox" class="w-4 h-4" :value="row.id" x-model="selectedRows">
+            </td>
+            <template x-for="header in headers" :key="header">
+              <td class="text-gray-800" x-text="row[header.toLowerCase().replace(' ', '_')] || '-'"></td>
+            </template>
+            <td class="text-center">
+              <button class="text-fenalco-blue hover:text-fenalco-green mr-2" title="Ver">
+                <i class="ri-eye-line"></i>
+              </button>
+              <button class="text-fenalco-yellow hover:text-fenalco-orange mr-2" title="Editar" @click="editRow(row)">
+                <i class="ri-edit-line"></i>
+              </button>
+              <button class="text-fenalco-coral hover:text-fenalco-magenta" title="Eliminar" @click="deleteRow(row.id)">
+                <i class="ri-delete-bin-line"></i>
+              </button>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-6 pt-4 border-t">
+    <div class="text-sm text-gray-600">
+      Mostrando <span x-text="(currentPage - 1) * recordsPerPage + 1"></span> 
+      a <span x-text="Math.min(currentPage * recordsPerPage, filteredData.length)"></span>
+      de <span x-text="filteredData.length"></span> registros
+    </div>
+    <div class="flex gap-2">
+      <button 
+        @click="previousPage()" 
+        :disabled="currentPage === 1"
+        class="btn btn-secondary"
+      >
+        <i class="ri-arrow-left-line"></i> Anterior
+      </button>
+      <div class="flex gap-1">
+        <template x-for="page in totalPages" :key="page">
+          <button 
+            @click="currentPage = page"
+            :class="currentPage === page ? 'btn bg-fenalco-green text-white' : 'btn btn-secondary'"
+            x-text="page"
+          ></button>
+        </template>
+      </div>
+      <button 
+        @click="nextPage()" 
+        :disabled="currentPage === totalPages"
+        class="btn btn-secondary"
+      >
+        Siguiente <i class="ri-arrow-right-line"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Bulk Actions -->
+  <template x-if="selectedRows.length > 0">
+    <div class="mt-4 p-4 bg-fenalco-blue/10 rounded-lg flex items-center justify-between">
+      <span class="text-sm text-fenalco-blue">
+        <span x-text="selectedRows.length"></span> elemento(s) seleccionado(s)
+      </span>
+      <div class="flex gap-2">
+        <button class="btn btn-secondary text-sm" @click="selectedRows = []">Deseleccionar</button>
+        <button class="btn bg-fenalco-coral text-white text-sm" @click="deleteSelected()">Eliminar seleccionados</button>
+      </div>
+    </div>
+  </template>
+</div>
+
+<script>
+function dataTable() {
+  return {
+    data: [],
+    filteredData: [],
+    searchTerm: '',
+    sortField: '',
+    sortOrder: 'asc',
+    currentPage: 1,
+    recordsPerPage: 10,
+    selectedRows: [],
+    headers: ['ID', 'Nombre', 'Email', 'Estado'],
+    showModal: false,
+
+    async init() {
+      // Load data from API
+      try {
+        const response = await fetch('/api/data');
+        this.data = await response.json();
+        this.filterData();
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    },
+
+    filterData() {
+      this.filteredData = this.data.filter(row => {
+        return JSON.stringify(row).toLowerCase().includes(this.searchTerm.toLowerCase());
+      });
+      
+      if (this.sortField) {
+        this.filteredData.sort((a, b) => {
+          const aVal = a[this.sortField.toLowerCase().replace(' ', '_')] || '';
+          const bVal = b[this.sortField.toLowerCase().replace(' ', '_')] || '';
+          
+          if (this.sortOrder === 'asc') {
+            return aVal > bVal ? 1 : -1;
+          } else {
+            return aVal < bVal ? 1 : -1;
+          }
+        });
+      }
+
+      this.currentPage = 1;
+    },
+
+    sortBy(field) {
+      if (this.sortField === field) {
+        this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+      } else {
+        this.sortField = field;
+        this.sortOrder = 'asc';
+      }
+      this.filterData();
+    },
+
+    selectAll(event) {
+      if (event.target.checked) {
+        this.selectedRows = this.paginatedData.map(row => row.id);
+      } else {
+        this.selectedRows = [];
+      }
+    },
+
+    editRow(row) {
+      console.log('Editing:', row);
+      this.showModal = true;
+    },
+
+    deleteRow(id) {
+      if (confirm('¿Confirmar eliminación?')) {
+        this.data = this.data.filter(row => row.id !== id);
+        this.filterData();
+      }
+    },
+
+    deleteSelected() {
+      if (confirm(`¿Eliminar ${this.selectedRows.length} registros?`)) {
+        this.data = this.data.filter(row => !this.selectedRows.includes(row.id));
+        this.selectedRows = [];
+        this.filterData();
+      }
+    },
+
+    nextPage() {
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++;
+      }
+    },
+
+    previousPage() {
+      if (this.currentPage > 1) {
+        this.currentPage--;
+      }
+    },
+
+    get totalPages() {
+      return Math.ceil(this.filteredData.length / this.recordsPerPage);
+    },
+
+    get paginatedData() {
+      const start = (this.currentPage - 1) * this.recordsPerPage;
+      const end = start + this.recordsPerPage;
+      return this.filteredData.slice(start, end);
+    }
+  };
+}
+</script>

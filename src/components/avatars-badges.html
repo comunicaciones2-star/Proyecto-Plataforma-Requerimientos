@@ -1,0 +1,204 @@
+<!-- Avatar & Badge Components -->
+
+<!-- Avatars -->
+<div class="space-y-6">
+  <div>
+    <h3 class="text-lg font-semibold mb-3">Avatares</h3>
+    
+    <!-- Small Avatar -->
+    <div class="flex items-center gap-4">
+      <div class="space-y-2">
+        <p class="text-sm font-medium">Pequeño (32px)</p>
+        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-fenalco-green to-fenalco-turquoise flex items-center justify-center text-white text-xs font-bold">
+          JD
+        </div>
+      </div>
+
+      <!-- Medium Avatar -->
+      <div class="space-y-2">
+        <p class="text-sm font-medium">Mediano (40px)</p>
+        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-fenalco-blue to-fenalco-purple flex items-center justify-center text-white text-sm font-bold">
+          AD
+        </div>
+      </div>
+
+      <!-- Large Avatar -->
+      <div class="space-y-2">
+        <p class="text-sm font-medium">Grande (56px)</p>
+        <div class="w-14 h-14 rounded-full bg-gradient-to-br from-fenalco-orange to-fenalco-coral flex items-center justify-center text-white font-bold text-lg">
+          MC
+        </div>
+      </div>
+
+      <!-- Avatar with Image -->
+      <div class="space-y-2">
+        <p class="text-sm font-medium">Con Imagen</p>
+        <img src="https://via.placeholder.com/48" alt="User" class="w-12 h-12 rounded-full object-cover border-2 border-fenalco-green">
+      </div>
+
+      <!-- Avatar Group -->
+      <div class="space-y-2">
+        <p class="text-sm font-medium">Grupo</p>
+        <div class="flex -space-x-3">
+          <div class="w-10 h-10 rounded-full bg-fenalco-green flex items-center justify-center text-white text-xs font-bold border-2 border-white">
+            JD
+          </div>
+          <div class="w-10 h-10 rounded-full bg-fenalco-blue flex items-center justify-center text-white text-xs font-bold border-2 border-white">
+            AD
+          </div>
+          <div class="w-10 h-10 rounded-full bg-fenalco-orange flex items-center justify-center text-white text-xs font-bold border-2 border-white">
+            MC
+          </div>
+          <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-xs font-bold border-2 border-white">
+            +5
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Avatar with Status Indicator -->
+    <div class="mt-4">
+      <p class="text-sm font-medium mb-3">Con Indicador de Estado</p>
+      <div class="flex items-center gap-4">
+        <div class="relative">
+          <div class="w-10 h-10 rounded-full bg-fenalco-green flex items-center justify-center text-white font-bold">
+            JD
+          </div>
+          <span class="absolute bottom-0 right-0 w-3 h-3 bg-fenalco-turquoise rounded-full border-2 border-white"></span>
+        </div>
+        <span class="text-sm">Online</span>
+
+        <div class="relative">
+          <div class="w-10 h-10 rounded-full bg-fenalco-blue flex items-center justify-center text-white font-bold">
+            AD
+          </div>
+          <span class="absolute bottom-0 right-0 w-3 h-3 bg-fenalco-yellow rounded-full border-2 border-white"></span>
+        </div>
+        <span class="text-sm">Away</span>
+
+        <div class="relative">
+          <div class="w-10 h-10 rounded-full bg-gray-400 flex items-center justify-center text-white font-bold">
+            MC
+          </div>
+          <span class="absolute bottom-0 right-0 w-3 h-3 bg-gray-500 rounded-full border-2 border-white"></span>
+        </div>
+        <span class="text-sm">Offline</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Badges -->
+  <div class="pt-6 border-t">
+    <h3 class="text-lg font-semibold mb-3">Badges</h3>
+    
+    <!-- Color Variants -->
+    <div class="mb-4">
+      <p class="text-sm font-medium mb-2">Variantes de Color</p>
+      <div class="flex flex-wrap gap-2">
+        <span class="badge bg-fenalco-green text-white">Verde</span>
+        <span class="badge bg-fenalco-blue text-white">Azul</span>
+        <span class="badge bg-fenalco-orange text-white">Naranja</span>
+        <span class="badge bg-fenalco-coral text-white">Coral</span>
+        <span class="badge bg-fenalco-sky text-white">Celeste</span>
+        <span class="badge bg-fenalco-turquoise text-white">Turquesa</span>
+        <span class="badge bg-gray-500 text-white">Gris</span>
+      </div>
+    </div>
+
+    <!-- Size Variants -->
+    <div class="mb-4">
+      <p class="text-sm font-medium mb-2">Tamaños</p>
+      <div class="flex flex-wrap gap-2 items-center">
+        <span class="badge badge-sm bg-fenalco-green text-white">Pequeño</span>
+        <span class="badge bg-fenalco-blue text-white">Normal</span>
+        <span class="badge badge-lg bg-fenalco-orange text-white">Grande</span>
+      </div>
+    </div>
+
+    <!-- With Icons -->
+    <div class="mb-4">
+      <p class="text-sm font-medium mb-2">Con Iconos</p>
+      <div class="flex flex-wrap gap-2">
+        <span class="badge bg-fenalco-green text-white">
+          <i class="ri-check-circle-line mr-1"></i> Completado
+        </span>
+        <span class="badge bg-fenalco-yellow text-black">
+          <i class="ri-time-line mr-1"></i> Pendiente
+        </span>
+        <span class="badge bg-fenalco-sky text-white">
+          <i class="ri-refresh-line mr-1"></i> En Progreso
+        </span>
+        <span class="badge bg-fenalco-coral text-white">
+          <i class="ri-close-circle-line mr-1"></i> Rechazado
+        </span>
+      </div>
+    </div>
+
+    <!-- Dot Badge (Notification) -->
+    <div>
+      <p class="text-sm font-medium mb-2">Badge de Notificación</p>
+      <div class="flex items-center gap-6">
+        <div class="relative">
+          <div class="w-10 h-10 rounded-full bg-fenalco-blue flex items-center justify-center text-white">
+            <i class="ri-mail-line"></i>
+          </div>
+          <span class="absolute -top-1 -right-1 w-5 h-5 bg-fenalco-coral text-white text-xs rounded-full flex items-center justify-center font-bold">
+            5
+          </span>
+        </div>
+
+        <div class="relative">
+          <i class="ri-notification-line text-2xl text-fenalco-blue"></i>
+          <span class="absolute -top-2 -right-2 w-4 h-4 bg-fenalco-orange text-white text-xs rounded-full flex items-center justify-center font-bold">
+            3
+          </span>
+        </div>
+
+        <div class="relative">
+          <div class="w-10 h-10 rounded-full bg-fenalco-green flex items-center justify-center text-white">
+            <i class="ri-user-line"></i>
+          </div>
+          <span class="absolute -top-1 -right-1 w-3 h-3 bg-fenalco-turquoise rounded-full border border-white"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pill Badges -->
+  <div class="pt-6 border-t">
+    <h3 class="text-lg font-semibold mb-3">Badges Pill</h3>
+    <div class="flex flex-wrap gap-2">
+      <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fenalco-green/10 text-fenalco-green text-sm">
+        <span class="w-2 h-2 bg-fenalco-green rounded-full"></span> Alta
+      </span>
+      <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fenalco-yellow/10 text-fenalco-yellow text-sm">
+        <span class="w-2 h-2 bg-fenalco-yellow rounded-full"></span> Media
+      </span>
+      <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fenalco-sky/10 text-fenalco-sky text-sm">
+        <span class="w-2 h-2 bg-fenalco-sky rounded-full"></span> Normal
+      </span>
+      <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fenalco-coral/10 text-fenalco-coral text-sm">
+        <span class="w-2 h-2 bg-fenalco-coral rounded-full"></span> Baja
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- CSS for Badge Styles -->
+<style>
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all duration-200;
+  }
+
+  .badge-sm {
+    @apply px-2 py-0.5 text-xs;
+  }
+
+  .badge-lg {
+    @apply px-3 py-1.5 text-sm;
+  }
+
+  .badge:hover {
+    @apply shadow-md transform scale-105;
+  }
+</style>

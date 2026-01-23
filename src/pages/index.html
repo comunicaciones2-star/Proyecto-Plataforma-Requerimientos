@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es" dir="ltr" data-sidebar="dark">
+<head>
+  {{> title-meta title="Dashboard" }}
+  {{> head-css }}
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.0/dist/apexcharts.min.js"></script>
+</head>
+<body class="vertical" x-data="dashboard()">
+  <div class="vertical lg:flex">
+    {{> sidebar }}
+    <div class="main-container w-full">
+      {{> topbar }}
+      <div class="main-content p-5 space-y-5">
+        
+        <!-- Page Title -->
+        <div class="mb-6">
+          <h1 class="text-3xl font-bold text-fenalco-blue">Dashboard</h1>
+          <p class="text-gray-600 mt-1">Bienvenido de vuelta, <span x-text="user?.name" class="font-semibold"></span></p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <!-- Total Solicitudes -->
+          <div class="card bg-gradient-to-br from-fenalco-green to-fenalco-turquoise">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-white/80 text-sm font-medium">Total Solicitudes</p>
+                <h3 class="text-3xl font-bold text-white mt-2" x-text="stats?.totalRequests || 0"></h3>
+              </div>
+              <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                <i class="ri-file-list-line text-2xl text-white"></i>
+              </div>
+            </div>
+            <p class="text-white/70 text-xs mt-4">
+              <i class="ri-arrow-up-line"></i> <span x-text="stats?.requestsThisMonth || 0"></span> este mes
+            </p>
+          </div>
+
+          <!-- Pendientes -->
+          <div class="card bg-gradient-to-br from-fenalco-yellow to-fenalco-orange">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-white/80 text-sm font-medium">Pendientes</p>
+                <h3 class="text-3xl font-bold text-white mt-2" x-text="stats?.pending || 0"></h3>
+              </div>
+              <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                <i class="ri-time-line text-2xl text-white"></i>
+              </div>
+            </div>
+            <p class="text-white/70 text-xs mt-4">
+              <i class="ri-alert-line"></i> Requiere atención
+            </p>
+          </div>
+
+          <!-- En Progreso -->
+          <div class="card bg-gradient-to-br from-fenalco-sky to-fenalco-turquoise">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-white/80 text-sm font-medium">En Progreso</p>
+                <h3 class="text-3xl font-bold text-white mt-2" x-text="stats?.inProgress || 0"></h3>
+              </div>
+              <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                <i class="ri-loader-4-line text-2xl text-white"></i>
+              </div>
+            </div>
+            <p class="text-white/70 text-xs mt-4">
+              <i class="ri-arrow-right-line"></i> En ejecución
+            </p>
+          </div>
+
+          <!-- Completadas -->
+          <div class="card bg-gradient-to-br from-fenalco-green-light-2 to-fenalco-green-light-1">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-white/80 text-sm font-medium">Completadas</p>
+                <h3 class="text-3xl font-bold text-white mt-2" x-text="stats?.completed || 0"></h3>
+              </div>
+              <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                <i class="ri-check-double-line text-2xl text-white"></i>
+              </div>
+            </div>
+            <p class="text-white/70 text-xs mt-4">
+              <i class="ri-check-line"></i> Finalizadas
+            </p>
+          </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          
+          <!-- Solicitudes por Área -->
+          <div class="card lg:col-span-2">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Solicitudes por Área</h3>
+            <div id="requestsByArea" class="h-64"></div>
+          </div>
+
+          <!-- Estado General -->
+          <div class="card">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Estado General</h3>
+            <div id="requestsStatus" class="h-64"></div>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          
+          <!-- Últimas Solicitudes -->
+          <div class="card">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Últimas Solicitudes</h3>
+            <div class="space-y-3">
+              <template x-for="request in recentRequests" :key="request.id">
+                <div class="flex items-center gap-3 pb-3 border-b border-gray-200 last:border-b-0">
+                  <div class="w-10 h-10 rounded-full flex items-center justify-center" :class="{
+                    'bg-fenalco-green/20': request.status === 'completed',
+                    'bg-fenalco-yellow/20': request.status === 'pending',
+                    'bg-fenalco-sky/20': request.status === 'in_progress',
+                  }">
+                    <i class="ri-file-line text-fenalco-green"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-800 truncate" x-text="request.title"></p>
+                    <p class="text-xs text-gray-500" x-text="request.area"></p>
+                  </div>
+                  <span class="text-xs font-semibold px-2 py-1 rounded" :class="{
+                    'bg-fenalco-green text-white': request.status === 'completed',
+                    'bg-fenalco-yellow text-black': request.status === 'pending',
+                    'bg-fenalco-sky text-white': request.status === 'in_progress',
+                  }" x-text="getStatusLabel(request.status)"></span>
+                </div>
+              </template>
+            </div>
+            <a href="/solicitudes.html" class="btn btn-green mt-4 w-full text-center">Ver todas</a>
+          </div>
+
+          <!-- Actividad Reciente -->
+          <div class="card">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Actividad Reciente</h3>
+            <div class="space-y-3">
+              <template x-for="activity in recentActivity" :key="activity.id">
+                <div class="flex items-start gap-3 pb-3 border-b border-gray-200 last:border-b-0">
+                  <div class="w-8 h-8 rounded-full bg-fenalco-green/10 flex items-center justify-center flex-shrink-0">
+                    <i class="ri-check-line text-fenalco-green text-sm"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm text-gray-700" x-text="activity.action"></p>
+                    <p class="text-xs text-gray-500 mt-0.5" x-text="formatDate(activity.date)"></p>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      {{> footer }}
+    </div>
+  </div>
+
+  {{> vendor-scripts }}
+  <script>
+    function dashboard() {
+      return {
+        user: JSON.parse(localStorage.getItem('user') || '{}'),
+        stats: {},
+        recentRequests: [],
+        recentActivity: [],
+        
+        async init() {
+          await this.loadStats();
+          await this.loadRecentRequests();
+          await this.loadRecentActivity();
+          this.initCharts();
+        },
+
+        async loadStats() {
+          try {
+            const response = await fetch('http://localhost:5000/api/admin/dashboard', {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
+            });
+            this.stats = await response.json();
+          } catch (error) {
+            console.error('Error loading stats:', error);
+          }
+        },
+
+        async loadRecentRequests() {
+          try {
+            const response = await fetch('http://localhost:5000/api/requests?limit=5', {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
+            });
+            const data = await response.json();
+            this.recentRequests = data.requests || [];
+          } catch (error) {
+            console.error('Error loading requests:', error);
+          }
+        },
+
+        async loadRecentActivity() {
+          try {
+            const response = await fetch('http://localhost:5000/api/admin/activity', {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
+            });
+            this.recentActivity = await response.json();
+          } catch (error) {
+            console.error('Error loading activity:', error);
+          }
+        },
+
+        getStatusLabel(status) {
+          const labels = {
+            'completed': 'Completada',
+            'pending': 'Pendiente',
+            'in_progress': 'En Progreso',
+            'rejected': 'Rechazada'
+          };
+          return labels[status] || status;
+        },
+
+        formatDate(date) {
+          return new Date(date).toLocaleDateString('es-CO');
+        },
+
+        initCharts() {
+          // Solicitudes por Área
+          const areaPxBarOptions = {
+            chart: { type: 'bar', fontFamily: 'Cerebri Sans', foreColor: '#94989a' },
+            colors: ['#00CE7C', '#2CD5C4', '#009CDE', '#280071'],
+            series: [{ data: this.stats.byArea?.map(a => a.count) || [5, 8, 3, 6] }],
+            xaxis: { categories: this.stats.byArea?.map(a => a.area) || ['Diseño', 'Creatividad', 'Digital', 'Otros'] },
+            dataLabels: { enabled: false }
+          };
+          new ApexCharts(document.querySelector('#requestsByArea'), areaPxBarOptions).render();
+
+          // Estado General
+          const statusDonutOptions = {
+            chart: { type: 'donut', fontFamily: 'Cerebri Sans', foreColor: '#94989a' },
+            colors: ['#00CE7C', '#FFB549', '#009CDE', '#FF8674'],
+            series: [this.stats.completed || 12, this.stats.pending || 8, this.stats.inProgress || 5, this.stats.rejected || 2],
+            labels: ['Completadas', 'Pendientes', 'En Progreso', 'Rechazadas'],
+            legend: { position: 'bottom' }
+          };
+          new ApexCharts(document.querySelector('#requestsStatus'), statusDonutOptions).render();
+        }
+      }
+    }
+  </script>
+</body>
+</html>
