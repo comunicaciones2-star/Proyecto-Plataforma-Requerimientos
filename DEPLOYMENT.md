@@ -116,10 +116,10 @@ NODE_ENV=production
 PORT=5000
 
 # MongoDB
-MONGODB_URI=mongodb+srv://fenalco_prod_user_2026:TU_PASSWORD@cluster0.nf12e8s.mongodb.net/fenalco-disenos?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://your_db_user:your_password@cluster0.xxxxx.mongodb.net/your_database?retryWrites=true&w=majority
 
 # JWT
-JWT_SECRET=0ea6038de92cf8e1774a21be326075515bad1196d213f80ea14975b4701bdc2b80c10149d06f075875798cc48b942156282667b23960b5a69878220209d8a1fb
+JWT_SECRET=generate_your_own_secure_random_jwt_secret_here_minimum_32_characters
 JWT_EXPIRE=7d
 
 # Email

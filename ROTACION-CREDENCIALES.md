@@ -12,9 +12,9 @@ Las siguientes credenciales están en el historial de Git y deben rotarse AHORA:
 
 **Credenciales actuales comprometidas:**
 ```
-Usuario: comunicaciones2_db_user
-Contraseña: 0h0TrLEeUj2jjGMz
-Connection String: mongodb+srv://comunicaciones2_db_user:0h0TrLEeUj2jjGMz@cluster0.nf12e8s.mongodb.net/
+Usuario: your_db_user
+Contraseña: your_password_here
+Connection String: mongodb+srv://your_user:your_password@cluster0.xxxxx.mongodb.net/your_database
 ```
 
 **Pasos para rotar:**
@@ -37,7 +37,7 @@ Connection String: mongodb+srv://comunicaciones2_db_user:0h0TrLEeUj2jjGMz@cluste
 
 4. **Actualizar .env**
    ```bash
-   MONGODB_URI=mongodb+srv://fenalco_prod_user_2026:NUEVA_PASSWORD@cluster0.nf12e8s.mongodb.net/fenalco-disenos?retryWrites=true&w=majority
+   MONGODB_URI=mongodb+srv://your_new_user:your_new_password@cluster0.xxxxx.mongodb.net/your_database?retryWrites=true&w=majority
    ```
 
 5. **Configurar IP Whitelist** (Seguridad adicional)
@@ -197,10 +197,10 @@ PORT=5000
 NODE_ENV=production
 
 # DATABASE - NUEVAS CREDENCIALES
-MONGODB_URI=mongodb+srv://fenalco_prod_user_2026:TU_NUEVA_PASSWORD@cluster0.nf12e8s.mongodb.net/fenalco-disenos?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://your_new_user:your_new_password@cluster0.xxxxx.mongodb.net/your_database?retryWrites=true&w=majority
 
 # JWT - NUEVO SECRET
-JWT_SECRET=0ea6038de92cf8e1774a21be326075515bad1196d213f80ea14975b4701bdc2b80c10149d06f075875798cc48b942156282667b23960b5a69878220209d8a1fb
+JWT_SECRET=generate_your_own_secure_random_jwt_secret_here_minimum_32_characters
 JWT_EXPIRE=7d
 
 # EMAIL - NUEVO APP PASSWORD
