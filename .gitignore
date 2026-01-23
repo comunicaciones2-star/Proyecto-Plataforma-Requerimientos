@@ -1,0 +1,74 @@
+# Dependencias
+node_modules/
+package-lock.json
+yarn.lock
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+startup.log
+startup.error.log
+mongodb.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+
+# Sistema operativo
+Thumbs.db
+desktop.ini
+
+# Archivos temporales
+tmp/
+temp/
+*.tmp
+*.txt
+!README*.txt
+
+# Build
+dist/
+build/
+
+# MongoDB local
+data/
+db/
+
+# Archivos de prueba
+test-*.js
+*.test.js
+*-test.js
+
+# Backup
+*.backup
+*.bak
+*.old
+
+# Documentación redundante (mantener solo README.md, QUICK-START.md, TROUBLESHOOTING.md)
+*-FINAL.md
+*-INTEGRATION.md
+*-PROGRESS.md
+*INDICE*.md
+*CHECKLIST*.md
+*DASHBOARD*.md
+*MIGRATION*.md
+*SLICED*.md
+RESUMEN*.md
+PALETA*.md
+
+# Scripts temporales
+run-*.ps1
+run-*.bat
+START-SERVERS.ps1

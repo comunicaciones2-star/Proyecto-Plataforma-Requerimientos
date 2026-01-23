@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es" dir="ltr" data-sidebar="dark">
+<head>
+  {{> title-meta title="Solicitudes" }}
+  {{> head-css }}
+</head>
+<body class="vertical" x-data="solicitudes()">
+  <div class="vertical lg:flex">
+    {{> sidebar }}
+    <div class="main-container w-full">
+      {{> topbar }}
+      <div class="main-content p-5 space-y-5">
+        
+        <!-- Page Header -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 class="text-3xl font-bold text-fenalco-blue">Solicitudes</h1>
+            <p class="text-gray-600 mt-1">Gestiona todas tus solicitudes de diseño</p>
+          </div>
+          <button class="btn btn-green" @click="showNewRequestModal = true">
+            <i class="ri-add-line"></i> Nueva Solicitud
+          </button>
+        </div>
+
+        <!-- View Selector -->
+        <div class="flex gap-2 flex-wrap">
+          <button 
+            @click="currentView = 'kanban'"
+            :class="currentView === 'kanban' ? 'btn bg-fenalco-green text-white' : 'btn btn-secondary'"
+          >
+            <i class="ri-layout-kanban-line"></i> Junta
+          </button>
+          <button 
+            @click="currentView = 'table'"
+            :class="currentView === 'table' ? 'btn bg-fenalco-green text-white' : 'btn btn-secondary'"
+          >
+            <i class="ri-table-2"></i> Lista
+          </button>
+          <button 
+            @click="currentView = 'timeline'"
+            :class="currentView === 'timeline' ? 'btn bg-fenalco-green text-white' : 'btn btn-secondary'"
+          >
+            <i class="ri-time-line"></i> Cronología
+          </button>
+        </div>
+
+        <!-- Kanban View -->
+        <template x-if="currentView === 'kanban'">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <template x-for="status in statuses" :key="status">
+              <div class="space-y-3">
+                <h3 class="font-semibold text-gray-700 flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full" :style="{ backgroundColor: getStatusColor(status) }"></span>
+                  <span x-text="getStatusLabel(status)"></span>
+                  <span class="text-xs bg-gray-200 px-2 py-1 rounded-full" x-text="`(${getRequestsByStatus(status).length})`"></span>
+                </h3>
+                <div class="space-y-2">
+                  <template x-for="request in getRequestsByStatus(status)" :key="request.id">
+                    <div class="card hover:shadow-lg transition-shadow cursor-pointer border-l-4" :style="{ borderColor: getStatusColor(status) }">
+                      <p class="font-medium text-sm text-gray-800" x-text="request.title"></p>
+                      <p class="text-xs text-gray-600 mt-1" x-text="request.area"></p>
+                      <div class="flex items-center justify-between mt-3">
+                        <span class="text-xs bg-fenalco-blue/10 text-fenalco-blue px-2 py-1 rounded" x-text="request.priority"></span>
+                        <span class="text-xs text-gray-500" x-text="formatDate(request.createdAt)"></span>
+                      </div>
+                    </div>
+                  </template>
+                  <template x-if="getRequestsByStatus(status).length === 0">
+                    <div class="text-center py-6 text-gray-400">
+                      <i class="ri-inbox-line text-2xl mb-2 block"></i>
+                      <p class="text-sm">Sin solicitudes</p>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <!-- Table View -->
+        <template x-if="currentView === 'table'">
+          <div class="card overflow-x-auto">
+            <table class="table-hover w-full">
+              <thead>
+                <tr>
+                  <th class="text-left">Título</th>
+                  <th class="text-left">Área</th>
+                  <th class="text-left">Prioridad</th>
+                  <th class="text-left">Estado</th>
+                  <th class="text-left">Creado</th>
+                  <th class="text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="request in requests" :key="request.id">
+                  <tr>
+                    <td class="font-medium text-gray-800" x-text="request.title"></td>
+                    <td class="text-gray-600" x-text="request.area"></td>
+                    <td>
+                      <span class="text-xs font-semibold px-2 py-1 rounded" :class="{
+                        'bg-fenalco-coral text-white': request.priority === 'Alta',
+                        'bg-fenalco-yellow text-black': request.priority === 'Media',
+                        'bg-fenalco-green text-white': request.priority === 'Baja'
+                      }" x-text="request.priority"></span>
+                    </td>
+                    <td>
+                      <span class="text-xs font-semibold px-2 py-1 rounded" :class="{
+                        'bg-fenalco-green text-white': request.status === 'completed',
+                        'bg-fenalco-yellow text-black': request.status === 'pending',
+                        'bg-fenalco-sky text-white': request.status === 'in_progress',
+                        'bg-fenalco-coral text-white': request.status === 'rejected'
+                      }" x-text="getStatusLabel(request.status)"></span>
+                    </td>
+                    <td class="text-gray-600 text-sm" x-text="formatDate(request.createdAt)"></td>
+                    <td class="text-center">
+                      <button class="text-fenalco-blue hover:text-fenalco-green mr-2" title="Ver detalles">
+                        <i class="ri-eye-line"></i>
+                      </button>
+                      <button @click="openEditModal(request)" class="text-fenalco-yellow hover:text-fenalco-orange mr-2" title="Editar">
+                        <i class="ri-edit-line"></i>
+                      </button>
+                      <button @click="deleteRequest(request._id)" class="text-fenalco-coral hover:text-fenalco-magenta" title="Eliminar">
+                        <i class="ri-delete-bin-line"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </template>
+
+        <!-- Timeline View -->
+        <template x-if="currentView === 'timeline'">
+          <div class="card">
+            <div class="relative">
+              <div class="absolute left-5 top-0 bottom-0 w-1 bg-gradient-to-b from-fenalco-green to-fenalco-turquoise"></div>
+              <div class="space-y-6 pl-16">
+                <template x-for="request in timelineRequests" :key="request.id">
+                  <div class="relative">
+                    <div class="absolute -left-11 top-1 w-8 h-8 rounded-full bg-white border-4 border-fenalco-green flex items-center justify-center">
+                      <i class="ri-check-line text-fenalco-green"></i>
+                    </div>
+                    <div>
+                      <h4 class="font-semibold text-gray-800" x-text="request.title"></h4>
+                      <p class="text-sm text-gray-600 mt-1" x-text="request.description"></p>
+                      <div class="flex gap-4 mt-2 text-xs text-gray-500">
+                        <span><i class="ri-map-pin-line mr-1"></i><span x-text="request.area"></span></span>
+                        <span><i class="ri-calendar-line mr-1"></i><span x-text="formatDate(request.createdAt)"></span></span>
+                        <span class="font-medium" :class="{
+                          'text-fenalco-green': request.status === 'completed',
+                          'text-fenalco-yellow': request.status === 'pending',
+                          'text-fenalco-sky': request.status === 'in_progress'
+                        }" x-text="getStatusLabel(request.status)"></span>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+        </template>
+
+      </div>
+      {{> footer }}
+    </div>
+  </div>
+
+  {{> vendor-scripts }}
+  <script>
+    function solicitudes() {
+      return {
+        currentView: localStorage.getItem('solicitudesView') || 'kanban',
+        requests: [],
+        statuses: ['pending', 'in_progress', 'completed', 'rejected'],
+        showNewRequestModal: false,
+        showEditRequestModal: false,
+        editingRequest: {},
+        newRequest: { title: '', description: '', area: 'comunicaciones', type: 'redes', urgency: 'normal', deliveryDate: '', targetAudience: '' },
+
+        async init() {
+          await this.loadRequests();
+          this.$watch('currentView', (value) => {
+            localStorage.setItem('solicitudesView', value);
+          });
+        },
+
+        async loadRequests() {
+          try {
+            const response = await fetch('http://localhost:5000/api/requests', {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
+            });
+            const data = await response.json();
+            this.requests = data.requests || [];
+          } catch (error) {
+            console.error('Error loading requests:', error);
+          }
+        },
+
+        getRequestsByStatus(status) {
+          return this.requests.filter(r => r.status === status);
+        },
+
+        get timelineRequests() {
+          return [...this.requests].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        },
+
+        getStatusLabel(status) {
+          const labels = {
+            'completed': 'Completada',
+            'pending': 'Pendiente',
+            'in_progress': 'En Progreso',
+            'rejected': 'Rechazada'
+          };
+          return labels[status] || status;
+        },
+
+        getStatusColor(status) {
+          const colors = {
+            'completed': '#00CE7C',
+            'pending': '#FFB549',
+            'in_progress': '#009CDE',
+            'rejected': '#FF8674'
+          };
+          return colors[status] || '#75787B';
+        },
+
+        formatDate(date) {
+          return new Date(date).toLocaleDateString('es-CO');
+        },
+
+        async addNewRequest() {
+          try {
+            const response = await fetch('/api/requests', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify(this.newRequest)
+            });
+            if (response.ok) {
+              this.newRequest = { title: '', description: '', area: 'comunicaciones', type: 'redes', urgency: 'normal', deliveryDate: '', targetAudience: '' };
+              this.showNewRequestModal = false;
+              await this.loadRequests();
+              alert('✅ Solicitud creada exitosamente');
+            }
+          } catch (error) {
+            console.error('Error al crear solicitud:', error);
+          }
+        },
+
+        openEditModal(request) {
+          this.editingRequest = { ...request };
+          this.showEditRequestModal = true;
+        },
+
+        async updateRequest() {
+          try {
+            const response = await fetch(`/api/requests/${this.editingRequest._id}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify(this.editingRequest)
+            });
+            if (response.ok) {
+              this.showEditRequestModal = false;
+              await this.loadRequests();
+              alert('✅ Solicitud actualizada');
+            }
+          } catch (error) {
+            console.error('Error al actualizar:', error);
+          }
+        },
+
+        deleteRequest(id) {
+          if (confirm('¿Estás seguro que deseas eliminar esta solicitud?')) {
+            fetch(`/api/requests/${id}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            }).then(() => this.loadRequests());
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- ========== MODALES INTEGRADOS ========== -->
+  
+  <!-- Modal Nueva Solicitud -->
+  <div id="modalNewRequest" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center" x-show="showNewRequestModal" @click.self="showNewRequestModal = false">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-gray-900">Nueva Solicitud</h3>
+        <button @click="showNewRequestModal = false" class="text-gray-400 hover:text-gray-600">
+          <i class="ri-close-line text-xl"></i>
+        </button>
+      </div>
+      <form @submit.prevent="addNewRequest" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Título</label>
+          <input type="text" x-model="newRequest.title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fenalco-green" placeholder="Describe tu solicitud">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+          <textarea rows="3" x-model="newRequest.description" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fenalco-green" placeholder="Detalles..."></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Área</label>
+          <select x-model="newRequest.area" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fenalco-green">
+            <option value="comunicaciones" selected>Comunicaciones</option>
+            <option value="direccion">Dirección</option>
+            <option value="comercial">Comercial</option>
+            <option value="formacion">Formación</option>
+            <option value="juridica">Jurídica</option>
+            <option value="tecnologia">Tecnología</option>
+            <option value="administrativa">Administrativa</option>
+            <option value="otra">Otra</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Diseño</label>
+          <select x-model="newRequest.type" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fenalco-green">
+            <option value="redes" selected>Redes Sociales</option>
+            <option value="pieza_impresa">Pieza Impresa</option>
+            <option value="presentacion">Presentación</option>
+            <option value="video">Video</option>
+            <option value="merchandising">Merchandising</option>
+            <option value="emailing">Emailing</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Urgencia</label>
+          <select x-model="newRequest.urgency" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fenalco-green">
+            <option value="normal" selected>Normal</option>
+            <option value="urgent">Urgente</option>
+            <option value="express">Express</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Entrega</label>
+          <input type="date" x-model="newRequest.deliveryDate" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fenalco-green">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Público Objetivo</label>
+          <input type="text" x-model="newRequest.targetAudience" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fenalco-green" placeholder="Describe el público objetivo...">
+        </div>
+        <div class="flex gap-3 pt-4">
+          <button type="button" @click="showNewRequestModal = false" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancelar</button>
+          <button type="submit" class="flex-1 px-4 py-2 bg-fenalco-green text-white rounded-lg hover:bg-opacity-90">Crear</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Editar Solicitud -->
+  <div id="modalEditRequest" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center" x-show="showEditRequestModal" @click.self="showEditRequestModal = false">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-gray-900">Editar Solicitud</h3>
+        <button @click="showEditRequestModal = false" class="text-gray-400 hover:text-gray-600">
+          <i class="ri-close-line text-xl"></i>
+        </button>
+      </div>
+      <form @submit.prevent="updateRequest" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Título</label>
+          <input type="text" x-model="editingRequest.title" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fenalco-green">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+          <select x-model="editingRequest.status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fenalco-green">
+            <option value="pending">Pendiente</option>
+            <option value="in_progress">En Progreso</option>
+            <option value="completed">Completada</option>
+            <option value="rejected">Rechazada</option>
+          </select>
+        </div>
+        <div class="flex gap-3 pt-4">
+          <button type="button" @click="showEditRequestModal = false" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancelar</button>
+          <button type="submit" class="flex-1 px-4 py-2 bg-fenalco-blue text-white rounded-lg hover:bg-opacity-90">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!-- Toast/Alert Notifications System -->
+<div x-data="toastManager()" x-init="init()">
+  <!-- Toast Container -->
+  <div class="fixed top-6 right-6 z-50 space-y-3 max-w-md pointer-events-none">
+    <template x-for="toast in toasts" :key="toast.id">
+      <div 
+        :class="[
+          'p-4 rounded-lg shadow-lg flex items-start gap-3 animate-fade-in pointer-events-auto',
+          {
+            'bg-fenalco-green text-white': toast.type === 'success',
+            'bg-fenalco-sky text-white': toast.type === 'info',
+            'bg-fenalco-orange text-white': toast.type === 'warning',
+            'bg-fenalco-coral text-white': toast.type === 'error'
+          }
+        ]"
+        @click="removeToast(toast.id)"
+      >
+        <div class="flex-1">
+          <div class="flex items-start gap-2">
+            <i :class="[
+              'ri-1x text-lg mt-0.5 flex-shrink-0',
+              {
+                'ri-check-circle-line': toast.type === 'success',
+                'ri-information-line': toast.type === 'info',
+                'ri-alert-line': toast.type === 'warning',
+                'ri-close-circle-line': toast.type === 'error'
+              }
+            ]"></i>
+            <div>
+              <p class="font-semibold" x-text="toast.title"></p>
+              <p class="text-sm mt-1 opacity-90" x-text="toast.message" x-show="toast.message"></p>
+            </div>
+          </div>
+          <!-- Progress bar -->
+          <div class="mt-2 h-1 bg-white/30 rounded-full overflow-hidden">
+            <div 
+              class="h-full bg-white/60 animate-shrink"
+              :style="`animation-duration: ${toast.duration}ms`"
+            ></div>
+          </div>
+        </div>
+        <button class="flex-shrink-0 hover:opacity-80 text-lg" @click.stop="removeToast(toast.id)">
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+    </template>
+  </div>
+
+  <!-- Modal Alerts (Larger notifications) -->
+  <template x-if="showModal">
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click="closeModal()">
+      <div 
+        class="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4"
+        @click.stop
+      >
+        <div 
+          class="p-6 pb-4"
+          :class="{
+            'border-t-4 border-fenalco-green': modalAlert.type === 'success',
+            'border-t-4 border-fenalco-sky': modalAlert.type === 'info',
+            'border-t-4 border-fenalco-orange': modalAlert.type === 'warning',
+            'border-t-4 border-fenalco-coral': modalAlert.type === 'error'
+          }"
+        >
+          <div class="flex items-start gap-4">
+            <div 
+              class="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-white text-xl"
+              :class="{
+                'bg-fenalco-green': modalAlert.type === 'success',
+                'bg-fenalco-sky': modalAlert.type === 'info',
+                'bg-fenalco-orange': modalAlert.type === 'warning',
+                'bg-fenalco-coral': modalAlert.type === 'error'
+              }"
+            >
+              <i :class="{
+                'ri-check-line': modalAlert.type === 'success',
+                'ri-information-line': modalAlert.type === 'info',
+                'ri-alert-line': modalAlert.type === 'warning',
+                'ri-close-line': modalAlert.type === 'error'
+              }"></i>
+            </div>
+            <div class="flex-1">
+              <h3 class="font-bold text-lg" x-text="modalAlert.title"></h3>
+              <p class="text-gray-600 mt-2" x-text="modalAlert.message"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-2 px-6 py-4 bg-gray-50 rounded-b-lg">
+          <button 
+            @click="closeModal()"
+            class="flex-1 btn btn-secondary"
+          >
+            Cerrar
+          </button>
+          <template x-if="modalAlert.confirmAction">
+            <button 
+              @click="confirmAction()"
+              class="flex-1 btn"
+              :class="{
+                'bg-fenalco-green text-white': modalAlert.type === 'success',
+                'bg-fenalco-blue text-white': modalAlert.type === 'info',
+                'bg-fenalco-orange text-white': modalAlert.type === 'warning',
+                'bg-fenalco-coral text-white': modalAlert.type === 'error'
+              }"
+            >
+              Confirmar
+            </button>
+          </template>
+        </div>
+      </div>
+    </div>
+  </template>
+</div>
+
+<!-- CSS Animations -->
+<style>
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes shrink {
+    from {
+      width: 100%;
+    }
+    to {
+      width: 0%;
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .animate-shrink {
+    animation: shrink linear forwards;
+  }
+</style>
+
+<script>
+  function toastManager() {
+    return {
+      toasts: [],
+      showModal: false,
+      modalAlert: {
+        type: 'info',
+        title: '',
+        message: '',
+        confirmAction: null
+      },
+      toastCounter: 0,
+
+      init() {
+        // Exponer globalmente para uso en otras partes de la app
+        window.showToast = (message, type = 'info', title = '', duration = 3000) => {
+          this.toast(message, type, title, duration);
+        };
+        window.showAlert = (title, message, type = 'info', confirmFn = null) => {
+          this.alert(title, message, type, confirmFn);
+        };
+      },
+
+      toast(message, type = 'info', title = '', duration = 3000) {
+        const id = this.toastCounter++;
+        const toast = {
+          id,
+          title: title || this.getDefaultTitle(type),
+          message,
+          type,
+          duration
+        };
+        this.toasts.push(toast);
+
+        setTimeout(() => {
+          this.removeToast(id);
+        }, duration);
+      },
+
+      alert(title, message, type = 'info', confirmFn = null) {
+        this.modalAlert = {
+          type,
+          title,
+          message,
+          confirmAction: confirmFn
+        };
+        this.showModal = true;
+      },
+
+      removeToast(id) {
+        this.toasts = this.toasts.filter(t => t.id !== id);
+      },
+
+      closeModal() {
+        this.showModal = false;
+        this.modalAlert.confirmAction = null;
+      },
+
+      confirmAction() {
+        if (this.modalAlert.confirmAction) {
+          this.modalAlert.confirmAction();
+        }
+        this.closeModal();
+      },
+
+      getDefaultTitle(type) {
+        const titles = {
+          'success': '✅ Éxito',
+          'info': 'ℹ️ Información',
+          'warning': '⚠️ Advertencia',
+          'error': '❌ Error'
+        };
+        return titles[type] || 'Notificación';
+      }
+    };
+  }
+</script>

@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="es" dir="ltr" data-mode="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fenalco Santander - Gestor de Diseños</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  
+  <!-- Remix Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'fenalco-blue': '#280071',
+            'fenalco-blue-600': '#3D1B8C',
+            'fenalco-blue-500': '#5230A0',
+            'fenalco-blue-400': '#6945B4',
+            'fenalco-blue-300': '#8064CC',
+            'fenalco-blue-200': '#9F88DC',
+            'fenalco-blue-100': '#D4C9E8',
+            'fenalco-green': '#00CE7C',
+            'fenalco-coral': '#FF8674',
+            'fenalco-yellow': '#FFB549',
+            'fenalco-orange': '#FF8C00',
+            'fenalco-turquoise': '#00D4AA',
+            'fenalco-sky': '#4FC3F7',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    [x-cloak] { display: none !important; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    
+    /* Dark mode styles */
+    [data-mode="dark"] {
+      color-scheme: dark;
+    }
+    
+    [data-mode="dark"] body {
+      background-color: #1a1d24;
+      color: #e5e7eb;
+    }
+    
+    [data-mode="dark"] .sidebar {
+      background-color: #252932;
+      border-color: #3a3f4a;
+    }
+    
+    [data-mode="dark"] .card {
+      background-color: #252932;
+      border-color: #3a3f4a;
+    }
+    
+    [data-mode="dark"] .topbar {
+      background-color: #252932;
+      border-color: #3a3f4a;
+    }
+    
+    [data-mode="dark"] input,
+    [data-mode="dark"] select,
+    [data-mode="dark"] textarea {
+      background-color: #1a1d24;
+      border-color: #3a3f4a;
+      color: #e5e7eb;
+    }
+    
+    .sidebar {
+      transition: transform 0.3s ease-in-out;
+    }
+    
+    @media (max-width: 1024px) {
+      .sidebar {
+        transform: translateX(-100%);
+        position: fixed;
+        z-index: 50;
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+    }
+    
+    .card {
+      @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-100 dark:border-gray-700;
+    }
+    
+    .stat-card {
+      @apply rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1;
+    }
+    
+    .metric-card {
+      @apply bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700;
+    }
+    
+    /* Timeline styles */
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -17px;
+      top: 0;
+      bottom: -20px;
+      width: 2px;
+      background: linear-gradient(to bottom, #00CE7C, transparent);
+    }
+    
+    .timeline-item:last-child::before {
+      display: none;
+    }
+    
+    /* Grid view styles */
+    .grid-card {
+      @apply bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 p-4 hover:border-fenalco-green transition-all duration-200 cursor-pointer;
+    }
+    
+    /* Chart container */
+    .chart-wrapper {
+      position: relative;
+      height: 300px;
+    }
+    
+    /* Button styles */
+    .btn-primary {
+      background: linear-gradient(135deg, #00CE7C 0%, #00B36A 100%);
+      color: white;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 206, 124, 0.2);
+    }
+    
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #00B36A 0%, #009959 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 12px rgba(0, 206, 124, 0.3);
+    }
+    
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+    
+    .btn-secondary {
+      background-color: #f3f4f6;
+      color: #374151;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #e5e7eb;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50" x-data="app()" x-init="init()">
+  
+  <!-- Login Page -->
+  <div x-show="!isAuthenticated" x-cloak class="min-h-screen bg-gradient-to-br from-fenalco-blue to-fenalco-blue-600 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+      <div class="text-center mb-8">
+        <img src="FS-Logo-Horizontal CB.svg" alt="Fenalco" class="h-12 mx-auto mb-4">
+        <h1 class="text-3xl font-bold text-fenalco-blue mb-2">Bienvenido</h1>
+        <p class="text-gray-600">Gestor de Requerimientos de Diseño</p>
+      </div>
+      
+      <div x-show="loginError" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded">
+        <p x-text="loginError"></p>
+      </div>
+      
+      <form @submit.prevent="login()">
+        <div class="mb-4">
+          <label class="block text-fenalco-blue font-semibold mb-2">Email</label>
+          <input 
+            x-model="loginForm.email" 
+            type="email" 
+            required
+            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-fenalco-green focus:outline-none transition"
+            placeholder="tu@email.com"
+          >
+        </div>
+        
+        <div class="mb-6">
+          <label class="block text-fenalco-blue font-semibold mb-2">Contraseña</label>
+          <div class="relative">
+            <input 
+              x-model="loginForm.password"
+              :type="showPassword ? 'text' : 'password'"
+              required
+              class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-fenalco-green focus:outline-none transition pr-12"
+              placeholder="••••••••"
+            >
+            <button 
+              type="button"
+              @click="showPassword = !showPassword"
+              class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-fenalco-green"
+            >
+              <i :class="showPassword ? 'ri-eye-off-line' : 'ri-eye-line'" class="text-xl"></i>
+            </button>
+          </div>
+        </div>
+        
+        <button type="submit" class="w-full btn-primary py-3 text-lg">
+          Ingresar
+        </button>
+        
+        <p class="text-center text-gray-500 text-sm mt-4">
+          Demo: asistentedireccion@fenalcosantander.com.co / password123
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div x-show="isAuthenticated" x-cloak class="flex h-screen overflow-hidden">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar w-64 bg-white border-r border-gray-200 flex-shrink-0" :class="{'open': sidebarOpen}">
+      <div class="h-full flex flex-col">
+        <!-- Logo -->
+        <div class="p-5 border-b border-gray-200">
+          <img src="FS-Logo-Horizontal CB.svg" alt="Fenalco" class="h-10">
+        </div>
+        
+        <!-- Navigation -->
+        <nav class="flex-1 overflow-y-auto p-4 space-y-1">
+          <a @click="currentTab = 'dashboard'" 
+             :class="currentTab === 'dashboard' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
+             class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
+            <i class="ri-dashboard-line text-xl mr-3"></i>
+            <span class="font-medium">Dashboard</span>
+          </a>
+          
+          <a @click="currentTab = 'solicitudes'" 
+             :class="currentTab === 'solicitudes' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
+             class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
+            <i class="ri-file-list-3-line text-xl mr-3"></i>
+            <span class="font-medium">Solicitudes</span>
+          </a>
+          
+          <a @click="currentTab = 'reportes'" 
+             :class="currentTab === 'reportes' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
+             class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
+            <i class="ri-bar-chart-box-line text-xl mr-3"></i>
+            <span class="font-medium">Reportes</span>
+          </a>
+          
+          <a x-show="user?.role === 'admin'" @click="currentTab = 'admin'" 
+             :class="currentTab === 'admin' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
+             class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
+            <i class="ri-shield-user-line text-xl mr-3"></i>
+            <span class="font-medium">Admin</span>
+          </a>
+        </nav>
+        
+        <!-- User Section -->
+        <div class="p-4 border-t border-gray-200">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <div class="w-10 h-10 rounded-full bg-fenalco-green text-white flex items-center justify-center font-bold">
+                <span x-text="user?.firstName?.charAt(0)"></span>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm font-semibold text-gray-800" x-text="user?.firstName + ' ' + user?.lastName"></p>
+                <p class="text-xs text-gray-500" x-text="user?.role"></p>
+              </div>
+            </div>
+            <button @click="logout()" class="text-red-500 hover:text-red-700">
+              <i class="ri-logout-box-line text-xl"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+      
+      <!-- Top Bar -->
+      <header class="bg-white border-b border-gray-200 px-6 py-4">
+        <div class="flex items-center justify-between">
+          <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden text-gray-600">
+            <i class="ri-menu-line text-2xl"></i>
+          </button>
+          
+          <h1 class="text-2xl font-bold text-fenalco-blue" x-text="getTabTitle()"></h1>
+          
+          <div class="flex items-center space-x-4">
+            <span class="text-gray-600 text-sm hidden md:block" x-text="new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })"></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <main class="flex-1 overflow-y-auto p-6">
+        
+        <!-- Dashboard Tab -->
+        <div x-show="currentTab === 'dashboard'">
+          <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Reportes y Análisis</h2>
+            <div class="flex items-center justify-between">
+              <p class="text-gray-600">Últimos 7 días</p>
+              <button class="px-4 py-2 bg-fenalco-blue text-white rounded-lg flex items-center gap-2 hover:bg-fenalco-blue-600 transition">
+                <i class="ri-download-line"></i>
+                Exportar PDF
+              </button>
+            </div>
+          </div>
+
+          <!-- Análisis de Solicitudes -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Tiempo Promedio -->
+            <div class="bg-blue-50 rounded-xl p-6 border border-blue-100">
+              <div class="flex items-start justify-between mb-3">
+                <p class="text-sm font-medium text-blue-600">Tiempo Promedio</p>
+                <i class="ri-time-line text-2xl text-blue-400"></i>
+              </div>
+              <h3 class="text-4xl font-bold text-blue-900 mb-2">4.2 días</h3>
+              <p class="text-xs text-blue-600">
+                <i class="ri-arrow-down-line"></i> -0.5 días
+              </p>
+            </div>
+
+            <!-- Tasa de Completitud -->
+            <div class="bg-green-50 rounded-xl p-6 border border-green-100">
+              <div class="flex items-start justify-between mb-3">
+                <p class="text-sm font-medium text-green-600">Tasa de Completitud</p>
+                <i class="ri-checkbox-circle-line text-2xl text-green-400"></i>
+              </div>
+              <h3 class="text-4xl font-bold text-green-900 mb-2">85%</h3>
+              <p class="text-xs text-green-600">
+                <i class="ri-arrow-up-line"></i> +2%
+              </p>
+            </div>
+
+            <!-- Solicitudes Urgentes -->
+            <div class="bg-amber-50 rounded-xl p-6 border border-amber-100">
+              <div class="flex items-start justify-between mb-3">
+                <p class="text-sm font-medium text-amber-600">Solicitudes Urgentes</p>
+                <i class="ri-error-warning-line text-2xl text-amber-400"></i>
+              </div>
+              <h3 class="text-4xl font-bold text-amber-900 mb-2">33%</h3>
+              <p class="text-xs text-amber-600">
+                <i class="ri-alert-line"></i> Atención
+              </p>
+            </div>
+
+            <!-- Satisfacción -->
+            <div class="bg-purple-50 rounded-xl p-6 border border-purple-100">
+              <div class="flex items-start justify-between mb-3">
+                <p class="text-sm font-medium text-purple-600">Satisfacción</p>
+                <i class="ri-star-line text-2xl text-purple-400"></i>
+              </div>
+              <h3 class="text-4xl font-bold text-purple-900 mb-2">92%</h3>
+              <p class="text-xs text-purple-600">
+                <i class="ri-thumb-up-line"></i> Excelente
+              </p>
+            </div>
+          </div>
+
+          <!-- Gráficos -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="card">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">Performance Mensual</h3>
+              <div class="chart-wrapper">
+                <canvas id="chartPerformance"></canvas>
+              </div>
+            </div>
+            
+            <div class="card">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">Distribución por Urgencia</h3>
+              <div class="chart-wrapper">
+                <canvas id="chartUrgencia"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Estadísticas por Área -->
+          <div class="card">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Estadísticas por Área</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="border-b-2 border-gray-200">
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Área</th>
+                    <th class="text-center py-3 px-4 font-semibold text-gray-700">Total</th>
+                    <th class="text-center py-3 px-4 font-semibold text-gray-700">Completadas</th>
+                    <th class="text-center py-3 px-4 font-semibold text-gray-700">En Proceso</th>
+                    <th class="text-center py-3 px-4 font-semibold text-gray-700">Pendientes</th>
+                    <th class="text-center py-3 px-4 font-semibold text-gray-700">Promedio</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-3 px-4 font-medium text-gray-800">Dirección</td>
+                    <td class="py-3 px-4 text-center text-gray-700">12</td>
+                    <td class="py-3 px-4 text-center text-green-600 font-semibold">10</td>
+                    <td class="py-3 px-4 text-center text-blue-600 font-semibold">1</td>
+                    <td class="py-3 px-4 text-center text-amber-600 font-semibold">1</td>
+                    <td class="py-3 px-4 text-center text-gray-700">3.5 días</td>
+                  </tr>
+                  <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-3 px-4 font-medium text-gray-800">Comunicaciones</td>
+                    <td class="py-3 px-4 text-center text-gray-700">45</td>
+                    <td class="py-3 px-4 text-center text-green-600 font-semibold">32</td>
+                    <td class="py-3 px-4 text-center text-blue-600 font-semibold">8</td>
+                    <td class="py-3 px-4 text-center text-amber-600 font-semibold">5</td>
+                    <td class="py-3 px-4 text-center text-gray-700">3.8 días</td>
+                  </tr>
+                  <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-3 px-4 font-medium text-gray-800">Formación Empresarial</td>
+                    <td class="py-3 px-4 text-center text-gray-700">28</td>
+                    <td class="py-3 px-4 text-center text-green-600 font-semibold">22</td>
+                    <td class="py-3 px-4 text-center text-blue-600 font-semibold">4</td>
+                    <td class="py-3 px-4 text-center text-amber-600 font-semibold">2</td>
+                    <td class="py-3 px-4 text-center text-gray-700">4.2 días</td>
+                  </tr>
+                  <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-3 px-4 font-medium text-gray-800">Comercial</td>
+                    <td class="py-3 px-4 text-center text-gray-700">32</td>
+                    <td class="py-3 px-4 text-center text-green-600 font-semibold">28</td>
+                    <td class="py-3 px-4 text-center text-blue-600 font-semibold">3</td>
+                    <td class="py-3 px-4 text-center text-amber-600 font-semibold">1</td>
+                    <td class="py-3 px-4 text-center text-gray-700">4.1 días</td>
+                  </tr>
+                  <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-3 px-4 font-medium text-gray-800">Coworking - Casa Fenalco</td>
+                    <td class="py-3 px-4 text-center text-gray-700">8</td>
+                    <td class="py-3 px-4 text-center text-green-600 font-semibold">6</td>
+                    <td class="py-3 px-4 text-center text-blue-600 font-semibold">2</td>
+                    <td class="py-3 px-4 text-center text-amber-600 font-semibold">0</td>
+                    <td class="py-3 px-4 text-center text-gray-700">3.2 días</td>
+                  </tr>
+                  <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-3 px-4 font-medium text-gray-800">Jurídico</td>
+                    <td class="py-3 px-4 text-center text-gray-700">18</td>
+                    <td class="py-3 px-4 text-center text-green-600 font-semibold">15</td>
+                    <td class="py-3 px-4 text-center text-blue-600 font-semibold">2</td>
+                    <td class="py-3 px-4 text-center text-amber-600 font-semibold">1</td>
+                    <td class="py-3 px-4 text-center text-gray-700">3.9 días</td>
+                  </tr>
+                  <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-3 px-4 font-medium text-gray-800">Contabilidad</td>
+                    <td class="py-3 px-4 text-center text-gray-700">15</td>
+                    <td class="py-3 px-4 text-center text-green-600 font-semibold">13</td>
+                    <td class="py-3 px-4 text-center text-blue-600 font-semibold">1</td>
+                    <td class="py-3 px-4 text-center text-amber-600 font-semibold">1</td>
+                    <td class="py-3 px-4 text-center text-gray-700">4.0 días</td>
+                  </tr>
+                  <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-3 px-4 font-medium text-gray-800">Fenalcobra</td>
+                    <td class="py-3 px-4 text-center text-gray-700">10</td>
+                    <td class="py-3 px-4 text-center text-green-600 font-semibold">8</td>
+                    <td class="py-3 px-4 text-center text-blue-600 font-semibold">1</td>
+                    <td class="py-3 px-4 text-center text-amber-600 font-semibold">1</td>
+                    <td class="py-3 px-4 text-center text-gray-700">3.7 días</td>
+                  </tr>
+                  <tr class="hover:bg-gray-50">
+                    <td class="py-3 px-4 font-medium text-gray-800">Fenalempleo</td>
+                    <td class="py-3 px-4 text-center text-gray-700">9</td>
+                    <td class="py-3 px-4 text-center text-green-600 font-semibold">7</td>
+                    <td class="py-3 px-4 text-center text-blue-600 font-semibold">1</td>
+                    <td class="py-3 px-4 text-center text-amber-600 font-semibold">1</td>
+                    <td class="py-3 px-4 text-center text-gray-700">3.6 días</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Solicitudes Tab -->
+        <div x-show="currentTab === 'solicitudes'">
+          <div class="flex justify-between items-center mb-6">
+            <div class="flex space-x-2">
+              <button @click="requestView = 'list'" 
+                      :class="requestView === 'list' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
+                      class="px-4 py-2 rounded-lg font-medium transition">
+                <i class="ri-list-check mr-2"></i>Lista
+              </button>
+              <button @click="requestView = 'kanban'" 
+                      :class="requestView === 'kanban' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
+                      class="px-4 py-2 rounded-lg font-medium transition">
+                <i class="ri-layout-grid-line mr-2"></i>Kanban
+              </button>
+            </div>
+            
+            <button @click="openNewRequestModal()" class="btn-primary">
+              <i class="ri-add-line mr-2"></i>Nueva Solicitud
+            </button>
+          </div>
+          
+          <!-- List View -->
+          <div x-show="requestView === 'list'" class="card">
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="border-b border-gray-200">
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Número</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Título</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Tipo</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Urgencia</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Estado</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="request in requests" :key="request._id">
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                      <td class="py-3 px-4" x-text="request.requestNumber"></td>
+                      <td class="py-3 px-4 font-medium" x-text="request.title"></td>
+                      <td class="py-3 px-4 text-sm" x-text="request.type"></td>
+                      <td class="py-3 px-4">
+                        <span class="px-2 py-1 text-xs rounded-full" 
+                              :class="{
+                                'bg-red-100 text-red-700': request.urgency === 'express',
+                                'bg-yellow-100 text-yellow-700': request.urgency === 'urgent',
+                                'bg-green-100 text-green-700': request.urgency === 'normal'
+                              }"
+                              x-text="request.urgency"></span>
+                      </td>
+                      <td class="py-3 px-4">
+                        <span class="px-2 py-1 text-xs rounded-full font-medium" 
+                              :class="{
+                                'bg-yellow-100 text-yellow-700': request.status === 'pending',
+                                'bg-blue-100 text-blue-700': request.status === 'in-process',
+                                'bg-green-100 text-green-700': request.status === 'completed'
+                              }"
+                              x-text="getStatusLabel(request.status)"></span>
+                      </td>
+                      <td class="py-3 px-4">
+                        <button class="text-fenalco-blue hover:text-fenalco-blue-600 font-medium">
+                          Ver
+                        </button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+              
+              <div x-show="requests.length === 0" class="text-center py-12 text-gray-500">
+                <i class="ri-inbox-line text-6xl mb-4"></i>
+                <p>No hay solicitudes. ¡Crea una para comenzar!</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Kanban View -->
+          <div x-show="requestView === 'kanban'" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-gray-100 p-4 rounded-lg">
+              <h3 class="font-semibold text-gray-700 mb-3 flex items-center">
+                <i class="ri-time-line text-yellow-500 mr-2"></i>Pendientes
+              </h3>
+              <template x-for="request in requests.filter(r => r.status === 'pending')" :key="request._id">
+                <div class="bg-white p-4 rounded-lg mb-3 shadow-sm hover:shadow-md transition">
+                  <h4 class="font-semibold text-gray-800 mb-2" x-text="request.title"></h4>
+                  <p class="text-sm text-gray-600 mb-2" x-text="request.requestNumber"></p>
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-gray-500" x-text="request.type"></span>
+                    <span class="px-2 py-1 rounded" 
+                          :class="{
+                            'bg-red-100 text-red-700': request.urgency === 'express',
+                            'bg-yellow-100 text-yellow-700': request.urgency === 'urgent',
+                            'bg-green-100 text-green-700': request.urgency === 'normal'
+                          }"
+                          x-text="request.urgency"></span>
+                  </div>
+                </div>
+              </template>
+            </div>
+            
+            <div class="bg-gray-100 p-4 rounded-lg">
+              <h3 class="font-semibold text-gray-700 mb-3 flex items-center">
+                <i class="ri-loader-4-line text-blue-500 mr-2"></i>En Proceso
+              </h3>
+              <template x-for="request in requests.filter(r => r.status === 'in-process')" :key="request._id">
+                <div class="bg-white p-4 rounded-lg mb-3 shadow-sm hover:shadow-md transition">
+                  <h4 class="font-semibold text-gray-800 mb-2" x-text="request.title"></h4>
+                  <p class="text-sm text-gray-600 mb-2" x-text="request.requestNumber"></p>
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-gray-500" x-text="request.type"></span>
+                    <span class="px-2 py-1 rounded" 
+                          :class="{
+                            'bg-red-100 text-red-700': request.urgency === 'express',
+                            'bg-yellow-100 text-yellow-700': request.urgency === 'urgent',
+                            'bg-green-100 text-green-700': request.urgency === 'normal'
+                          }"
+                          x-text="request.urgency"></span>
+                  </div>
+                </div>
+              </template>
+            </div>
+            
+            <div class="bg-gray-100 p-4 rounded-lg">
+              <h3 class="font-semibold text-gray-700 mb-3 flex items-center">
+                <i class="ri-check-double-line text-green-500 mr-2"></i>Completadas
+              </h3>
+              <template x-for="request in requests.filter(r => r.status === 'completed')" :key="request._id">
+                <div class="bg-white p-4 rounded-lg mb-3 shadow-sm hover:shadow-md transition">
+                  <h4 class="font-semibold text-gray-800 mb-2" x-text="request.title"></h4>
+                  <p class="text-sm text-gray-600 mb-2" x-text="request.requestNumber"></p>
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-gray-500" x-text="request.type"></span>
+                    <span class="px-2 py-1 rounded bg-green-100 text-green-700">Completada</span>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reportes Tab -->
+        <div x-show="currentTab === 'reportes'">
+          <div class="card mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Análisis de Solicitudes</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div class="text-center p-4 bg-blue-50 rounded-lg">
+                <p class="text-gray-600 text-sm mb-1">Tiempo Promedio</p>
+                <p class="text-3xl font-bold text-fenalco-blue">4.2 días</p>
+              </div>
+              <div class="text-center p-4 bg-green-50 rounded-lg">
+                <p class="text-gray-600 text-sm mb-1">Tasa Completitud</p>
+                <p class="text-3xl font-bold text-fenalco-green">85%</p>
+              </div>
+              <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                <p class="text-gray-600 text-sm mb-1">Solicitudes Urgentes</p>
+                <p class="text-3xl font-bold text-fenalco-orange">33%</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin Tab -->
+        <div x-show="currentTab === 'admin'" x-show="user?.role === 'admin'">
+          <div class="card">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Gestión de Usuarios</h3>
+            <p class="text-gray-600">Panel de administración disponible solo para administradores</p>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:5000/api';
+    
+    function app() {
+      return {
+        isAuthenticated: false,
+        user: null,
+        showPassword: false,
+        sidebarOpen: false,
+        currentTab: 'dashboard',
+        requestView: 'list',
+        loginForm: {
+          email: 'asistentedireccion@fenalcosantander.com.co',
+          password: 'password123'
+        },
+        loginError: '',
+        stats: {
+          total: 0,
+          pending: 0,
+          inProcess: 0,
+          completed: 0
+        },
+        requests: [],
+        
+        init() {
+          const token = localStorage.getItem('token');
+          const user = localStorage.getItem('user');
+          
+          if (token && user) {
+            this.user = JSON.parse(user);
+            this.isAuthenticated = true;
+            this.loadDashboard();
+            this.loadRequests();
+          }
+        },
+        
+        async login() {
+          try {
+            this.loginError = '';
+            const response = await fetch(`${API_URL}/auth/login`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.loginForm)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+              localStorage.setItem('token', data.token);
+              localStorage.setItem('user', JSON.stringify(data.user));
+              this.user = data.user;
+              this.isAuthenticated = true;
+              this.loadDashboard();
+              this.loadRequests();
+            } else {
+              this.loginError = data.message || 'Error al iniciar sesión';
+            }
+          } catch (error) {
+            this.loginError = 'Error de conexión. Verifica que el servidor esté activo.';
+            console.error(error);
+          }
+        },
+        
+        logout() {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          this.isAuthenticated = false;
+          this.user = null;
+        },
+        
+        async loadDashboard() {
+          try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/admin/requests/stats`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+              this.stats = data.stats;
+              this.initCharts();
+            }
+          } catch (error) {
+            console.error('Error loading dashboard:', error);
+          }
+        },
+        
+        async loadRequests() {
+          try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/requests`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+              this.requests = data.requests || [];
+            }
+          } catch (error) {
+            console.error('Error loading requests:', error);
+          }
+        },
+        
+        initCharts() {
+          // Gráfico de Performance Mensual
+          const ctxPerformance = document.getElementById('chartPerformance');
+          if (ctxPerformance) {
+            new Chart(ctxPerformance, {
+              type: 'line',
+              data: {
+                labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
+                datasets: [{
+                  label: 'Completadas',
+                  data: [12, 15, 14, 20, 18, 25],
+                  borderColor: '#00CE7C',
+                  backgroundColor: 'rgba(0, 206, 124, 0.1)',
+                  tension: 0.4,
+                  fill: true
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    display: true,
+                    position: 'top'
+                  }
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    grid: {
+                      color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                  },
+                  x: {
+                    grid: {
+                      display: false
+                    }
+                  }
+                }
+              }
+            });
+          }
+          
+          // Gráfico de Distribución por Urgencia
+          const ctxUrgencia = document.getElementById('chartUrgencia');
+          if (ctxUrgencia) {
+            new Chart(ctxUrgencia, {
+              type: 'doughnut',
+              data: {
+                labels: ['Normal', 'Urgente', 'Express'],
+                datasets: [{
+                  data: [50, 30, 20],
+                  backgroundColor: ['#00CE7C', '#FFB549', '#FF8674'],
+                  borderWidth: 0
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                    labels: {
+                      padding: 15,
+                      font: {
+                        size: 12
+                      }
+                    }
+                  }
+                },
+                cutout: '60%'
+              }
+            });
+          }
+        },
+        
+        getTabTitle() {
+          const titles = {
+            dashboard: 'Dashboard',
+            solicitudes: 'Mis Solicitudes',
+            reportes: 'Reportes',
+            admin: 'Administración'
+          };
+          return titles[this.currentTab] || 'Dashboard';
+        },
+        
+        getStatusLabel(status) {
+          const labels = {
+            pending: 'Pendiente',
+            'in-process': 'En Proceso',
+            review: 'Revisión',
+            completed: 'Completada',
+            rejected: 'Rechazada'
+          };
+          return labels[status] || status;
+        },
+        
+        openNewRequestModal() {
+          alert('Función de crear solicitud próximamente');
+        }
+      }
+    }
+  </script>
+</body>
+</html>

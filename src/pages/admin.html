@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es" dir="ltr" data-sidebar="dark">
+<head>
+  {{> title-meta title="Administración" }}
+  {{> head-css }}
+</head>
+<body class="vertical" x-data="admin()">
+  <div class="vertical lg:flex">
+    {{> sidebar }}
+    <div class="main-container w-full">
+      {{> topbar }}
+      <div class="main-content p-5 space-y-5">
+        
+        <!-- Page Header -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 class="text-3xl font-bold text-fenalco-blue">Administración</h1>
+            <p class="text-gray-600 mt-1">Gestiona usuarios y configuración</p>
+          </div>
+          <button class="btn btn-green" @click="showNewUserModal = true">
+            <i class="ri-user-add-line"></i> Nuevo Usuario
+          </button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex gap-2 border-b border-gray-200">
+          <button 
+            @click="activeTab = 'users'"
+            :class="activeTab === 'users' ? 'border-b-2 border-fenalco-green text-fenalco-green' : 'text-gray-600'"
+            class="pb-4 font-medium transition"
+          >
+            <i class="ri-user-line mr-2"></i> Usuarios
+          </button>
+          <button 
+            @click="activeTab = 'roles'"
+            :class="activeTab === 'roles' ? 'border-b-2 border-fenalco-green text-fenalco-green' : 'text-gray-600'"
+            class="pb-4 font-medium transition"
+          >
+            <i class="ri-shield-line mr-2"></i> Roles
+          </button>
+          <button 
+            @click="activeTab = 'settings'"
+            :class="activeTab === 'settings' ? 'border-b-2 border-fenalco-green text-fenalco-green' : 'text-gray-600'"
+            class="pb-4 font-medium transition"
+          >
+            <i class="ri-settings-line mr-2"></i> Configuración
+          </button>
+        </div>
+
+        <!-- Users Tab -->
+        <template x-if="activeTab === 'users'">
+          <div class="card overflow-x-auto">
+            <table class="table-hover w-full">
+              <thead>
+                <tr>
+                  <th class="text-left">Usuario</th>
+                  <th class="text-left">Email</th>
+                  <th class="text-left">Rol</th>
+                  <th class="text-left">Área</th>
+                  <th class="text-left">Estado</th>
+                  <th class="text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="user in users" :key="user._id">
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-fenalco-green/20 flex items-center justify-center">
+                          <i class="ri-user-line text-fenalco-green"></i>
+                        </div>
+                        <span class="font-medium text-gray-800" x-text="user.name"></span>
+                      </div>
+                    </td>
+                    <td class="text-gray-600 text-sm" x-text="user.email"></td>
+                    <td>
+                      <span class="text-xs font-semibold px-2 py-1 rounded" :class="{
+                        'bg-fenalco-magenta text-white': user.role === 'admin',
+                        'bg-fenalco-sky text-white': user.role === 'manager',
+                        'bg-fenalco-turquoise text-white': user.role === 'designer',
+                        'bg-fenalco-gray-light text-gray-800': user.role === 'collaborator'
+                      }" x-text="roleLabel(user.role)"></span>
+                    </td>
+                    <td class="text-gray-600 text-sm" x-text="user.area || '-'"></td>
+                    <td>
+                      <span class="text-xs font-semibold px-2 py-1 rounded" :class="{
+                        'bg-fenalco-green text-white': user.active,
+                        'bg-fenalco-gray-light text-gray-800': !user.active
+                      }" x-text="user.active ? 'Activo' : 'Inactivo'"></span>
+                    </td>
+                    <td class="text-center">
+                      <div class="flex gap-2 justify-center">
+                        <button class="text-fenalco-blue hover:text-fenalco-green" @click="editUser(user)">
+                          <i class="ri-edit-line"></i>
+                        </button>
+                        <button class="text-fenalco-yellow hover:text-fenalco-orange" @click="changePassword(user)">
+                          <i class="ri-lock-line"></i>
+                        </button>
+                        <button class="text-fenalco-coral hover:text-fenalco-magenta" @click="deleteUser(user._id)">
+                          <i class="ri-delete-bin-line"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </template>
+
+        <!-- Roles Tab -->
+        <template x-if="activeTab === 'roles'">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <template x-for="role in availableRoles" :key="role">
+              <div class="card border-l-4" :style="{ borderColor: getRoleColor(role) }">
+                <h3 class="font-bold text-lg" x-text="roleLabel(role)"></h3>
+                <p class="text-sm text-gray-600 mt-2" x-text="roleDescription(role)"></p>
+                <div class="mt-4 space-y-2">
+                  <p class="text-xs font-semibold text-gray-700">Permisos:</p>
+                  <div class="space-y-1">
+                    <template x-for="perm in getPermissions(role)" :key="perm">
+                      <div class="flex items-center gap-2 text-xs text-gray-600">
+                        <i class="ri-check-line text-fenalco-green"></i>
+                        <span x-text="perm"></span>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <!-- Settings Tab -->
+        <template x-if="activeTab === 'settings'">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="card">
+              <h3 class="font-bold text-lg mb-4">Configuración General</h3>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nombre de Plataforma</label>
+                  <input type="text" class="form-input" value="Fenalco - Gestión de Diseños" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Email de Soporte</label>
+                  <input type="email" class="form-input" value="soporte@fenalco.com" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono de Soporte</label>
+                  <input type="tel" class="form-input" value="+57 1 234 5678" />
+                </div>
+                <button class="btn btn-green w-full">Guardar Cambios</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 class="font-bold text-lg mb-4">Notificaciones</h3>
+              <div class="space-y-3">
+                <label class="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" class="form-checkbox" checked />
+                  <span class="text-sm">Notificaciones por Email</span>
+                </label>
+                <label class="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" class="form-checkbox" checked />
+                  <span class="text-sm">Alertas de Tareas Pendientes</span>
+                </label>
+                <label class="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" class="form-checkbox" checked />
+                  <span class="text-sm">Reportes Semanales</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="card md:col-span-2">
+              <h3 class="font-bold text-lg mb-4">Auditoría</h3>
+              <div class="space-y-3">
+                <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                  <span class="text-sm text-gray-700">Última sincronización</span>
+                  <span class="text-sm font-medium text-fenalco-green">Hace 2 minutos</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                  <span class="text-sm text-gray-700">Total de usuarios</span>
+                  <span class="text-sm font-medium" x-text="`${users.length} usuarios`"></span>
+                </div>
+                <div class="flex justify-between items-center py-2">
+                  <span class="text-sm text-gray-700">Versión del Sistema</span>
+                  <span class="text-sm font-medium">v1.0.0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+
+      </div>
+      {{> footer }}
+    </div>
+  </div>
+
+  {{> vendor-scripts }}
+  <script>
+    function admin() {
+      return {
+        activeTab: 'users',
+        users: [],
+        availableRoles: ['admin', 'manager', 'designer', 'collaborator'],
+        showNewUserModal: false,
+
+        async init() {
+          await this.loadUsers();
+        },
+
+        async loadUsers() {
+          try {
+            const response = await fetch('http://localhost:5000/api/admin/users', {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
+            });
+            const data = await response.json();
+            this.users = data.users || [];
+          } catch (error) {
+            console.error('Error loading users:', error);
+          }
+        },
+
+        roleLabel(role) {
+          const labels = {
+            'admin': 'Administrador',
+            'manager': 'Gerente',
+            'designer': 'Diseñador',
+            'collaborator': 'Colaborador'
+          };
+          return labels[role] || role;
+        },
+
+        roleDescription(role) {
+          const descriptions = {
+            'admin': 'Acceso completo a todas las funciones',
+            'manager': 'Gestión de solicitudes y equipos',
+            'designer': 'Creación y edición de diseños',
+            'collaborator': 'Visualización y comentarios'
+          };
+          return descriptions[role] || '';
+        },
+
+        getRoleColor(role) {
+          const colors = {
+            'admin': '#890C58',
+            'manager': '#009CDE',
+            'designer': '#2CD5C4',
+            'collaborator': '#C8C9C7'
+          };
+          return colors[role] || '#75787B';
+        },
+
+        getPermissions(role) {
+          const permissions = {
+            'admin': ['Crear usuarios', 'Editar roles', 'Ver reportes', 'Gestionar solicitudes', 'Configuración del sistema'],
+            'manager': ['Crear solicitudes', 'Asignar tareas', 'Ver reportes', 'Gestionar equipo'],
+            'designer': ['Crear diseños', 'Colaborar en solicitudes', 'Ver mis diseños'],
+            'collaborator': ['Ver solicitudes', 'Comentar en diseños', 'Descargar archivos']
+          };
+          return permissions[role] || [];
+        },
+
+        editUser(user) {
+          console.log('Editar usuario:', user);
+          // Aquí iría la lógica de edición
+        },
+
+        changePassword(user) {
+          console.log('Cambiar contraseña:', user);
+          // Aquí iría la lógica de cambio de contraseña
+        },
+
+        async deleteUser(userId) {
+          if (confirm('¿Estás seguro de que deseas eliminar este usuario?')) {
+            try {
+              await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+              });
+              await this.loadUsers();
+              alert('Usuario eliminado correctamente');
+            } catch (error) {
+              console.error('Error deleting user:', error);
+              alert('Error al eliminar usuario');
+            }
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>

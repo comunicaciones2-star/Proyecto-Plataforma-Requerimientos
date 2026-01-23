@@ -1,0 +1,134 @@
+/* Fenalco Approved Gradients */
+
+/* Verde a Turquesa */
+.gradient-green-turquoise {
+  background: linear-gradient(to right, #00CE7C, #2CD5C4);
+}
+
+/* Azul a Azul Cielo */
+.gradient-blue-sky {
+  background: linear-gradient(to right, #009CDE, #280071);
+}
+
+/* Verde a Azul */
+.gradient-green-blue {
+  background: linear-gradient(to right, #00CE7C, #280071);
+}
+
+/* Coral */
+.gradient-coral {
+  background: linear-gradient(to right, #890C58, #FF8674, #FFA38B);
+}
+
+/* Verdes */
+.gradient-greens {
+  background: linear-gradient(to right, #ADDC91, #9BE3BF, #2CD5C4, #84BD00);
+}
+
+/* Utility Classes for Tailwind */
+@layer utilities {
+  .bg-gradient-green-turquoise {
+    @apply bg-gradient-to-r from-fenalco-green to-fenalco-turquoise;
+  }
+
+  .bg-gradient-blue-sky {
+    @apply bg-gradient-to-r from-fenalco-sky to-fenalco-blue;
+  }
+
+  .bg-gradient-green-blue {
+    @apply bg-gradient-to-r from-fenalco-green to-fenalco-blue;
+  }
+
+  .bg-gradient-coral {
+    @apply bg-gradient-to-r from-fenalco-magenta via-fenalco-coral to-fenalco-coral-light;
+  }
+
+  .bg-gradient-greens {
+    @apply bg-gradient-to-r from-fenalco-green-light-1 via-fenalco-green-light-2 to-fenalco-green-lime;
+  }
+
+  .text-gradient-green {
+    @apply bg-gradient-to-r from-fenalco-green to-fenalco-turquoise bg-clip-text text-transparent;
+  }
+
+  .text-gradient-blue {
+    @apply bg-gradient-to-r from-fenalco-blue to-fenalco-sky bg-clip-text text-transparent;
+  }
+
+  /* Button Variants with Gradients */
+  .btn-gradient-green {
+    @apply bg-gradient-to-r from-fenalco-green to-fenalco-turquoise text-white hover:shadow-lg transition-all;
+  }
+
+  .btn-gradient-blue {
+    @apply bg-gradient-to-r from-fenalco-blue to-fenalco-navy text-white hover:shadow-lg transition-all;
+  }
+
+  .btn-gradient-coral {
+    @apply bg-gradient-to-r from-fenalco-magenta to-fenalco-coral text-white hover:shadow-lg transition-all;
+  }
+
+  .btn-gradient-sunset {
+    @apply bg-gradient-to-r from-fenalco-yellow to-fenalco-orange text-white hover:shadow-lg transition-all;
+  }
+}
+
+/* Fenalco Color Status Badges */
+.badge-success {
+  @apply bg-fenalco-green/20 text-fenalco-green font-semibold px-3 py-1 rounded-full text-xs;
+}
+
+.badge-warning {
+  @apply bg-fenalco-yellow/20 text-fenalco-orange font-semibold px-3 py-1 rounded-full text-xs;
+}
+
+.badge-danger {
+  @apply bg-fenalco-coral/20 text-fenalco-coral font-semibold px-3 py-1 rounded-full text-xs;
+}
+
+.badge-info {
+  @apply bg-fenalco-sky/20 text-fenalco-sky font-semibold px-3 py-1 rounded-full text-xs;
+}
+
+.badge-primary {
+  @apply bg-fenalco-blue/20 text-fenalco-blue font-semibold px-3 py-1 rounded-full text-xs;
+}
+
+/* Fenalco Color Highlights */
+.highlight-green {
+  @apply bg-fenalco-green/10 text-fenalco-green;
+}
+
+.highlight-blue {
+  @apply bg-fenalco-blue/10 text-fenalco-blue;
+}
+
+.highlight-coral {
+  @apply bg-fenalco-coral/10 text-fenalco-coral;
+}
+
+/* Fenalco Border Colors */
+.border-green {
+  @apply border-fenalco-green;
+}
+
+.border-blue {
+  @apply border-fenalco-blue;
+}
+
+.border-coral {
+  @apply border-fenalco-coral;
+}
+
+.border-yellow {
+  @apply border-fenalco-yellow;
+}
+
+/* Fenalco Dividers */
+.divider-gradient-green {
+  @apply bg-gradient-to-r from-transparent via-fenalco-green to-transparent;
+}
+
+.divider-gradient-blue {
+  @apply bg-gradient-to-r from-transparent via-fenalco-blue to-transparent;
+}
