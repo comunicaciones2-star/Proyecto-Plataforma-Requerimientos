@@ -1382,22 +1382,147 @@
         </div>
 
         <!-- Ejecutores Section -->
-        <div x-show="currentTab === 'reportes'">
+        <div x-show="currentTab === 'ejecutores'">
+          <!-- Header with filters -->
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-800">Gestión de Ejecutores</h2>
+              <p class="text-gray-600 mt-1">Gerentes, diseñadores y practicantes</p>
+            </div>
+            <button @click="openExecutorModal()" class="px-4 py-2 bg-fenalco-green text-white rounded-lg font-medium flex items-center gap-2 hover:bg-opacity-90 transition">
+              <i class="ri-user-add-line"></i> Nuevo Ejecutor
+            </button>
+          </div>
+
+          <!-- Filters -->
           <div class="card mb-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Análisis de Solicitudes</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div class="text-center p-4 bg-blue-50 rounded-lg">
-                <p class="text-gray-600 text-sm mb-1">Tiempo Promedio</p>
-                <p class="text-3xl font-bold text-fenalco-blue">4.2 días</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
+                <select x-model="executorFilters.role" @change="loadExecutors()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                  <option value="">Todos</option>
+                  <option value="gerente">Gerente</option>
+                  <option value="diseñador">Diseñador</option>
+                  <option value="practicante">Practicante</option>
+                </select>
               </div>
-              <div class="text-center p-4 bg-green-50 rounded-lg">
-                <p class="text-gray-600 text-sm mb-1">Tasa Completitud</p>
-                <p class="text-3xl font-bold text-fenalco-green">85%</p>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Disponibilidad</label>
+                <select x-model="executorFilters.available" @change="loadExecutors()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                  <option value="">Todos</option>
+                  <option value="true">Disponibles</option>
+                  <option value="false">No disponibles</option>
+                </select>
               </div>
-              <div class="text-center p-4 bg-yellow-50 rounded-lg">
-                <p class="text-gray-600 text-sm mb-1">Solicitudes Urgentes</p>
-                <p class="text-3xl font-bold text-fenalco-orange">33%</p>
+            </div>
+          </div>
+
+          <!-- Statistics Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="card bg-gradient-to-br from-purple-500 to-purple-600">
+              <div class="text-white">
+                <p class="text-sm opacity-90">Gerentes</p>
+                <p class="text-3xl font-bold mt-2" x-text="executorStats.byRole?.gerente?.count || 0"></p>
+                <p class="text-xs opacity-80 mt-2" x-text="(executorStats.byRole?.gerente?.available || 0) + ' disponibles'"></p>
               </div>
+            </div>
+            <div class="card bg-gradient-to-br from-blue-500 to-blue-600">
+              <div class="text-white">
+                <p class="text-sm opacity-90">Diseñadores</p>
+                <p class="text-3xl font-bold mt-2" x-text="executorStats.byRole?.diseñador?.count || 0"></p>
+                <p class="text-xs opacity-80 mt-2" x-text="(executorStats.byRole?.diseñador?.available || 0) + ' disponibles'"></p>
+              </div>
+            </div>
+            <div class="card bg-gradient-to-br from-green-500 to-green-600">
+              <div class="text-white">
+                <p class="text-sm opacity-90">Practicantes</p>
+                <p class="text-3xl font-bold mt-2" x-text="executorStats.byRole?.practicante?.count || 0"></p>
+                <p class="text-xs opacity-80 mt-2" x-text="(executorStats.byRole?.practicante?.available || 0) + ' disponibles'"></p>
+              </div>
+            </div>
+            <div class="card bg-gradient-to-br from-fenalco-blue to-fenalco-green">
+              <div class="text-white">
+                <p class="text-sm opacity-90">Utilización</p>
+                <p class="text-3xl font-bold mt-2" x-text="(executorStats.global?.utilizationRate || 0) + '%'"></p>
+                <p class="text-xs opacity-80 mt-2" x-text="(executorStats.global?.totalCurrentLoad || 0) + '/' + (executorStats.global?.totalCapacity || 0)"></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Executors Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <template x-for="executor in executors" :key="executor._id">
+              <div class="card hover:shadow-lg transition-shadow">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
+                         :class="{
+                           'bg-purple-500': executor.role === 'gerente',
+                           'bg-blue-500': executor.role === 'diseñador',
+                           'bg-green-500': executor.role === 'practicante'
+                         }">
+                      <span x-text="executor.firstName.charAt(0) + executor.lastName.charAt(0)"></span>
+                    </div>
+                    <div>
+                      <h3 class="font-bold text-gray-800" x-text="executor.firstName + ' ' + executor.lastName"></h3>
+                      <p class="text-sm text-gray-600" x-text="executor.role"></p>
+                    </div>
+                  </div>
+                  <button @click="toggleExecutorAvailability(executor._id, executor.executorProfile.available)"
+                          class="p-1 rounded-lg transition"
+                          :class="executor.executorProfile.available ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'"
+                          :title="executor.executorProfile.available ? 'Disponible' : 'No disponible'">
+                    <i :class="executor.executorProfile.available ? 'ri-checkbox-circle-line' : 'ri-close-circle-line'"></i>
+                  </button>
+                </div>
+
+                <div class="space-y-3 mb-4">
+                  <div>
+                    <div class="flex justify-between text-sm mb-1">
+                      <span class="text-gray-600">Carga actual</span>
+                      <span class="font-semibold" x-text="executor.currentLoad + '/' + executor.executorProfile.capacity"></span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                      <div class="h-2 rounded-full transition-all"
+                           :class="{
+                             'bg-green-500': executor.loadPercentage <= 60,
+                             'bg-yellow-500': executor.loadPercentage > 60 && executor.loadPercentage <= 85,
+                             'bg-red-500': executor.loadPercentage > 85
+                           }"
+                           :style="'width: ' + Math.min(executor.loadPercentage, 100) + '%'"></div>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="bg-blue-50 p-2 rounded">
+                      <p class="text-xs text-gray-600">Completadas</p>
+                      <p class="font-bold text-blue-600" x-text="executor.executorProfile.stats.totalCompleted"></p>
+                    </div>
+                    <div class="bg-green-50 p-2 rounded">
+                      <p class="text-xs text-gray-600">Puntualidad</p>
+                      <p class="font-bold text-green-600" x-text="Math.round(executor.executorProfile.stats.onTimeDeliveryRate) + '%'"></p>
+                    </div>
+                    <div class="bg-yellow-50 p-2 rounded">
+                      <p class="text-xs text-gray-600">Prom. días</p>
+                      <p class="font-bold text-yellow-600" x-text="executor.executorProfile.stats.averageCompletionTime.toFixed(1)"></p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex gap-2 pt-3 border-t">
+                  <button @click="viewExecutorDetails(executor._id)" class="flex-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition text-sm font-medium">
+                    <i class="ri-eye-line mr-1"></i> Ver detalles
+                  </button>
+                  <button @click="editExecutor(executor)" class="flex-1 px-3 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition text-sm font-medium">
+                    <i class="ri-edit-line mr-1"></i> Editar
+                  </button>
+                </div>
+              </div>
+            </template>
+
+            <div x-show="executors.length === 0" class="col-span-full text-center py-12 text-gray-500">
+              <i class="ri-user-line text-6xl mb-4"></i>
+              <p>No hay ejecutores registrados</p>
             </div>
           </div>
         </div>
