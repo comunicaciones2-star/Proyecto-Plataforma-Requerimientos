@@ -35,7 +35,7 @@ async function seedUsers() {
       firstName: 'Equipo',
       lastName: 'Comunicaciones',
       password: passwordHash,
-      role: 'designer',
+      role: 'diseñador',
       area: 'comunicaciones'
     },
     {
@@ -43,7 +43,7 @@ async function seedUsers() {
       firstName: 'Comunicaciones',
       lastName: 'Dos',
       password: passwordHash,
-      role: 'designer',
+      role: 'diseñador',
       area: 'comunicaciones'
     },
 
@@ -53,7 +53,7 @@ async function seedUsers() {
       firstName: 'Ejecutiva',
       lastName: 'Formación',
       password: passwordHash,
-      role: 'manager',
+      role: 'gerente',
       area: 'formacion'
     },
     {
@@ -61,7 +61,7 @@ async function seedUsers() {
       firstName: 'Coordinadora',
       lastName: 'Comercial2',
       password: passwordHash,
-      role: 'manager',
+      role: 'gerente',
       area: 'comercial'
     },
     {
@@ -69,7 +69,7 @@ async function seedUsers() {
       firstName: 'Área',
       lastName: 'Jurídica',
       password: passwordHash,
-      role: 'manager',
+      role: 'gerente',
       area: 'juridica'
     },
 
@@ -97,7 +97,7 @@ async function seedUsers() {
       firstName: 'Coordinadora',
       lastName: 'Comercial3',
       password: passwordHash,
-      role: 'collaborator',
+      role: 'usuario',
       area: 'comercial'
     },
     {
@@ -105,7 +105,7 @@ async function seedUsers() {
       firstName: 'Coordinadora',
       lastName: 'Comercial5',
       password: passwordHash,
-      role: 'collaborator',
+      role: 'usuario',
       area: 'comercial'
     },
     {
@@ -113,7 +113,7 @@ async function seedUsers() {
       firstName: 'Fenalcobra',
       lastName: 'Dos',
       password: passwordHash,
-      role: 'collaborator',
+      role: 'usuario',
       area: 'otra'
     }
   ];
@@ -149,8 +149,8 @@ async function seedRequests(users) {
 
   const requestsData = [
     {
-      area: 'comercial',
-      type: 'redes',
+      area: 'Comercial',
+      type: 'redes_sociales',
       title: 'Post redes sociales - Feria del Afiliado',
       description:
         'Pieza para promocionar la Feria del Afiliado en Instagram y Facebook.',
@@ -168,7 +168,7 @@ async function seedRequests(users) {
       approvals: []
     },
     {
-      area: 'formacion',
+      area: 'Formación Empresarial',
       type: 'pieza_impresa',
       title: 'Pendón para evento de Formación',
       description:
@@ -186,7 +186,7 @@ async function seedRequests(users) {
       approvals: []
     },
     {
-      area: 'juridica',
+      area: 'Jurídico',
       type: 'presentacion',
       title: 'Presentación PowerPoint para charla legal',
       description:
