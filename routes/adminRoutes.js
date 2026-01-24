@@ -1018,4 +1018,107 @@ router.get('/stats/executors', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/admin/stats/monthly-performance
+ * Estadísticas de performance mensual (solicitudes completadas por mes)
+ */
+router.get('/stats/monthly-performance', async (req, res) => {
+  const logger = global.logger || console;
+  
+  try {
+    const currentYear = new Date().getFullYear();
+    const monthlyData = [];
+    
+    // Iterar por cada mes del año
+    for (let month = 0; month < 12; month++) {
+      const startDate = new Date(currentYear, month, 1);
+      const endDate = new Date(currentYear, month + 1, 0, 23, 59, 59);
+      
+      const completed = await Request.countDocuments({
+        status: 'completed',
+        completedDate: {
+          $gte: startDate,
+          $lte: endDate
+        }
+      });
+      
+      monthlyData.push(completed);
+    }
+    
+    res.json({
+      success: true,
+      data: monthlyData,
+      year: currentYear
+    });
+  } catch (error) {
+    logger.error('Error al obtener performance mensual:', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener performance mensual'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/stats/urgency-distribution
+ * Distribución de solicitudes por urgencia
+ */
+router.get('/stats/urgency-distribution', async (req, res) => {
+  const logger = global.logger || console;
+  
+  try {
+    const normal = await Request.countDocuments({ urgency: 'normal' });
+    const urgent = await Request.countDocuments({ urgency: 'urgent' });
+    const express = await Request.countDocuments({ urgency: 'express' });
+    
+    res.json({
+      success: true,
+      data: {
+        normal,
+        urgent,
+        express
+      }
+    });
+  } catch (error) {
+    logger.error('Error al obtener distribución por urgencia:', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener distribución por urgencia'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/stats/status-distribution
+ * Distribución de solicitudes por estado
+ */
+router.get('/stats/status-distribution', async (req, res) => {
+  const logger = global.logger || console;
+  
+  try {
+    const pending = await Request.countDocuments({ status: 'pending' });
+    const inProcess = await Request.countDocuments({ status: 'in-process' });
+    const review = await Request.countDocuments({ status: 'review' });
+    const completed = await Request.countDocuments({ status: 'completed' });
+    const rejected = await Request.countDocuments({ status: 'rejected' });
+    
+    res.json({
+      success: true,
+      data: {
+        pending,
+        inProcess,
+        review,
+        completed,
+        rejected
+      }
+    });
+  } catch (error) {
+    logger.error('Error al obtener distribución por estado:', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener distribución por estado'
+    });
+  }
+});
+
 module.exports = router;
