@@ -354,7 +354,7 @@
                   </div>
                 </div>
                 <div class="p-3 text-center border-t border-gray-200">
-                  <button class="text-sm text-fenalco-blue hover:text-fenalco-blue-600 font-medium">Ver todas</button>
+                  <button class="text-sm text-fenalco-blue hover:text-fenalco-blue-600 font-medium" @click="currentTab = 'solicitudes'">Ver todas</button>
                 </div>
               </div>
             </div>
@@ -395,21 +395,21 @@
                 <p class="text-sm font-medium text-blue-600">Tiempo Promedio</p>
                 <i class="ri-time-line text-2xl text-blue-400"></i>
               </div>
-              <h3 class="text-4xl font-bold text-blue-900 mb-2">4.2 días</h3>
+              <h3 class="text-4xl font-bold text-blue-900 mb-2" x-text="dashboardStats.averageTime + ' días'">4.2 días</h3>
               <p class="text-xs text-blue-600">
-                <i class="ri-arrow-down-line"></i> -0.5 días
+                <i class="ri-time-line"></i> Promedio global
               </p>
             </div>
 
-            <!-- Tasa de Completitud -->
+            <!-- Porcentaje de Cumplimiento -->
             <div class="bg-green-50 rounded-xl p-6 border border-green-100">
               <div class="flex items-start justify-between mb-3">
-                <p class="text-sm font-medium text-green-600">Tasa de Completitud</p>
+                <p class="text-sm font-medium text-green-600">Porcentaje de Cumplimiento</p>
                 <i class="ri-checkbox-circle-line text-2xl text-green-400"></i>
               </div>
-              <h3 class="text-4xl font-bold text-green-900 mb-2">85%</h3>
+              <h3 class="text-4xl font-bold text-green-900 mb-2" x-text="dashboardStats.completionPercentage + '%'">85%</h3>
               <p class="text-xs text-green-600">
-                <i class="ri-arrow-up-line"></i> +2%
+                <i class="ri-checkbox-line"></i> <span x-text="dashboardStats.completedRequests">0</span> completadas
               </p>
             </div>
 
@@ -419,9 +419,9 @@
                 <p class="text-sm font-medium text-amber-600">Solicitudes Urgentes</p>
                 <i class="ri-error-warning-line text-2xl text-amber-400"></i>
               </div>
-              <h3 class="text-4xl font-bold text-amber-900 mb-2">33%</h3>
+              <h3 class="text-4xl font-bold text-amber-900 mb-2" x-text="dashboardStats.urgentPercentage + '%'">33%</h3>
               <p class="text-xs text-amber-600">
-                <i class="ri-alert-line"></i> Atención
+                <i class="ri-alert-line"></i> <span x-text="dashboardStats.urgentRequests">0</span> urgentes
               </p>
             </div>
 
@@ -431,7 +431,7 @@
                 <p class="text-sm font-medium text-purple-600">Satisfacción</p>
                 <i class="ri-star-line text-2xl text-purple-400"></i>
               </div>
-              <h3 class="text-4xl font-bold text-purple-900 mb-2">92%</h3>
+              <h3 class="text-4xl font-bold text-purple-900 mb-2" x-text="dashboardStats.satisfaction + '%'">92%</h3>
               <p class="text-xs text-purple-600">
                 <i class="ri-thumb-up-line"></i> Excelente
               </p>
@@ -829,8 +829,8 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-gray-600 text-sm">Total Solicitudes</p>
-                    <p class="text-3xl font-bold text-fenalco-blue">12</p>
-                    <p class="text-xs text-green-600 mt-1">+3 vs anterior</p>
+                    <p class="text-3xl font-bold text-fenalco-blue" x-text="dashboardStats.totalRequests">12</p>
+                    <p class="text-xs text-gray-500 mt-1">Total en sistema</p>
                   </div>
                   <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
                     <i class="ri-file-list-3-line text-2xl text-fenalco-blue"></i>
@@ -842,8 +842,8 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-gray-600 text-sm">Completadas</p>
-                    <p class="text-3xl font-bold text-green-600">8</p>
-                    <p class="text-xs text-gray-500 mt-1">66.7% tasa</p>
+                    <p class="text-3xl font-bold text-green-600" x-text="dashboardStats.completedRequests">8</p>
+                    <p class="text-xs text-gray-500 mt-1"><span x-text="dashboardStats.completionPercentage">0</span>% tasa</p>
                   </div>
                   <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
                     <i class="ri-checkbox-circle-line text-2xl text-green-600"></i>
@@ -855,8 +855,8 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-gray-600 text-sm">En Proceso</p>
-                    <p class="text-3xl font-bold text-blue-600">3</p>
-                    <p class="text-xs text-gray-500 mt-1">25.0%</p>
+                    <p class="text-3xl font-bold text-blue-600" x-text="dashboardStats.inProcessRequests">3</p>
+                    <p class="text-xs text-gray-500 mt-1">Activas</p>
                   </div>
                   <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
                     <i class="ri-loader-4-line text-2xl text-blue-600"></i>
@@ -868,7 +868,7 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-gray-600 text-sm">Tiempo Prom.</p>
-                    <p class="text-3xl font-bold text-orange-600">3.2</p>
+                    <p class="text-3xl font-bold text-orange-600" x-text="dashboardStats.averageTime">3.2</p>
                     <p class="text-xs text-gray-500 mt-1">días</p>
                   </div>
                   <div class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
@@ -2009,6 +2009,15 @@
           inProcess: 0,
           completed: 0
         },
+        dashboardStats: {
+          totalRequests: 0,
+          completedRequests: 0,
+          inProcessRequests: 0,
+          urgentPercentage: 0,
+          completionPercentage: 0,
+          averageTime: 0,
+          satisfaction: 0
+        },
         requests: [],
         
         // Nueva Solicitud
@@ -2116,15 +2125,28 @@
         async loadDashboard() {
           try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/admin/requests/stats`, {
+            
+            // Cargar estadísticas generales
+            const statsResponse = await fetch(`${API_URL}/admin/requests/stats`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
-            const data = await response.json();
+            const statsData = await statsResponse.json();
             
-            if (data.success) {
-              this.stats = data.stats;
-              this.initCharts();
+            if (statsData.success) {
+              this.stats = statsData.stats;
             }
+            
+            // Cargar estadísticas del dashboard
+            const dashboardResponse = await fetch(`${API_URL}/admin/stats/dashboard`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const dashboardData = await dashboardResponse.json();
+            
+            if (dashboardData) {
+              this.dashboardStats = dashboardData;
+            }
+            
+            this.initCharts();
           } catch (error) {
             console.error('Error loading dashboard:', error);
           }
@@ -2146,138 +2168,174 @@
           }
         },
         
-        initCharts() {
+        async initCharts() {
           // Gráfico de Performance Mensual
           const ctxPerformance = document.getElementById('chartPerformance');
           if (ctxPerformance) {
-            new Chart(ctxPerformance, {
-              type: 'line',
-              data: {
-                labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
-                datasets: [{
-                  label: 'Completadas',
-                  data: [12, 15, 14, 20, 18, 25],
-                  borderColor: '#00CE7C',
-                  backgroundColor: 'rgba(0, 206, 124, 0.1)',
-                  tension: 0.4,
-                  fill: true
-                }]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    display: true,
-                    position: 'top'
-                  }
+            try {
+              const response = await fetch('/api/admin/stats/monthly-performance', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+              });
+              const monthlyData = await response.json();
+              
+              new Chart(ctxPerformance, {
+                type: 'line',
+                data: {
+                  labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                  datasets: [{
+                    label: 'Completadas',
+                    data: monthlyData,
+                    borderColor: '#00CE7C',
+                    backgroundColor: 'rgba(0, 206, 124, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                  }]
                 },
-                scales: {
-                  y: {
-                    beginAtZero: true,
-                    grid: {
-                      color: 'rgba(0, 0, 0, 0.05)'
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      display: true,
+                      position: 'top'
                     }
                   },
-                  x: {
-                    grid: {
-                      display: false
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                      }
+                    },
+                    x: {
+                      grid: {
+                        display: false
+                      }
                     }
                   }
                 }
-              }
-            });
+              });
+            } catch (error) {
+              console.error('Error cargando datos de performance mensual:', error);
+            }
           }
           
           // Gráfico de Distribución por Urgencia
           const ctxUrgencia = document.getElementById('chartUrgencia');
           if (ctxUrgencia) {
-            new Chart(ctxUrgencia, {
-              type: 'doughnut',
-              data: {
-                labels: ['Normal', 'Urgente', 'Express'],
-                datasets: [{
-                  data: [50, 30, 20],
-                  backgroundColor: ['#00CE7C', '#FFB549', '#FF8674'],
-                  borderWidth: 0
-                }]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    position: 'bottom',
-                    labels: {
-                      padding: 15,
-                      font: {
-                        size: 12
+            try {
+              const response = await fetch('/api/admin/stats/urgency-distribution', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+              });
+              const urgencyData = await response.json();
+              
+              new Chart(ctxUrgencia, {
+                type: 'doughnut',
+                data: {
+                  labels: ['Normal', 'Urgente', 'Express'],
+                  datasets: [{
+                    data: [urgencyData.normal, urgencyData.urgent, urgencyData.express],
+                    backgroundColor: ['#00CE7C', '#FFB549', '#FF8674'],
+                    borderWidth: 0
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: 'bottom',
+                      labels: {
+                        padding: 15,
+                        font: {
+                          size: 12
+                        }
                       }
                     }
-                  }
-                },
-                cutout: '60%'
-              }
-            });
+                  },
+                  cutout: '60%'
+                }
+              });
+            } catch (error) {
+              console.error('Error cargando datos de urgencia:', error);
+            }
           }
           
           // Gráfico para Reportes: Distribución por Estado
           const ctxStatus = document.getElementById('chartStatus');
           if (ctxStatus) {
-            new Chart(ctxStatus, {
-              type: 'doughnut',
-              data: {
-                labels: ['Pendiente', 'En Proceso', 'Completada'],
-                datasets: [{
-                  data: [11, 21, 97],
-                  backgroundColor: ['#FFB549', '#4FC3F7', '#00CE7C'],
-                  borderWidth: 0
-                }]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: { 
-                    position: 'bottom',
-                    labels: {
-                      padding: 15,
-                      font: { size: 12 }
-                    }
-                  }
+            try {
+              const response = await fetch('/api/admin/stats/status-distribution', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+              });
+              const statusData = await response.json();
+              
+              new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                  labels: ['Pendiente', 'En Proceso', 'Completada'],
+                  datasets: [{
+                    data: [statusData.pending, statusData.inProcess, statusData.completed],
+                    backgroundColor: ['#FFB549', '#4FC3F7', '#00CE7C'],
+                    borderWidth: 0
+                  }]
                 },
-                cutout: '60%'
-              }
-            });
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { 
+                      position: 'bottom',
+                      labels: {
+                        padding: 15,
+                        font: { size: 12 }
+                      }
+                    }
+                  },
+                  cutout: '60%'
+                }
+              });
+            } catch (error) {
+              console.error('Error cargando datos de estado:', error);
+            }
           }
           
           // Gráfico para Reportes: Tendencia Diaria
           const ctxDaily = document.getElementById('chartDaily');
           if (ctxDaily) {
-            new Chart(ctxDaily, {
-              type: 'line',
-              data: {
-                labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-                datasets: [{
-                  label: 'Solicitudes',
-                  data: [3, 5, 4, 7, 6, 2, 1],
-                  borderColor: '#280071',
-                  backgroundColor: 'rgba(40, 0, 113, 0.1)',
-                  tension: 0.4,
-                  fill: true
-                }]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                  y: { beginAtZero: true }
+            try {
+              const response = await fetch('/api/admin/stats/daily-trend', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+              });
+              const dailyData = await response.json();
+              
+              new Chart(ctxDaily, {
+                type: 'line',
+                data: {
+                  labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+                  datasets: [{
+                    label: 'Solicitudes',
+                    data: dailyData,
+                    borderColor: '#280071',
+                    backgroundColor: 'rgba(40, 0, 113, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                  }]
                 },
-                plugins: {
-                  legend: { display: false }
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  scales: {
+                    y: { beginAtZero: true }
+                  },
+                  plugins: {
+                    legend: { display: false }
+                  }
                 }
-              }
-            });
+              });
+            } catch (error) {
+              console.error('Error cargando tendencia diaria:', error);
+            }
           }
         },
         
