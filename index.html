@@ -354,7 +354,7 @@
                   </div>
                 </div>
                 <div class="p-3 text-center border-t border-gray-200">
-                  <button class="text-sm text-fenalco-blue hover:text-fenalco-blue-600 font-medium">Ver todas</button>
+                  <button class="text-sm text-fenalco-blue hover:text-fenalco-blue-600 font-medium" @click="currentTab = 'solicitudes'">Ver todas</button>
                 </div>
               </div>
             </div>
@@ -401,10 +401,10 @@
               </p>
             </div>
 
-            <!-- Tasa de Completitud -->
+            <!-- Porcentaje de Cumplimiento -->
             <div class="bg-green-50 rounded-xl p-6 border border-green-100">
               <div class="flex items-start justify-between mb-3">
-                <p class="text-sm font-medium text-green-600">Tasa de Completitud</p>
+                <p class="text-sm font-medium text-green-600">Porcentaje de Cumplimiento</p>
                 <i class="ri-checkbox-circle-line text-2xl text-green-400"></i>
               </div>
               <h3 class="text-4xl font-bold text-green-900 mb-2">85%</h3>
@@ -2146,112 +2146,165 @@
           }
         },
         
-        initCharts() {
-          // Gráfico de Performance Mensual
-          const ctxPerformance = document.getElementById('chartPerformance');
-          if (ctxPerformance) {
-            new Chart(ctxPerformance, {
-              type: 'line',
-              data: {
-                labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
-                datasets: [{
-                  label: 'Completadas',
-                  data: [12, 15, 14, 20, 18, 25],
-                  borderColor: '#00CE7C',
-                  backgroundColor: 'rgba(0, 206, 124, 0.1)',
-                  tension: 0.4,
-                  fill: true
-                }]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    display: true,
-                    position: 'top'
-                  }
-                },
-                scales: {
-                  y: {
-                    beginAtZero: true,
-                    grid: {
-                      color: 'rgba(0, 0, 0, 0.05)'
-                    }
-                  },
-                  x: {
-                    grid: {
-                      display: false
-                    }
-                  }
-                }
-              }
+        async initCharts() {
+          await this.loadMonthlyPerformance();
+          await this.loadUrgencyDistribution();
+          await this.loadStatusDistribution();
+        },
+        
+        async loadMonthlyPerformance() {
+        async loadMonthlyPerformance() {
+          try {
+            const response = await fetch('/api/admin/stats/monthly-performance', {
+              headers: { 'Authorization': `Bearer ${this.token}` }
             });
-          }
-          
-          // Gráfico de Distribución por Urgencia
-          const ctxUrgencia = document.getElementById('chartUrgencia');
-          if (ctxUrgencia) {
-            new Chart(ctxUrgencia, {
-              type: 'doughnut',
-              data: {
-                labels: ['Normal', 'Urgente', 'Express'],
-                datasets: [{
-                  data: [50, 30, 20],
-                  backgroundColor: ['#00CE7C', '#FFB549', '#FF8674'],
-                  borderWidth: 0
-                }]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    position: 'bottom',
-                    labels: {
-                      padding: 15,
-                      font: {
-                        size: 12
+            const result = await response.json();
+            
+            if (result.success) {
+              const ctxPerformance = document.getElementById('chartPerformance');
+              if (ctxPerformance) {
+                new Chart(ctxPerformance, {
+                  type: 'line',
+                  data: {
+                    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                    datasets: [{
+                      label: 'Completadas',
+                      data: result.data,
+                      borderColor: '#00CE7C',
+                      backgroundColor: 'rgba(0, 206, 124, 0.1)',
+                      tension: 0.4,
+                      fill: true
+                    }]
+                  },
+                  options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        display: true,
+                        position: 'top'
+                      }
+                    },
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        grid: {
+                          color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                          precision: 0
+                        }
+                      },
+                      x: {
+                        grid: {
+                          display: false
+                        }
                       }
                     }
                   }
-                },
-                cutout: '60%'
+                });
               }
-            });
+            }
+          } catch (error) {
+            console.error('Error loading monthly performance:', error);
           }
-          
-          // Gráfico para Reportes: Distribución por Estado
-          const ctxStatus = document.getElementById('chartStatus');
-          if (ctxStatus) {
-            new Chart(ctxStatus, {
-              type: 'doughnut',
-              data: {
-                labels: ['Pendiente', 'En Proceso', 'Completada'],
-                datasets: [{
-                  data: [11, 21, 97],
-                  backgroundColor: ['#FFB549', '#4FC3F7', '#00CE7C'],
-                  borderWidth: 0
-                }]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: { 
-                    position: 'bottom',
-                    labels: {
-                      padding: 15,
-                      font: { size: 12 }
-                    }
+        },
+        
+        async loadUrgencyDistribution() {
+        async loadUrgencyDistribution() {
+          try {
+            const response = await fetch('/api/admin/stats/urgency-distribution', {
+              headers: { 'Authorization': `Bearer ${this.token}` }
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+              const ctxUrgencia = document.getElementById('chartUrgencia');
+              if (ctxUrgencia) {
+                new Chart(ctxUrgencia, {
+                  type: 'doughnut',
+                  data: {
+                    labels: ['Normal', 'Urgente', 'Express'],
+                    datasets: [{
+                      data: [result.data.normal, result.data.urgent, result.data.express],
+                      backgroundColor: ['#00CE7C', '#FFB549', '#FF8674'],
+                      borderWidth: 0
+                    }]
+                  },
+                  options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'bottom',
+                        labels: {
+                          padding: 15,
+                          font: {
+                            size: 12
+                          }
+                        }
+                      }
+                    },
+                    cutout: '60%'
                   }
-                },
-                cutout: '60%'
+                });
               }
-            });
+            }
+          } catch (error) {
+            console.error('Error loading urgency distribution:', error);
           }
-          
-          // Gráfico para Reportes: Tendencia Diaria
+        },
+        
+        async loadStatusDistribution() {
+        async loadStatusDistribution() {
+          try {
+            const response = await fetch('/api/admin/stats/status-distribution', {
+              headers: { 'Authorization': `Bearer ${this.token}` }
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+              const ctxStatus = document.getElementById('chartStatus');
+              if (ctxStatus) {
+                new Chart(ctxStatus, {
+                  type: 'doughnut',
+                  data: {
+                    labels: ['Pendiente', 'En Proceso', 'Revisión', 'Completada', 'Rechazada'],
+                    datasets: [{
+                      data: [
+                        result.data.pending, 
+                        result.data.inProcess, 
+                        result.data.review,
+                        result.data.completed,
+                        result.data.rejected
+                      ],
+                      backgroundColor: ['#FFB549', '#4FC3F7', '#9C27B0', '#00CE7C', '#FF5252'],
+                      borderWidth: 0
+                    }]
+                  },
+                  options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { 
+                        position: 'bottom',
+                        labels: {
+                          padding: 15,
+                          font: { size: 12 }
+                        }
+                      }
+                    },
+                    cutout: '60%'
+                  }
+                });
+              }
+            }
+          } catch (error) {
+            console.error('Error loading status distribution:', error);
+          }
+        },
+        
+        // Gráfico para Reportes: Tendencia Diaria
           const ctxDaily = document.getElementById('chartDaily');
           if (ctxDaily) {
             new Chart(ctxDaily, {
