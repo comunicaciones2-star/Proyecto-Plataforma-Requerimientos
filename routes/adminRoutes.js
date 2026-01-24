@@ -752,6 +752,176 @@ router.get('/executors/:id/details', async (req, res) => {
 });
 
 /**
+ * GET /api/admin/stats/dashboard
+ * Obtener todas las estadísticas del dashboard
+ */
+router.get('/stats/dashboard', async (req, res) => {
+  try {
+    const now = new Date();
+    
+    // Total de solicitudes
+    const totalRequests = await Request.countDocuments();
+    
+    // Solicitudes completadas
+    const completedRequests = await Request.countDocuments({ status: 'completada' });
+    
+    // Solicitudes en proceso
+    const inProcessRequests = await Request.countDocuments({ status: 'en_proceso' });
+    
+    // Solicitudes pendientes
+    const pendingRequests = await Request.countDocuments({ status: 'pendiente' });
+    
+    // Solicitudes urgentes (urgente + express)
+    const urgentRequests = await Request.countDocuments({ 
+      urgency: { $in: ['urgente', 'express'] } 
+    });
+    
+    // Porcentaje de solicitudes urgentes
+    const urgentPercentage = totalRequests > 0 ? Math.round((urgentRequests / totalRequests) * 100) : 0;
+    
+    // Porcentaje de cumplimiento (completadas)
+    const completionPercentage = totalRequests > 0 ? Math.round((completedRequests / totalRequests) * 100) : 0;
+    
+    // Tiempo promedio (solo de las completadas)
+    const completedWithDates = await Request.find({
+      status: 'completada',
+      createdAt: { $exists: true },
+      completedAt: { $exists: true }
+    }).select('createdAt completedAt');
+    
+    let averageTime = 0;
+    if (completedWithDates.length > 0) {
+      const totalDays = completedWithDates.reduce((sum, req) => {
+        const days = (new Date(req.completedAt) - new Date(req.createdAt)) / (1000 * 60 * 60 * 24);
+        return sum + days;
+      }, 0);
+      averageTime = totalDays / completedWithDates.length;
+    }
+    
+    // Satisfacción (simulada - en producción vendría de encuestas)
+    const satisfaction = 92;
+    
+    res.json({
+      totalRequests,
+      completedRequests,
+      inProcessRequests,
+      pendingRequests,
+      urgentRequests,
+      urgentPercentage,
+      completionPercentage,
+      averageTime: parseFloat(averageTime.toFixed(1)),
+      satisfaction
+    });
+  } catch (error) {
+    console.error('Error obteniendo estadísticas del dashboard:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener datos' });
+  }
+});
+
+/**
+ * GET /api/admin/stats/daily-trend
+ * Obtener tendencia diaria de los últimos 7 días
+ */
+router.get('/stats/daily-trend', async (req, res) => {
+  try {
+    const dailyData = [];
+    const now = new Date();
+    
+    // Obtener datos de los últimos 7 días
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+      
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+      
+      const count = await Request.countDocuments({
+        createdAt: {
+          $gte: date,
+          $lt: nextDate
+        }
+      });
+      
+      dailyData.push(count);
+    }
+    
+    res.json(dailyData);
+  } catch (error) {
+    console.error('Error obteniendo tendencia diaria:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener datos' });
+  }
+});
+
+/**
+ * GET /api/admin/stats/monthly-performance
+ * Obtener rendimiento mensual (solicitudes completadas por mes)
+ */
+router.get('/stats/monthly-performance', async (req, res) => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const monthlyData = [];
+    
+    // Obtener datos de los últimos 12 meses
+    for (let month = 0; month < 12; month++) {
+      const count = await Request.countDocuments({
+        status: 'completada',
+        completedAt: {
+          $gte: new Date(currentYear, month, 1),
+          $lt: new Date(currentYear, month + 1, 1)
+        }
+      });
+      monthlyData.push(count);
+    }
+    
+    res.json(monthlyData);
+  } catch (error) {
+    console.error('Error obteniendo performance mensual:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener datos' });
+  }
+});
+
+/**
+ * GET /api/admin/stats/urgency-distribution
+ * Obtener distribución por nivel de urgencia
+ */
+router.get('/stats/urgency-distribution', async (req, res) => {
+  try {
+    const [normal, urgent, express] = await Promise.all([
+      Request.countDocuments({ urgency: 'normal' }),
+      Request.countDocuments({ urgency: 'urgente' }),
+      Request.countDocuments({ urgency: 'express' })
+    ]);
+    
+    res.json({ normal, urgent, express });
+  } catch (error) {
+    console.error('Error obteniendo distribución de urgencia:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener datos' });
+  }
+});
+
+/**
+ * GET /api/admin/stats/status-distribution
+ * Obtener distribución por estado de solicitudes
+ */
+router.get('/stats/status-distribution', async (req, res) => {
+  try {
+    const [pending, inProcess, review, completed, rejected] = await Promise.all([
+      Request.countDocuments({ status: 'pendiente' }),
+      Request.countDocuments({ status: 'en_proceso' }),
+      Request.countDocuments({ status: 'revision' }),
+      Request.countDocuments({ status: 'completada' }),
+      Request.countDocuments({ status: 'rechazada' })
+    ]);
+    
+    res.json({ pending, inProcess, review, completed, rejected });
+  } catch (error) {
+    console.error('Error obteniendo distribución de estado:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener datos' });
+  }
+});
+
+/**
  * GET /api/admin/stats/executors
  * Obtener estadísticas agregadas de todos los ejecutores
  */
