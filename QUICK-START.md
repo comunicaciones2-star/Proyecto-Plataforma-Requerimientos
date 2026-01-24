@@ -1,5 +1,26 @@
 # 🚀 GUÍA RÁPIDA DE INICIO - Fenalco Plataforma
 
+## ⚡ INICIO RÁPIDO DIARIO (3 pasos)
+
+**Cada vez que abras el proyecto, ejecuta estos comandos:**
+
+```powershell
+# 1. Verificar que MongoDB esté corriendo
+Get-Service MongoDB
+
+# 2. Si MongoDB no está corriendo, iniciarlo:
+net start MongoDB
+
+# 3. Iniciar el servidor
+npm run dev
+```
+
+**Listo:** Abre http://localhost:5000 en tu navegador
+
+---
+
+## 📖 CONFIGURACIÓN INICIAL (Solo primera vez)
+
 ## 1️⃣ Verificar Instalación
 ```bash
 node --version  # Debe ser >= 16.0.0
