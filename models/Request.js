@@ -28,13 +28,28 @@ const attachmentSchema = new Schema(
       type: String,
       required: true
     },
+    filename: {
+      type: String
+    },
+    path: {
+      type: String
+    },
+    url: {
+      type: String
+    },
+    size: {
+      type: Number
+    },
+    mimetype: {
+      type: String
+    },
     cloudinaryUrl: {
       type: String,
-      required: true
+      required: false
     },
     publicId: {
       type: String,
-      required: true
+      required: false
     }
   },
   { _id: false }
@@ -131,9 +146,11 @@ const requestSchema = new Schema(
       enum: [
         'diseno_grafico',
         'redes_sociales',
+        'redes',
         'pieza_impresa',
         'presentacion',
         'video',
+        'banner',
         'merchandising',
         'emailing',
         'otro'
