@@ -67,7 +67,8 @@ mongoose.connection.on('disconnected', () => {
 // ==================== RUTAS ====================
 // Servir archivos estáticos
 app.use(express.static(path.join(__dirname, '.')));
-
+// Servir archivos subidos (uploads)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // API Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/requests', require('./routes/requestRoutes'));

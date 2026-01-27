@@ -17,6 +17,9 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   
+  <!-- jsPDF for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -240,14 +243,14 @@
         
         <!-- Navigation -->
         <nav class="flex-1 overflow-y-auto p-4 space-y-1">
-          <a @click="currentTab = 'dashboard'" 
+          <a @click="currentTab = 'dashboard'; loadDashboard()" 
              :class="currentTab === 'dashboard' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
              class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
             <i class="ri-dashboard-line text-xl mr-3"></i>
             <span class="font-medium">Dashboard</span>
           </a>
           
-          <a @click="currentTab = 'solicitudes'" 
+          <a @click="currentTab = 'solicitudes'; loadRequests()" 
              :class="currentTab === 'solicitudes' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
              class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
             <i class="ri-file-list-3-line text-xl mr-3"></i>
@@ -377,10 +380,10 @@
         <!-- Dashboard Tab -->
         <div x-show="currentTab === 'dashboard'">
           <div class="mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Reportes y Análisis</h2>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Vista General</h2>
             <div class="flex items-center justify-between">
               <p class="text-gray-600">Últimos 7 días</p>
-              <button class="px-4 py-2 bg-fenalco-blue text-white rounded-lg flex items-center gap-2 hover:bg-fenalco-blue-600 transition">
+              <button @click="exportDashboardPDF()" class="px-4 py-2 bg-fenalco-blue text-white rounded-lg flex items-center gap-2 hover:bg-fenalco-blue-600 transition">
                 <i class="ri-download-line"></i>
                 Exportar PDF
               </button>
@@ -779,6 +782,13 @@
         <!-- Reportes Tab -->
         <div x-show="currentTab === 'reportes'">
           <div class="mb-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-2xl font-bold text-gray-800">Reportes y Análisis</h2>
+              <button @click="exportReportesPDF()" class="px-4 py-2 bg-fenalco-blue text-white rounded-lg flex items-center gap-2 hover:bg-fenalco-blue-600 transition">
+                <i class="ri-download-line"></i>
+                Exportar PDF
+              </button>
+            </div>
             <div class="flex flex-wrap items-center gap-4 mb-6">
               <!-- Period buttons -->
               <div class="flex space-x-4">
@@ -1419,28 +1429,28 @@
 
           <!-- Statistics Cards -->
           <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <div class="card bg-gradient-to-br from-purple-500 to-purple-600">
+            <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-sm p-6 border border-gray-100">
               <div class="text-white">
                 <p class="text-sm opacity-90">Gerentes</p>
                 <p class="text-3xl font-bold mt-2" x-text="executorStats.byRole?.gerente?.count || 0"></p>
                 <p class="text-xs opacity-80 mt-2" x-text="(executorStats.byRole?.gerente?.available || 0) + ' disponibles'"></p>
               </div>
             </div>
-            <div class="card bg-gradient-to-br from-blue-500 to-blue-600">
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm p-6 border border-gray-100">
               <div class="text-white">
                 <p class="text-sm opacity-90">Diseñadores</p>
                 <p class="text-3xl font-bold mt-2" x-text="executorStats.byRole?.diseñador?.count || 0"></p>
                 <p class="text-xs opacity-80 mt-2" x-text="(executorStats.byRole?.diseñador?.available || 0) + ' disponibles'"></p>
               </div>
             </div>
-            <div class="card bg-gradient-to-br from-green-500 to-green-600">
+            <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-sm p-6 border border-gray-100">
               <div class="text-white">
                 <p class="text-sm opacity-90">Practicantes</p>
                 <p class="text-3xl font-bold mt-2" x-text="executorStats.byRole?.practicante?.count || 0"></p>
                 <p class="text-xs opacity-80 mt-2" x-text="(executorStats.byRole?.practicante?.available || 0) + ' disponibles'"></p>
               </div>
             </div>
-            <div class="card bg-gradient-to-br from-fenalco-blue to-fenalco-green">
+            <div class="bg-gradient-to-br from-fenalco-blue to-fenalco-green rounded-lg shadow-sm p-6 border border-gray-100">
               <div class="text-white">
                 <p class="text-sm opacity-90">Utilización</p>
                 <p class="text-3xl font-bold mt-2" x-text="(executorStats.global?.utilizationRate || 0) + '%'"></p>
@@ -1970,6 +1980,49 @@
           </div>
         </div>
         
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Entrega *</label>
+            <input type="date" x-model="newRequest.deliveryDate" required 
+                   :min="new Date().toISOString().split('T')[0]"
+                   class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Público Objetivo</label>
+            <input type="text" x-model="newRequest.targetAudience" 
+                   class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green"
+                   placeholder="Ej: Afiliados, Público general">
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Enlaces de Referencia</label>
+          <input type="url" x-model="newRequest.referenceLinks" 
+                 class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green"
+                 placeholder="https://ejemplo.com">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            <i class="ri-attachment-line mr-1"></i>
+            Adjuntar Archivos
+          </label>
+          <input type="file" @change="handleFileUpload($event)" multiple 
+                 accept="image/*,.pdf,.doc,.docx,.ppt,.pptx"
+                 class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-fenalco-green file:text-white hover:file:bg-green-600">
+          <p class="text-xs text-gray-500 mt-1">Máx. 5 archivos. Formatos: imágenes, PDF, Word, PowerPoint</p>
+          <div x-show="newRequest.selectedFiles && newRequest.selectedFiles.length > 0" class="mt-2">
+            <p class="text-sm font-medium text-gray-700 mb-1">Archivos seleccionados:</p>
+            <template x-for="(file, index) in newRequest.selectedFiles" :key="index">
+              <div class="flex items-center justify-between bg-gray-50 px-3 py-2 rounded mb-1">
+                <span class="text-sm text-gray-600" x-text="file.name"></span>
+                <span class="text-xs text-gray-500" x-text="(file.size / 1024).toFixed(1) + ' KB'"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+        
         <div class="flex justify-end gap-3 pt-4 border-t">
           <button type="button" @click="showCreateRequestModal = false" 
                   class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
@@ -2025,7 +2078,11 @@
           title: '',
           description: '',
           type: '',
-          urgency: 'normal'
+          urgency: 'normal',
+          deliveryDate: '',
+          targetAudience: '',
+          referenceLinks: '',
+          selectedFiles: []
         },
         
         // Reportes
@@ -2120,6 +2177,240 @@
           localStorage.removeItem('user');
           this.isAuthenticated = false;
           this.user = null;
+        },
+        
+        exportDashboardPDF() {
+          try {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Header
+            doc.setFillColor(40, 0, 113); // fenalco-blue
+            doc.rect(0, 0, 210, 40, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(24);
+            doc.text('FENALCO SANTANDER', 105, 20, { align: 'center' });
+            doc.setFontSize(14);
+            doc.text('Vista General - Dashboard', 105, 30, { align: 'center' });
+            
+            // Date
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            doc.text(`Fecha de generación: ${new Date().toLocaleDateString('es-ES')}`, 20, 50);
+            doc.text('Período: Últimos 7 días', 20, 56);
+            
+            // Metrics
+            doc.setFontSize(16);
+            doc.setTextColor(40, 0, 113);
+            doc.text('Métricas Principales', 20, 70);
+            
+            doc.setFontSize(11);
+            doc.setTextColor(0, 0, 0);
+            let yPos = 80;
+            
+            // Tiempo Promedio
+            doc.text('Tiempo Promedio de Entrega:', 20, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('4.2 días', 120, yPos);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(0, 150, 0);
+            doc.text('↓ -0.5 días', 150, yPos);
+            
+            // Tasa de Ejecución
+            doc.setTextColor(0, 0, 0);
+            yPos += 10;
+            doc.text('Tasa de Ejecución:', 20, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('85%', 120, yPos);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(0, 150, 0);
+            doc.text('↑ +2%', 150, yPos);
+            
+            // Solicitudes Urgentes
+            doc.setTextColor(0, 0, 0);
+            yPos += 10;
+            doc.text('Solicitudes Urgentes:', 20, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('33%', 120, yPos);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(200, 100, 0);
+            doc.text('⚠ Atención', 150, yPos);
+            
+            // Satisfacción
+            doc.setTextColor(0, 0, 0);
+            yPos += 10;
+            doc.text('Satisfacción del Cliente:', 20, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('92%', 120, yPos);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(0, 150, 0);
+            doc.text('★ Excelente', 150, yPos);
+            
+            // Statistics Summary
+            doc.setTextColor(40, 0, 113);
+            yPos += 20;
+            doc.setFontSize(16);
+            doc.text('Estado de Solicitudes', 20, yPos);
+            
+            doc.setFontSize(11);
+            doc.setTextColor(0, 0, 0);
+            yPos += 10;
+            doc.text(`Total de Solicitudes: ${this.stats.total || 0}`, 20, yPos);
+            yPos += 7;
+            doc.text(`Pendientes: ${this.stats.pending || 0}`, 20, yPos);
+            yPos += 7;
+            doc.text(`En Proceso: ${this.stats.inProcess || 0}`, 20, yPos);
+            yPos += 7;
+            doc.text(`Completadas: ${this.stats.completed || 0}`, 20, yPos);
+            
+            // Footer
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text('Documento generado por Plataforma de Gestión de Diseños - FENALCO Santander', 105, 280, { align: 'center' });
+            
+            // Save
+            doc.save(`Fenalco_Dashboard_${new Date().toISOString().split('T')[0]}.pdf`);
+          } catch (error) {
+            console.error('Error al exportar PDF:', error);
+            alert('Error al generar el PDF. Por favor, intenta nuevamente.');
+          }
+        },
+        
+        exportReportesPDF() {
+          try {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Header
+            doc.setFillColor(40, 0, 113);
+            doc.rect(0, 0, 210, 40, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(24);
+            doc.text('FENALCO SANTANDER', 105, 20, { align: 'center' });
+            doc.setFontSize(14);
+            doc.text('Reportes y Análisis', 105, 30, { align: 'center' });
+            
+            // Date and Period
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            doc.text(`Fecha de generación: ${new Date().toLocaleDateString('es-ES')}`, 20, 50);
+            const periodNames = { today: 'Hoy', week: 'Semana', month: 'Mes' };
+            doc.text(`Período seleccionado: ${periodNames[this.reportPeriod] || 'Hoy'}`, 20, 56);
+            doc.text(`Mes: ${this.reportMonth} / Año: ${this.reportYear}`, 20, 62);
+            
+            // Main Metrics
+            doc.setFontSize(16);
+            doc.setTextColor(40, 0, 113);
+            doc.text('Métricas del Período', 20, 75);
+            
+            doc.setFontSize(11);
+            doc.setTextColor(0, 0, 0);
+            let yPos = 85;
+            
+            doc.text('Total Solicitudes:', 20, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('12', 80, yPos);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(0, 150, 0);
+            doc.text('(+3 vs anterior)', 100, yPos);
+            
+            doc.setTextColor(0, 0, 0);
+            yPos += 8;
+            doc.text('Completadas:', 20, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('8 (66.7%)', 80, yPos);
+            
+            doc.setFont(undefined, 'normal');
+            yPos += 8;
+            doc.text('En Proceso:', 20, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('3 (25.0%)', 80, yPos);
+            
+            doc.setFont(undefined, 'normal');
+            yPos += 8;
+            doc.text('Tiempo Promedio:', 20, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('3.2 días', 80, yPos);
+            
+            // Distribution Section
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(40, 0, 113);
+            yPos += 15;
+            doc.setFontSize(16);
+            doc.text('Distribución por Estado', 20, yPos);
+            
+            doc.setFontSize(11);
+            doc.setTextColor(0, 0, 0);
+            yPos += 10;
+            doc.setFillColor(255, 181, 73);
+            doc.circle(25, yPos - 1, 2, 'F');
+            doc.text('Pendiente: 11 solicitudes (11%)', 30, yPos);
+            
+            yPos += 7;
+            doc.setFillColor(79, 195, 247);
+            doc.circle(25, yPos - 1, 2, 'F');
+            doc.text('En Proceso: 21 solicitudes (21%)', 30, yPos);
+            
+            yPos += 7;
+            doc.setFillColor(0, 206, 124);
+            doc.circle(25, yPos - 1, 2, 'F');
+            doc.text('Completada: 97 solicitudes (68%)', 30, yPos);
+            
+            // Top Departments
+            doc.setTextColor(40, 0, 113);
+            yPos += 15;
+            doc.setFontSize(16);
+            doc.text('Departamentos más Activos', 20, yPos);
+            
+            doc.setFontSize(11);
+            doc.setTextColor(0, 0, 0);
+            yPos += 10;
+            doc.text('1. Comercial', 20, yPos);
+            doc.text('15 solicitudes', 80, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('85% completitud', 130, yPos);
+            
+            doc.setFont(undefined, 'normal');
+            yPos += 7;
+            doc.text('2. Formación', 20, yPos);
+            doc.text('12 solicitudes', 80, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('92% completitud', 130, yPos);
+            
+            doc.setFont(undefined, 'normal');
+            yPos += 7;
+            doc.text('3. Comunicaciones', 20, yPos);
+            doc.text('10 solicitudes', 80, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('90% completitud', 130, yPos);
+            
+            // Weekly Trend
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(40, 0, 113);
+            yPos += 15;
+            doc.setFontSize(16);
+            doc.text('Tendencia Semanal', 20, yPos);
+            
+            doc.setFontSize(11);
+            doc.setTextColor(0, 0, 0);
+            yPos += 10;
+            const days = ['Lun: 3', 'Mar: 5', 'Mié: 4', 'Jue: 7', 'Vie: 6', 'Sáb: 2', 'Dom: 1'];
+            days.forEach(day => {
+              doc.text(day + ' solicitudes', 20, yPos);
+              yPos += 6;
+            });
+            
+            // Footer
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text('Documento generado por Plataforma de Gestión de Diseños - FENALCO Santander', 105, 280, { align: 'center' });
+            
+            // Save
+            doc.save(`Fenalco_Reportes_${new Date().toISOString().split('T')[0]}.pdf`);
+          } catch (error) {
+            console.error('Error al exportar PDF:', error);
+            alert('Error al generar el PDF. Por favor, intenta nuevamente.');
+          }
         },
         
         async loadDashboard() {
@@ -2368,26 +2659,65 @@
         
         async createRequest() {
           try {
+            const formData = new FormData();
+            
+            // Agregar campos de texto
+            formData.append('title', this.newRequest.title);
+            formData.append('description', this.newRequest.description);
+            formData.append('type', this.newRequest.type);
+            formData.append('urgency', this.newRequest.urgency);
+            formData.append('deliveryDate', this.newRequest.deliveryDate);
+            formData.append('area', this.user.department);
+            
+            if (this.newRequest.targetAudience) {
+              formData.append('targetAudience', this.newRequest.targetAudience);
+            }
+            if (this.newRequest.referenceLinks) {
+              formData.append('referenceLinks', this.newRequest.referenceLinks);
+            }
+            
+            // Agregar archivos
+            if (this.newRequest.selectedFiles && this.newRequest.selectedFiles.length > 0) {
+              for (const file of this.newRequest.selectedFiles) {
+                formData.append('files', file);
+              }
+            }
+            
             const response = await fetch(`${API_URL}/requests`, {
               method: 'POST',
               headers: {
-                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${this.token}`
+                // NO incluir Content-Type, el navegador lo establece automáticamente con el boundary
               },
-              body: JSON.stringify({
-                ...this.newRequest,
-                department: this.user.department,
-                requestedBy: this.user.id
-              })
+              body: formData
             });
             
             const data = await response.json();
             
             if (data.success) {
-              alert('✅ Solicitud creada exitosamente: ' + data.request.requestNumber);
+              // Cerrar modal primero
               this.showCreateRequestModal = false;
-              this.newRequest = { title: '', description: '', type: '', urgency: 'normal' };
+              
+              // Limpiar formulario
+              this.newRequest = { 
+                title: '', 
+                description: '', 
+                type: '', 
+                urgency: 'normal',
+                deliveryDate: '',
+                targetAudience: '',
+                referenceLinks: '',
+                selectedFiles: []
+              };
+              
+              // Recargar solicitudes
               await this.loadRequests();
+              
+              // Forzar actualización de la vista
+              this.$nextTick(() => {
+                // Mostrar mensaje de éxito después de que se actualizó la vista
+                alert('✅ Solicitud creada exitosamente: ' + data.request.requestNumber);
+              });
             } else {
               alert('❌ Error: ' + data.message);
             }
@@ -2395,6 +2725,16 @@
             console.error('Error al crear solicitud:', error);
             alert('❌ Error de conexión al crear solicitud');
           }
+        },
+        
+        handleFileUpload(event) {
+          const files = Array.from(event.target.files);
+          if (files.length > 5) {
+            alert('⚠️ Máximo 5 archivos permitidos');
+            event.target.value = '';
+            return;
+          }
+          this.newRequest.selectedFiles = files;
         },
         
         // ===== FUNCIONES DE EJECUTORES =====

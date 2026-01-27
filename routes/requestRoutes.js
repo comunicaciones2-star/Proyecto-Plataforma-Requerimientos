@@ -1,19 +1,50 @@
 // routes/requestRoutes.js
 const express = require('express');
 const multer = require('multer');
-const streamifier = require('streamifier');
+const path = require('path');
+const fs = require('fs');
 const { authenticate } = require('../middleware/auth');
 const Request = require('../models/Request');
-const cloudinary = require('../config/cloudinary');
 const { sendNewRequestEmail, sendStatusChangeEmail } = require('../config/email');
 const { notifyNewRequest, notifyStatusChange, notifyNewComment } = require('../utils/websocket');
-const { autoAssignRequest, calculateQueuePosition, formatTime12h } = require('../utils/autoAssign');
+const { autoAssignRequest } = require('../utils/autoAssign');
 
 const router = express.Router();
 
-// Multer en memoria (no guarda archivos en disco)
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+// Configuración de Multer para almacenamiento local
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, '..', 'uploads');
+    // Crear directorio si no existe
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    // Generar nombre único: timestamp + random + extensión original
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, uniqueSuffix + ext);
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  fileFilter: (req, file, cb) => {
+    // Tipos de archivo permitidos
+    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|ppt|pptx|xls|xlsx/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Tipo de archivo no permitido'));
+    }
+  }
+});
 
 // Todas las rutas requieren usuario logueado
 router.use(authenticate);
@@ -44,29 +75,19 @@ router.post('/', upload.array('files'), async (req, res) => {
 
     const attachments = [];
 
-    // Subir archivos a Cloudinary si vienen
+    // Guardar archivos localmente
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const result = await new Promise((resolve, reject) => {
-          const stream = cloudinary.uploader.upload_stream(
-            {
-              folder: 'fenalco-disenos',
-              resource_type: 'auto'
-            },
-            (error, result) => {
-              if (error) reject(error);
-              else resolve(result);
-            }
-          );
-          streamifier.createReadStream(file.buffer).pipe(stream);
-        });
-
         attachments.push({
           originalName: file.originalname,
-          cloudinaryUrl: result.secure_url,
-          publicId: result.public_id
+          filename: file.filename,
+          path: file.path,
+          url: `/uploads/${file.filename}`,
+          size: file.size,
+          mimetype: file.mimetype
         });
       }
+      console.log(`✅ ${req.files.length} archivo(s) guardado(s) localmente`);
     }
 
     const request = new Request({
@@ -103,10 +124,9 @@ router.post('/', upload.array('files'), async (req, res) => {
       }
     } else {
       // Si no se pudo asignar, queda en cola
-      const position = await calculateQueuePosition(request._id);
-      request.queuePosition = position;
+      request.queuePosition = 1;
       await request.save();
-      console.log(`⏳ Solicitud ${request.requestNumber} en cola, posición #${position}`);
+      console.log(`⏳ Solicitud ${request.requestNumber} en cola`);
     }
 
     // Notificar via WebSocket
@@ -121,7 +141,7 @@ router.post('/', upload.array('files'), async (req, res) => {
       if (req.user.email) {
         const message = assignedUser 
           ? `Tu solicitud ${request.requestNumber} ha sido asignada a ${assignedUser.firstName} ${assignedUser.lastName}`
-          : `Tu solicitud ${request.requestNumber} está en cola de atención. Hora de llegada: ${formatTime12h(request.queuedAt)}`;
+          : `Tu solicitud ${request.requestNumber} está en cola de atención`;
         // Aquí puedes enviar el email
       }
     } catch (e) {
@@ -269,11 +289,13 @@ router.get('/queue/list', async (req, res) => {
     const now = new Date();
     const queueWithDetails = pendingRequests.map((req, index) => {
       const waitTime = Math.floor((now - new Date(req.queuedAt)) / (1000 * 60)); // minutos
+      const queuedDate = new Date(req.queuedAt);
+      const formattedTime = queuedDate.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
       return {
         ...req.toObject(),
         queuePosition: index + 1,
         waitTimeMinutes: waitTime,
-        queuedAtFormatted: formatTime12h(new Date(req.queuedAt))
+        queuedAtFormatted: formattedTime
       };
     });
 
