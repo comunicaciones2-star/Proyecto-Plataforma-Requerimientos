@@ -142,7 +142,7 @@ Proyecto-Plataforma-RD/
 
 ### Conexión
 - **Servidor:** MongoDB Atlas (cloud.mongodb.com)
-- **Usuario:** fenalco_user_f42be774
+- **Usuario:** [Configurado en variable de entorno MONGODB_URI]
 - **Base de datos:** fenalco-disenos
 - **URI protegida en .env** (no expuesta públicamente)
 
@@ -490,7 +490,7 @@ http://localhost:5000
 
 ### Última Rotación de Credenciales
 - **Fecha:** 23 de Enero de 2026
-- **Usuario MongoDB:** fenalco_user_f42be774
+- **Usuario MongoDB:** [Credenciales protegidas en .env]
 - **JWT Secret:** Renovado (128 caracteres)
 - **Alertas GitHub:** 9 cerradas
 - **Ver:** SECURITY-CHANGELOG.md

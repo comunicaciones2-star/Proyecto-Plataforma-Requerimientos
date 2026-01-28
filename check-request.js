@@ -2,7 +2,14 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const Request = require('./models/Request');
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://fenalco_user_f42be774:4EqbSR9e41aw2qcF@cluster0.wdbdy.mongodb.net/fenalco-disenos?retryWrites=true&w=majority';
+// SEGURIDAD: Solo usar variables de entorno, nunca hardcodear credenciales
+if (!process.env.MONGODB_URI) {
+  console.error('❌ ERROR: MONGODB_URI no está configurado en las variables de entorno');
+  console.error('   Por favor, crea un archivo .env con la variable MONGODB_URI');
+  process.exit(1);
+}
+
+const MONGODB_URI = process.env.MONGODB_URI;
 
 async function checkRequest() {
   try {
