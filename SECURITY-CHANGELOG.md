@@ -7,7 +7,7 @@
 **Motivo:** Credenciales expuestas en historial de commits (detectadas por GitHub Secret Scanning)
 
 #### 1. MongoDB Atlas
-- ✅ Nuevo usuario creado: `fenalco_user_f42be774`
+- ✅ Nuevo usuario de MongoDB creado (credenciales en .env)
 - ✅ Contraseña segura generada (20 caracteres alfanuméricos)
 - ✅ Permisos: Read and write to any database
 - ✅ Usuario antiguo `comunicaciones2_db_user` eliminado
