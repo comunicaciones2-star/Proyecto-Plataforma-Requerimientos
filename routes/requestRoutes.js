@@ -250,9 +250,22 @@ router.get('/:id', async (req, res) => {
       });
     }
 
+    // Calcular posición en cola si está pendiente
+    let queuePosition = null;
+    if (request.status === 'pending' && request.queuedAt) {
+      const queueCount = await Request.countDocuments({
+        status: 'pending',
+        queuedAt: { $lt: request.queuedAt }
+      });
+      queuePosition = queueCount + 1;
+    }
+
     res.json({
       success: true,
-      request
+      request: {
+        ...request.toObject(),
+        queuePosition
+      }
     });
   } catch (error) {
     console.error('Error al obtener solicitud:', error);
