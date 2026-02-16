@@ -2648,7 +2648,8 @@
               const response = await fetch('/api/admin/stats/monthly-performance', {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
               });
-              const monthlyData = await response.json();
+              const result = await response.json();
+              const monthlyData = result.data || [];
               
               new Chart(ctxPerformance, {
                 type: 'line',
@@ -2699,7 +2700,8 @@
               const response = await fetch('/api/admin/stats/urgency-distribution', {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
               });
-              const urgencyData = await response.json();
+              const result = await response.json();
+              const urgencyData = result.data || { normal: 0, urgent: 0, express: 0 };
               
               new Chart(ctxUrgencia, {
                 type: 'doughnut',
@@ -2740,7 +2742,8 @@
               const response = await fetch('/api/admin/stats/status-distribution', {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
               });
-              const statusData = await response.json();
+              const result = await response.json();
+              const statusData = result.data || { pending: 0, inProcess: 0, completed: 0 };
               
               new Chart(ctxStatus, {
                 type: 'doughnut',
@@ -2779,7 +2782,8 @@
               const response = await fetch('/api/admin/stats/daily-trend', {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
               });
-              const dailyData = await response.json();
+              const result = await response.json();
+              const dailyData = result.data || [];
               
               new Chart(ctxDaily, {
                 type: 'line',
