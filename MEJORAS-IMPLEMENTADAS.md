@@ -13,6 +13,23 @@ Se implementaron **13 mejoras críticas** de seguridad, performance y calidad de
 
 ---
 
+## 🆕 ACTUALIZACIÓN - 18 FEBRERO 2026
+
+### ✅ 14. Sección Admin migrada a Perfil con panel administrativo integrado
+**Archivo:** `index.html`
+
+**Cambios implementados:**
+- Renombre visual de navegación y título de pestaña de **Admin/Administración** a **Perfil**.
+- Vista de perfil unificada para todos los usuarios con: nombre, cargo, departamento, rol en la app y foto/avatar.
+- Bloque condicional **Panel de Administración** visible solo para rol `admin` dentro de la misma sección Perfil.
+- Accesos rápidos desde el panel admin a módulos existentes: Asignación, Solicitudes y Reportes.
+
+**Resultado funcional:**
+- Experiencia más clara para usuarios no administradores (perfil personal en un único lugar).
+- Conservación de capacidades administrativas sin crear una sección separada adicional.
+
+---
+
 ## 🔴 URGENTE - SEGURIDAD (COMPLETADO)
 
 ### ✅ 1. Helmet para Headers HTTP Seguros
