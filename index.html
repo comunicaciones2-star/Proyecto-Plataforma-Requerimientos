@@ -293,11 +293,11 @@
             <span class="font-medium">Asignación</span>
           </a>
           
-          <a x-show="user?.role === 'admin'" @click="currentTab = 'admin'" 
+          <a @click="currentTab = 'admin'" 
              :class="currentTab === 'admin' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
              class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
-            <i class="ri-shield-user-line text-xl mr-3"></i>
-            <span class="font-medium">Admin</span>
+            <i class="ri-user-settings-line text-xl mr-3"></i>
+            <span class="font-medium">Perfil</span>
           </a>
         </nav>
         
@@ -1417,212 +1417,128 @@
           </div>
         </div>
 
-        <!-- Admin Tab -->
+        <!-- Perfil Tab -->
         <div x-show="currentTab === 'admin'">
-          <!-- Para usuarios admin: Gestión de usuarios -->
-          <div x-show="user?.role === 'admin'">
-            <div class="flex justify-between items-center mb-6">
-              <h2 class="text-2xl font-bold text-gray-800">Gestión de Usuarios</h2>
-              <button class="px-4 py-2 bg-fenalco-green text-white rounded-lg font-medium flex items-center gap-2 hover:bg-opacity-90 transition">
-                <i class="ri-user-add-line"></i> Nuevo Usuario
-              </button>
-            </div>
-            
-            <div class="card overflow-x-auto">
-              <table class="w-full">
-                <thead>
-                  <tr class="border-b border-gray-200">
-                    <th class="text-left p-4 font-semibold text-gray-700">Email</th>
-                    <th class="text-left p-4 font-semibold text-gray-700">Nombre</th>
-                    <th class="text-left p-4 font-semibold text-gray-700">Rol</th>
-                    <th class="text-left p-4 font-semibold text-gray-700">Área</th>
-                    <th class="text-left p-4 font-semibold text-gray-700">Estado</th>
-                    <th class="text-left p-4 font-semibold text-gray-700">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr class="border-b border-gray-100 hover:bg-gray-50">
-                    <td class="p-4 text-sm">asistentedireccion@fenalcosantander.com.co</td>
-                    <td class="p-4 text-sm font-medium">Ana María López</td>
-                    <td class="p-4">
-                      <span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">Admin</span>
-                    </td>
-                    <td class="p-4 text-sm">Dirección</td>
-                    <td class="p-4">
-                      <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span>
-                    </td>
-                    <td class="p-4">
-                      <div class="flex gap-2">
-                        <button class="text-blue-600 hover:text-blue-800" title="Editar">
-                          <i class="ri-edit-line"></i>
-                        </button>
-                        <button class="text-red-600 hover:text-red-800" title="Eliminar">
-                          <i class="ri-delete-bin-line"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr class="border-b border-gray-100 hover:bg-gray-50">
-                    <td class="p-4 text-sm">gerente@fenalcosantander.com.co</td>
-                    <td class="p-4 text-sm font-medium">María González</td>
-                    <td class="p-4">
-                      <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">Gerente</span>
-                    </td>
-                    <td class="p-4 text-sm">Comunicaciones</td>
-                    <td class="p-4">
-                      <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span>
-                    </td>
-                    <td class="p-4">
-                      <div class="flex gap-2">
-                        <button class="text-blue-600 hover:text-blue-800" title="Editar">
-                          <i class="ri-edit-line"></i>
-                        </button>
-                        <button class="text-red-600 hover:text-red-800" title="Eliminar">
-                          <i class="ri-delete-bin-line"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr class="border-b border-gray-100 hover:bg-gray-50">
-                    <td class="p-4 text-sm">disenador@fenalcosantander.com.co</td>
-                    <td class="p-4 text-sm font-medium">Carlos Ruiz</td>
-                    <td class="p-4">
-                      <span class="px-2 py-1 bg-teal-100 text-teal-700 text-xs rounded-full">Diseñador</span>
-                    </td>
-                    <td class="p-4 text-sm">Comunicaciones</td>
-                    <td class="p-4">
-                      <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span>
-                    </td>
-                    <td class="p-4">
-                      <div class="flex gap-2">
-                        <button class="text-blue-600 hover:text-blue-800" title="Editar">
-                          <i class="ri-edit-line"></i>
-                        </button>
-                        <button class="text-red-600 hover:text-red-800" title="Eliminar">
-                          <i class="ri-delete-bin-line"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr class="border-b border-gray-100 hover:bg-gray-50">
-                    <td class="p-4 text-sm">practicante@fenalcosantander.com.co</td>
-                    <td class="p-4 text-sm font-medium">Ana Martínez</td>
-                    <td class="p-4">
-                      <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Practicante</span>
-                    </td>
-                    <td class="p-4 text-sm">Comunicaciones</td>
-                    <td class="p-4">
-                      <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span>
-                    </td>
-                    <td class="p-4">
-                      <div class="flex gap-2">
-                        <button class="text-blue-600 hover:text-blue-800" title="Editar">
-                          <i class="ri-edit-line"></i>
-                        </button>
-                        <button class="text-red-600 hover:text-red-800" title="Eliminar">
-                          <i class="ri-delete-bin-line"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr class="border-b border-gray-100 hover:bg-gray-50">
-                    <td class="p-4 text-sm">comercial@fenalcosantander.com.co</td>
-                    <td class="p-4 text-sm font-medium">Pedro Sánchez</td>
-                    <td class="p-4">
-                      <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">Usuario</span>
-                    </td>
-                    <td class="p-4 text-sm">Comercial</td>
-                    <td class="p-4">
-                      <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span>
-                    </td>
-                    <td class="p-4">
-                      <div class="flex gap-2">
-                        <button class="text-blue-600 hover:text-blue-800" title="Editar">
-                          <i class="ri-edit-line"></i>
-                        </button>
-                        <button class="text-red-600 hover:text-red-800" title="Eliminar">
-                          <i class="ri-delete-bin-line"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          
-          <!-- Para usuarios regulares: Perfil personal -->
-          <div x-show="user?.role !== 'admin'">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Mi Perfil</h2>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <!-- Información del usuario -->
-              <div class="lg:col-span-1">
-                <div class="card text-center">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6">Mi Perfil</h2>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div class="lg:col-span-1">
+              <div class="card text-center">
+                <template x-if="user?.avatar">
+                  <img :src="user?.avatar" alt="Foto de perfil" class="w-24 h-24 rounded-full object-cover mx-auto mb-4 border-2 border-fenalco-green">
+                </template>
+                <template x-if="!user?.avatar">
                   <div class="w-24 h-24 rounded-full bg-fenalco-green text-white flex items-center justify-center text-3xl font-bold mx-auto mb-4">
-                    <span x-text="user?.firstName?.charAt(0) + user?.lastName?.charAt(0)"></span>
+                    <span x-text="(user?.firstName?.charAt(0) || '') + (user?.lastName?.charAt(0) || '')"></span>
                   </div>
-                  <h3 class="text-xl font-bold text-gray-800 mb-2" x-text="user?.firstName + ' ' + user?.lastName"></h3>
-                  <p class="text-gray-600 mb-4" x-text="user?.email"></p>
-                  <div class="space-y-2 text-sm text-left">
-                    <div class="flex justify-between py-2 border-b">
-                      <span class="text-gray-600">Rol:</span>
-                      <span class="font-medium" x-text="user?.role"></span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b">
-                      <span class="text-gray-600">Departamento:</span>
-                      <span class="font-medium" x-text="user?.department"></span>
-                    </div>
-                    <div class="flex justify-between py-2">
-                      <span class="text-gray-600">Estado:</span>
-                      <span class="text-green-600 font-medium">
-                        <i class="ri-checkbox-circle-fill"></i> Activo
-                      </span>
-                    </div>
+                </template>
+
+                <h3 class="text-xl font-bold text-gray-800 mb-2" x-text="user?.firstName + ' ' + user?.lastName"></h3>
+                <p class="text-gray-600 mb-4" x-text="user?.email"></p>
+
+                <div class="space-y-2 text-sm text-left">
+                  <div class="flex justify-between py-2 border-b">
+                    <span class="text-gray-600">Nombre:</span>
+                    <span class="font-medium" x-text="user?.firstName + ' ' + user?.lastName"></span>
+                  </div>
+                  <div class="flex justify-between py-2 border-b">
+                    <span class="text-gray-600">Cargo:</span>
+                    <span class="font-medium" x-text="getUserCargo(user?.role)"></span>
+                  </div>
+                  <div class="flex justify-between py-2 border-b">
+                    <span class="text-gray-600">Departamento:</span>
+                    <span class="font-medium" x-text="user?.department || 'Sin definir'"></span>
+                  </div>
+                  <div class="flex justify-between py-2">
+                    <span class="text-gray-600">Rol en la app:</span>
+                    <span class="font-medium" x-text="getAppRoleLabel(user?.role)"></span>
                   </div>
                 </div>
               </div>
-              
-              <!-- Cambiar contraseña -->
-              <div class="lg:col-span-2">
-                <div class="card">
-                  <h3 class="text-lg font-bold text-gray-800 mb-4">Cambiar Contraseña</h3>
-                  <form @submit.prevent="changePassword()" class="space-y-4">
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña Actual</label>
-                      <input type="password" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
-                      <input type="password" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar Nueva Contraseña</label>
-                      <input type="password" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
-                    </div>
-                    <button type="submit" class="px-6 py-2 bg-fenalco-green text-white rounded-lg font-medium hover:bg-opacity-90 transition">
-                      <i class="ri-lock-password-line mr-2"></i>Actualizar Contraseña
-                    </button>
-                  </form>
-                </div>
-                
-                <!-- Mis estadísticas -->
-                <div class="card mt-6">
-                  <h3 class="text-lg font-bold text-gray-800 mb-4">Mis Estadísticas</h3>
-                  <div class="grid grid-cols-3 gap-4">
-                    <div class="text-center p-4 bg-blue-50 rounded-lg">
-                      <p class="text-2xl font-bold text-blue-600" x-text="stats.total || 0"></p>
-                      <p class="text-sm text-gray-600">Total Solicitudes</p>
-                    </div>
-                    <div class="text-center p-4 bg-green-50 rounded-lg">
-                      <p class="text-2xl font-bold text-green-600" x-text="stats.completed || 0"></p>
-                      <p class="text-sm text-gray-600">Completadas</p>
-                    </div>
-                    <div class="text-center p-4 bg-yellow-50 rounded-lg">
-                      <p class="text-2xl font-bold text-yellow-600" x-text="stats.inProcess || 0"></p>
-                      <p class="text-sm text-gray-600">En Proceso</p>
-                    </div>
+            </div>
+
+            <div class="lg:col-span-2 space-y-6">
+              <div class="card">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Resumen</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <p class="text-2xl font-bold text-blue-600" x-text="stats.total || 0"></p>
+                    <p class="text-sm text-gray-600">Total Solicitudes</p>
                   </div>
+                  <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <p class="text-2xl font-bold text-green-600" x-text="stats.completed || 0"></p>
+                    <p class="text-sm text-gray-600">Completadas</p>
+                  </div>
+                  <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                    <p class="text-2xl font-bold text-yellow-600" x-text="stats.inProcess || 0"></p>
+                    <p class="text-sm text-gray-600">En Proceso</p>
+                  </div>
+                </div>
+              </div>
+
+              <div x-show="user?.role === 'admin'" class="card">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                  <h3 class="text-lg font-bold text-gray-800">Panel de Administración</h3>
+                  <span class="px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">Solo administrador</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+                  <button @click="currentTab = 'ejecutores'; loadExecutors()" class="p-3 border rounded-lg text-left hover:bg-gray-50 transition">
+                    <p class="font-semibold text-gray-800">Gestionar Asignación</p>
+                    <p class="text-xs text-gray-500">Roles, capacidad y disponibilidad</p>
+                  </button>
+                  <button @click="currentTab = 'solicitudes'; loadRequests()" class="p-3 border rounded-lg text-left hover:bg-gray-50 transition">
+                    <p class="font-semibold text-gray-800">Gestionar Solicitudes</p>
+                    <p class="text-xs text-gray-500">Seguimiento y acciones CRUD</p>
+                  </button>
+                  <button @click="currentTab = 'reportes'; loadReportData()" class="p-3 border rounded-lg text-left hover:bg-gray-50 transition">
+                    <p class="font-semibold text-gray-800">Ver Reportes</p>
+                    <p class="text-xs text-gray-500">Indicadores y exportaciones</p>
+                  </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                  <table class="w-full">
+                    <thead>
+                      <tr class="border-b border-gray-200">
+                        <th class="text-left p-3 font-semibold text-gray-700">Email</th>
+                        <th class="text-left p-3 font-semibold text-gray-700">Nombre</th>
+                        <th class="text-left p-3 font-semibold text-gray-700">Rol</th>
+                        <th class="text-left p-3 font-semibold text-gray-700">Área</th>
+                        <th class="text-left p-3 font-semibold text-gray-700">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="p-3 text-sm">asistentedireccion@fenalcosantander.com.co</td>
+                        <td class="p-3 text-sm font-medium">Ana María López</td>
+                        <td class="p-3"><span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">Admin</span></td>
+                        <td class="p-3 text-sm">Dirección</td>
+                        <td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span></td>
+                      </tr>
+                      <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="p-3 text-sm">gerente@fenalcosantander.com.co</td>
+                        <td class="p-3 text-sm font-medium">María González</td>
+                        <td class="p-3"><span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">Gerente</span></td>
+                        <td class="p-3 text-sm">Comunicaciones</td>
+                        <td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span></td>
+                      </tr>
+                      <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="p-3 text-sm">disenador@fenalcosantander.com.co</td>
+                        <td class="p-3 text-sm font-medium">Carlos Ruiz</td>
+                        <td class="p-3"><span class="px-2 py-1 bg-teal-100 text-teal-700 text-xs rounded-full">Diseñador</span></td>
+                        <td class="p-3 text-sm">Comunicaciones</td>
+                        <td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span></td>
+                      </tr>
+                      <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="p-3 text-sm">practicante@fenalcosantander.com.co</td>
+                        <td class="p-3 text-sm font-medium">Ana Martínez</td>
+                        <td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Practicante</span></td>
+                        <td class="p-3 text-sm">Comunicaciones</td>
+                        <td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -3557,7 +3473,7 @@
             reportes: 'Reportes y Análisis',
             calendario: 'Calendario de Entregas',
             ejecutores: 'Asignación',
-            admin: 'Administración'
+            admin: 'Perfil'
           };
           return titles[this.currentTab] || 'Dashboard';
         },
@@ -3580,6 +3496,28 @@
             practicante: 'Practicante'
           };
           return labels[role] || role;
+        },
+
+        getAppRoleLabel(role) {
+          const labels = {
+            admin: 'Administrador',
+            gerente: 'Gerente',
+            'diseñador': 'Diseñador',
+            practicante: 'Practicante',
+            usuario: 'Usuario'
+          };
+          return labels[role] || role;
+        },
+
+        getUserCargo(role) {
+          const cargos = {
+            admin: 'Administrador de Plataforma',
+            gerente: 'Gerente de Área',
+            'diseñador': 'Diseñador',
+            practicante: 'Practicante',
+            usuario: 'Solicitante'
+          };
+          return cargos[role] || 'Colaborador';
         },
         
         openNewRequestModal() {
