@@ -924,25 +924,31 @@
           <div class="mb-6">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-2xl font-bold text-gray-800">Reportes y Análisis</h2>
-              <button @click="exportReportesPDF()" class="px-4 py-2 bg-fenalco-blue text-white rounded-lg flex items-center gap-2 hover:bg-fenalco-blue-600 transition">
-                <i class="ri-download-line"></i>
-                Exportar PDF
-              </button>
+              <div class="flex items-center gap-2">
+                <button @click="exportReportesCSV()" class="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center gap-2 hover:bg-green-700 transition">
+                  <i class="ri-file-excel-2-line"></i>
+                  Exportar CSV
+                </button>
+                <button @click="exportReportesPDF()" class="px-4 py-2 bg-fenalco-blue text-white rounded-lg flex items-center gap-2 hover:bg-fenalco-blue-600 transition">
+                  <i class="ri-download-line"></i>
+                  Exportar PDF
+                </button>
+              </div>
             </div>
             <div class="flex flex-wrap items-center gap-4 mb-6">
               <!-- Period buttons -->
               <div class="flex space-x-4">
-                <button @click="reportPeriod = 'today'" 
+                <button @click="reportPeriod = 'today'; loadReportData()" 
                         :class="reportPeriod === 'today' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
                         class="px-4 py-2 rounded-lg font-medium transition">
                   <i class="ri-calendar-today-line mr-2"></i>Hoy
                 </button>
-                <button @click="reportPeriod = 'week'" 
+                <button @click="reportPeriod = 'week'; loadReportData()" 
                         :class="reportPeriod === 'week' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
                         class="px-4 py-2 rounded-lg font-medium transition">
                 <i class="ri-calendar-week-line mr-2"></i>Semana
               </button>
-              <button @click="reportPeriod = 'month'" 
+              <button @click="reportPeriod = 'month'; loadReportData()" 
                       :class="reportPeriod === 'month' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
                       class="px-4 py-2 rounded-lg font-medium transition">
                 <i class="ri-calendar-line mr-2"></i>Mes
@@ -951,7 +957,7 @@
               
               <!-- Month/Year selectors -->
               <div class="flex gap-4 ml-auto">
-                <select x-model="reportMonth" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fenalco-blue">
+                <select x-model.number="reportMonth" @change="loadReportData()" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fenalco-blue">
                   <option value="1">Enero</option>
                   <option value="2">Febrero</option>
                   <option value="3">Marzo</option>
@@ -965,7 +971,7 @@
                   <option value="11">Noviembre</option>
                   <option value="12">Diciembre</option>
                 </select>
-                <select x-model="reportYear" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fenalco-blue">
+                <select x-model.number="reportYear" @change="loadReportData()" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fenalco-blue">
                   <option value="2026">2026</option>
                   <option value="2025">2025</option>
                   <option value="2024">2024</option>
@@ -979,8 +985,8 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-gray-600 text-sm">Total Solicitudes</p>
-                    <p class="text-3xl font-bold text-fenalco-blue" x-text="dashboardStats.totalRequests">12</p>
-                    <p class="text-xs text-gray-500 mt-1">Total en sistema</p>
+                    <p class="text-3xl font-bold text-fenalco-blue" x-text="reportData.totalRequests">0</p>
+                    <p class="text-xs text-gray-500 mt-1" x-text="reportData.periodLabel"></p>
                   </div>
                   <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
                     <i class="ri-file-list-3-line text-2xl text-fenalco-blue"></i>
@@ -992,8 +998,8 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-gray-600 text-sm">Completadas</p>
-                    <p class="text-3xl font-bold text-green-600" x-text="dashboardStats.completedRequests">8</p>
-                    <p class="text-xs text-gray-500 mt-1"><span x-text="dashboardStats.completionPercentage">0</span>% tasa</p>
+                    <p class="text-3xl font-bold text-green-600" x-text="reportData.completedRequests">0</p>
+                    <p class="text-xs text-gray-500 mt-1"><span x-text="reportData.completionPercentage">0</span>% tasa</p>
                   </div>
                   <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
                     <i class="ri-checkbox-circle-line text-2xl text-green-600"></i>
@@ -1005,7 +1011,7 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-gray-600 text-sm">En Proceso</p>
-                    <p class="text-3xl font-bold text-blue-600" x-text="dashboardStats.inProcessRequests">3</p>
+                    <p class="text-3xl font-bold text-blue-600" x-text="reportData.inProcessRequests">0</p>
                     <p class="text-xs text-gray-500 mt-1">Activas</p>
                   </div>
                   <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
@@ -1018,7 +1024,7 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-gray-600 text-sm">Tiempo Prom.</p>
-                    <p class="text-3xl font-bold text-orange-600" x-text="dashboardStats.averageTime">3.2</p>
+                    <p class="text-3xl font-bold text-orange-600" x-text="reportData.averageTime">0</p>
                     <p class="text-xs text-gray-500 mt-1">días</p>
                   </div>
                   <div class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
@@ -1049,44 +1055,44 @@
             <div class="card">
               <h3 class="text-lg font-semibold text-gray-800 mb-4">Departamentos más Activos</h3>
               <div class="space-y-3">
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">1</div>
-                    <div>
-                      <p class="font-semibold text-gray-800">Comercial</p>
-                      <p class="text-xs text-gray-500">15 solicitudes</p>
+                <template x-for="(department, index) in reportData.topDepartments" :key="department.name + index">
+                  <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold" x-text="index + 1"></div>
+                      <div>
+                        <p class="font-semibold text-gray-800" x-text="department.name"></p>
+                        <p class="text-xs text-gray-500"><span x-text="department.total"></span> solicitudes</p>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <p class="text-lg font-bold text-gray-800"><span x-text="department.completion"></span>%</p>
+                      <p class="text-xs text-gray-500">completitud</p>
                     </div>
                   </div>
-                  <div class="text-right">
-                    <p class="text-lg font-bold text-gray-800">85%</p>
-                    <p class="text-xs text-gray-500">completitud</p>
-                  </div>
+                </template>
+                <div x-show="reportData.topDepartments.length === 0" class="text-sm text-gray-500 p-3 bg-gray-50 rounded-lg">
+                  No hay datos de departamentos para el período seleccionado.
                 </div>
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">2</div>
-                    <div>
-                      <p class="font-semibold text-gray-800">Formación Empresarial</p>
-                      <p class="text-xs text-gray-500">12 solicitudes</p>
-                    </div>
-                  </div>
-                  <div class="text-right">
-                    <p class="text-lg font-bold text-gray-800">92%</p>
-                    <p class="text-xs text-gray-500">completitud</p>
-                  </div>
+              </div>
+            </div>
+
+            <div class="card mt-6">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">Comparativo Mensual</h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="p-4 rounded-lg bg-blue-50">
+                  <p class="text-sm text-gray-600">Mes actual</p>
+                  <p class="text-2xl font-bold text-blue-700" x-text="reportData.comparison.currentLabel"></p>
+                  <p class="text-xs text-gray-500 mt-1"><span x-text="reportData.comparison.currentTotal"></span> solicitudes</p>
                 </div>
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">3</div>
-                    <div>
-                      <p class="font-semibold text-gray-800">Comunicaciones</p>
-                      <p class="text-xs text-gray-500">10 solicitudes</p>
-                    </div>
-                  </div>
-                  <div class="text-right">
-                    <p class="text-lg font-bold text-gray-800">90%</p>
-                    <p class="text-xs text-gray-500">completitud</p>
-                  </div>
+                <div class="p-4 rounded-lg bg-purple-50">
+                  <p class="text-sm text-gray-600">Mes anterior</p>
+                  <p class="text-2xl font-bold text-purple-700" x-text="reportData.comparison.previousLabel"></p>
+                  <p class="text-xs text-gray-500 mt-1"><span x-text="reportData.comparison.previousTotal"></span> solicitudes</p>
+                </div>
+                <div class="p-4 rounded-lg bg-green-50">
+                  <p class="text-sm text-gray-600">Variación</p>
+                  <p class="text-2xl font-bold text-green-700" x-text="reportData.comparison.variation + '%'">0%</p>
+                  <p class="text-xs text-gray-500 mt-1">vs mes anterior</p>
                 </div>
               </div>
             </div>
@@ -2426,6 +2432,38 @@
         // Reportes
         reportMonth: new Date().getMonth() + 1,
         reportYear: new Date().getFullYear(),
+        reportCharts: {
+          status: null,
+          daily: null
+        },
+        reportData: {
+          totalRequests: 0,
+          completedRequests: 0,
+          inProcessRequests: 0,
+          pendingRequests: 0,
+          rejectedRequests: 0,
+          completionPercentage: 0,
+          averageTime: 0,
+          periodLabel: 'Sin datos',
+          statusDistribution: {
+            pending: 0,
+            inProcess: 0,
+            completed: 0,
+            rejected: 0
+          },
+          dailyTrend: {
+            labels: [],
+            values: []
+          },
+          topDepartments: [],
+          comparison: {
+            currentLabel: '-',
+            previousLabel: '-',
+            currentTotal: 0,
+            previousTotal: 0,
+            variation: 0
+          }
+        },
         
         // Calendario
         calendarView: 'day',
@@ -2673,8 +2711,7 @@
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(10);
             doc.text(`Fecha de generación: ${new Date().toLocaleDateString('es-ES')}`, 20, 50);
-            const periodNames = { today: 'Hoy', week: 'Semana', month: 'Mes' };
-            doc.text(`Período seleccionado: ${periodNames[this.reportPeriod] || 'Hoy'}`, 20, 56);
+            doc.text(`Período seleccionado: ${this.reportData.periodLabel}`, 20, 56);
             doc.text(`Mes: ${this.reportMonth} / Año: ${this.reportYear}`, 20, 62);
             
             // Main Metrics
@@ -2688,28 +2725,29 @@
             
             doc.text('Total Solicitudes:', 20, yPos);
             doc.setFont(undefined, 'bold');
-            doc.text('12', 80, yPos);
+            doc.text(String(this.reportData.totalRequests || 0), 80, yPos);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(0, 150, 0);
-            doc.text('(+3 vs anterior)', 100, yPos);
+            const variationPrefix = (this.reportData.comparison.variation || 0) >= 0 ? '+' : '';
+            doc.text(`(${variationPrefix}${this.reportData.comparison.variation || 0}% vs anterior)`, 100, yPos);
             
             doc.setTextColor(0, 0, 0);
             yPos += 8;
             doc.text('Completadas:', 20, yPos);
             doc.setFont(undefined, 'bold');
-            doc.text('8 (66.7%)', 80, yPos);
+            doc.text(`${this.reportData.completedRequests || 0} (${this.reportData.completionPercentage || 0}%)`, 80, yPos);
             
             doc.setFont(undefined, 'normal');
             yPos += 8;
             doc.text('En Proceso:', 20, yPos);
             doc.setFont(undefined, 'bold');
-            doc.text('3 (25.0%)', 80, yPos);
+            doc.text(`${this.reportData.inProcessRequests || 0}`, 80, yPos);
             
             doc.setFont(undefined, 'normal');
             yPos += 8;
             doc.text('Tiempo Promedio:', 20, yPos);
             doc.setFont(undefined, 'bold');
-            doc.text('3.2 días', 80, yPos);
+            doc.text(`${this.reportData.averageTime || 0} días`, 80, yPos);
             
             // Distribution Section
             doc.setFont(undefined, 'normal');
@@ -2723,17 +2761,17 @@
             yPos += 10;
             doc.setFillColor(255, 181, 73);
             doc.circle(25, yPos - 1, 2, 'F');
-            doc.text('Pendiente: 11 solicitudes (11%)', 30, yPos);
+            doc.text(`Pendiente: ${this.reportData.statusDistribution.pending || 0} solicitudes`, 30, yPos);
             
             yPos += 7;
             doc.setFillColor(79, 195, 247);
             doc.circle(25, yPos - 1, 2, 'F');
-            doc.text('En Proceso: 21 solicitudes (21%)', 30, yPos);
+            doc.text(`En Proceso: ${this.reportData.statusDistribution.inProcess || 0} solicitudes`, 30, yPos);
             
             yPos += 7;
             doc.setFillColor(0, 206, 124);
             doc.circle(25, yPos - 1, 2, 'F');
-            doc.text('Completada: 97 solicitudes (68%)', 30, yPos);
+            doc.text(`Completada: ${this.reportData.statusDistribution.completed || 0} solicitudes`, 30, yPos);
             
             // Top Departments
             doc.setTextColor(40, 0, 113);
@@ -2744,24 +2782,19 @@
             doc.setFontSize(11);
             doc.setTextColor(0, 0, 0);
             yPos += 10;
-            doc.text('1. Comercial', 20, yPos);
-            doc.text('15 solicitudes', 80, yPos);
-            doc.setFont(undefined, 'bold');
-            doc.text('85% completitud', 130, yPos);
-            
-            doc.setFont(undefined, 'normal');
-            yPos += 7;
-            doc.text('2. Formación', 20, yPos);
-            doc.text('12 solicitudes', 80, yPos);
-            doc.setFont(undefined, 'bold');
-            doc.text('92% completitud', 130, yPos);
-            
-            doc.setFont(undefined, 'normal');
-            yPos += 7;
-            doc.text('3. Comunicaciones', 20, yPos);
-            doc.text('10 solicitudes', 80, yPos);
-            doc.setFont(undefined, 'bold');
-            doc.text('90% completitud', 130, yPos);
+            const topDepartments = this.reportData.topDepartments.slice(0, 3);
+            if (topDepartments.length === 0) {
+              doc.text('Sin datos para el período seleccionado', 20, yPos);
+            } else {
+              topDepartments.forEach((department, index) => {
+                doc.setFont(undefined, 'normal');
+                doc.text(`${index + 1}. ${department.name}`, 20, yPos);
+                doc.text(`${department.total} solicitudes`, 80, yPos);
+                doc.setFont(undefined, 'bold');
+                doc.text(`${department.completion}% completitud`, 130, yPos);
+                yPos += 7;
+              });
+            }
             
             // Weekly Trend
             doc.setFont(undefined, 'normal');
@@ -2773,11 +2806,40 @@
             doc.setFontSize(11);
             doc.setTextColor(0, 0, 0);
             yPos += 10;
-            const days = ['Lun: 3', 'Mar: 5', 'Mié: 4', 'Jue: 7', 'Vie: 6', 'Sáb: 2', 'Dom: 1'];
-            days.forEach(day => {
+            const trendRows = this.reportData.dailyTrend.labels.map((label, index) => `${label}: ${this.reportData.dailyTrend.values[index] || 0}`);
+            trendRows.forEach((day) => {
               doc.text(day + ' solicitudes', 20, yPos);
               yPos += 6;
             });
+
+            const statusCanvas = document.getElementById('chartStatus');
+            if (statusCanvas) {
+              try {
+                const statusImage = statusCanvas.toDataURL('image/png', 1.0);
+                doc.addPage();
+                doc.setFontSize(16);
+                doc.setTextColor(40, 0, 113);
+                doc.text('Gráfica: Distribución por Estado', 20, 20);
+                doc.addImage(statusImage, 'PNG', 35, 30, 140, 120);
+              } catch (error) {
+                console.warn('No se pudo adjuntar gráfica de estado al PDF:', error);
+              }
+            }
+
+            const dailyCanvas = document.getElementById('chartDaily');
+            if (dailyCanvas) {
+              try {
+                const dailyImage = dailyCanvas.toDataURL('image/png', 1.0);
+                const pageNumber = doc.getCurrentPageInfo().pageNumber;
+                if (pageNumber === 1) doc.addPage();
+                doc.setFontSize(16);
+                doc.setTextColor(40, 0, 113);
+                doc.text('Gráfica: Tendencia del Período', 20, 165);
+                doc.addImage(dailyImage, 'PNG', 15, 175, 180, 90);
+              } catch (error) {
+                console.warn('No se pudo adjuntar gráfica de tendencia al PDF:', error);
+              }
+            }
             
             // Footer
             doc.setFontSize(8);
@@ -2789,6 +2851,39 @@
           } catch (error) {
             console.error('Error al exportar PDF:', error);
             alert('Error al generar el PDF. Por favor, intenta nuevamente.');
+          }
+        },
+
+        exportReportesCSV() {
+          try {
+            const rows = this.getFilteredReportRequests();
+            const header = ['Número', 'Título', 'Área', 'Tipo', 'Urgencia', 'Estado', 'Fecha'];
+            const csvRows = rows.map((request) => [
+              request.requestNumber || '',
+              request.title || '',
+              request.area || '',
+              request.type || '',
+              this.getUrgencyLabel(request.urgency || ''),
+              this.getStatusLabel(request.status || ''),
+              request.createdAt ? new Date(request.createdAt).toLocaleDateString('es-ES') : ''
+            ]);
+
+            const csvContent = [header, ...csvRows]
+              .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+              .join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Fenalco_Reportes_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          } catch (error) {
+            console.error('Error al exportar CSV:', error);
+            alert('Error al generar el CSV. Por favor, intenta nuevamente.');
           }
         },
         
@@ -2844,9 +2939,245 @@
               if (this.requestPagination.page > totalPages) {
                 this.requestPagination.page = Math.max(totalPages, 1);
               }
+              this.loadReportData();
             }
           } catch (error) {
             console.error('Error loading requests:', error);
+          }
+        },
+
+        getMonthLabel(monthNumber, yearNumber) {
+          const date = new Date(yearNumber, (monthNumber || 1) - 1, 1);
+          return date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+        },
+
+        getReportPeriodRange() {
+          const now = new Date();
+          const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const endOfToday = new Date(startOfToday);
+          endOfToday.setDate(endOfToday.getDate() + 1);
+
+          if (this.reportPeriod === 'today') {
+            return { start: startOfToday, end: endOfToday, label: 'Hoy' };
+          }
+
+          if (this.reportPeriod === 'week') {
+            const start = new Date(startOfToday);
+            start.setDate(start.getDate() - 6);
+            return { start, end: endOfToday, label: 'Últimos 7 días' };
+          }
+
+          const month = Number(this.reportMonth) || (now.getMonth() + 1);
+          const year = Number(this.reportYear) || now.getFullYear();
+          const start = new Date(year, month - 1, 1);
+          const end = new Date(year, month, 1);
+          return { start, end, label: this.getMonthLabel(month, year) };
+        },
+
+        getFilteredReportRequests() {
+          const { start, end } = this.getReportPeriodRange();
+          return this.requests.filter((request) => {
+            if (!request.createdAt) return false;
+            const createdAt = new Date(request.createdAt);
+            return createdAt >= start && createdAt < end;
+          });
+        },
+
+        calculateAverageTimeDays(requests) {
+          const completed = requests.filter((request) => request.status === 'completed' && request.createdAt && request.updatedAt);
+          if (completed.length === 0) return 0;
+
+          const totalDays = completed.reduce((sum, request) => {
+            const created = new Date(request.createdAt);
+            const updated = new Date(request.updatedAt);
+            const days = (updated - created) / (1000 * 60 * 60 * 24);
+            return sum + (days > 0 ? days : 0);
+          }, 0);
+
+          return Math.round((totalDays / completed.length) * 10) / 10;
+        },
+
+        buildDailyTrend(requests) {
+          const grouped = {};
+          requests.forEach((request) => {
+            const date = new Date(request.createdAt);
+            const key = date.toISOString().split('T')[0];
+            grouped[key] = (grouped[key] || 0) + 1;
+          });
+
+          const labels = Object.keys(grouped).sort();
+          const values = labels.map((label) => grouped[label]);
+
+          if (labels.length === 0) {
+            return { labels: ['Sin datos'], values: [0] };
+          }
+
+          return {
+            labels: labels.map((label) => {
+              const date = new Date(label);
+              return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+            }),
+            values
+          };
+        },
+
+        buildTopDepartments(requests) {
+          const byArea = {};
+
+          requests.forEach((request) => {
+            const area = request.area || 'Sin área';
+            if (!byArea[area]) {
+              byArea[area] = { total: 0, completed: 0 };
+            }
+            byArea[area].total += 1;
+            if (request.status === 'completed') {
+              byArea[area].completed += 1;
+            }
+          });
+
+          return Object.entries(byArea)
+            .map(([name, data]) => ({
+              name,
+              total: data.total,
+              completion: data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0
+            }))
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 3);
+        },
+
+        computeMonthlyComparison() {
+          const currentMonth = Number(this.reportMonth);
+          const currentYear = Number(this.reportYear);
+          const previousMonthDate = new Date(currentYear, currentMonth - 2, 1);
+          const previousMonth = previousMonthDate.getMonth() + 1;
+          const previousYear = previousMonthDate.getFullYear();
+
+          const currentRequests = this.requests.filter((request) => {
+            const date = new Date(request.createdAt);
+            return date.getMonth() + 1 === currentMonth && date.getFullYear() === currentYear;
+          });
+
+          const previousRequests = this.requests.filter((request) => {
+            const date = new Date(request.createdAt);
+            return date.getMonth() + 1 === previousMonth && date.getFullYear() === previousYear;
+          });
+
+          const currentTotal = currentRequests.length;
+          const previousTotal = previousRequests.length;
+          const variation = previousTotal === 0
+            ? (currentTotal > 0 ? 100 : 0)
+            : Math.round(((currentTotal - previousTotal) / previousTotal) * 100);
+
+          return {
+            currentLabel: this.getMonthLabel(currentMonth, currentYear),
+            previousLabel: this.getMonthLabel(previousMonth, previousYear),
+            currentTotal,
+            previousTotal,
+            variation
+          };
+        },
+
+        loadReportData() {
+          const filteredRequests = this.getFilteredReportRequests();
+          const totalRequests = filteredRequests.length;
+          const completedRequests = filteredRequests.filter((request) => request.status === 'completed').length;
+          const inProcessRequests = filteredRequests.filter((request) => request.status === 'in-process').length;
+          const pendingRequests = filteredRequests.filter((request) => request.status === 'pending').length;
+          const rejectedRequests = filteredRequests.filter((request) => request.status === 'rejected').length;
+          const completionPercentage = totalRequests > 0 ? Math.round((completedRequests / totalRequests) * 100) : 0;
+
+          this.reportData = {
+            totalRequests,
+            completedRequests,
+            inProcessRequests,
+            pendingRequests,
+            rejectedRequests,
+            completionPercentage,
+            averageTime: this.calculateAverageTimeDays(filteredRequests),
+            periodLabel: this.getReportPeriodRange().label,
+            statusDistribution: {
+              pending: pendingRequests,
+              inProcess: inProcessRequests,
+              completed: completedRequests,
+              rejected: rejectedRequests
+            },
+            dailyTrend: this.buildDailyTrend(filteredRequests),
+            topDepartments: this.buildTopDepartments(filteredRequests),
+            comparison: this.computeMonthlyComparison()
+          };
+
+          this.$nextTick(() => this.renderReportCharts());
+        },
+
+        renderReportCharts() {
+          const ctxStatus = document.getElementById('chartStatus');
+          if (ctxStatus) {
+            if (this.reportCharts.status) {
+              this.reportCharts.status.destroy();
+            }
+
+            this.reportCharts.status = new Chart(ctxStatus, {
+              type: 'doughnut',
+              data: {
+                labels: ['Pendiente', 'En Proceso', 'Completada', 'Rechazada'],
+                datasets: [{
+                  data: [
+                    this.reportData.statusDistribution.pending,
+                    this.reportData.statusDistribution.inProcess,
+                    this.reportData.statusDistribution.completed,
+                    this.reportData.statusDistribution.rejected
+                  ],
+                  backgroundColor: ['#FFB549', '#4FC3F7', '#00CE7C', '#FF8674'],
+                  borderWidth: 0
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                    labels: {
+                      padding: 15,
+                      font: { size: 12 }
+                    }
+                  }
+                },
+                cutout: '60%'
+              }
+            });
+          }
+
+          const ctxDaily = document.getElementById('chartDaily');
+          if (ctxDaily) {
+            if (this.reportCharts.daily) {
+              this.reportCharts.daily.destroy();
+            }
+
+            this.reportCharts.daily = new Chart(ctxDaily, {
+              type: 'line',
+              data: {
+                labels: this.reportData.dailyTrend.labels,
+                datasets: [{
+                  label: 'Solicitudes',
+                  data: this.reportData.dailyTrend.values,
+                  borderColor: '#280071',
+                  backgroundColor: 'rgba(40, 0, 113, 0.1)',
+                  tension: 0.4,
+                  fill: true
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  y: { beginAtZero: true }
+                },
+                plugins: {
+                  legend: { display: false }
+                }
+              }
+            });
           }
         },
 
@@ -3222,84 +3553,7 @@
             }
           }
           
-          // Gráfico para Reportes: Distribución por Estado
-          const ctxStatus = document.getElementById('chartStatus');
-          if (ctxStatus) {
-            try {
-              const response = await fetch('/api/admin/stats/status-distribution', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-              });
-              const result = await response.json();
-              const statusData = result.data || { pending: 0, inProcess: 0, completed: 0 };
-              
-              new Chart(ctxStatus, {
-                type: 'doughnut',
-                data: {
-                  labels: ['Pendiente', 'En Proceso', 'Completada'],
-                  datasets: [{
-                    data: [statusData.pending, statusData.inProcess, statusData.completed],
-                    backgroundColor: ['#FFB549', '#4FC3F7', '#00CE7C'],
-                    borderWidth: 0
-                  }]
-                },
-                options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: { 
-                      position: 'bottom',
-                      labels: {
-                        padding: 15,
-                        font: { size: 12 }
-                      }
-                    }
-                  },
-                  cutout: '60%'
-                }
-              });
-            } catch (error) {
-              console.error('Error cargando datos de estado:', error);
-            }
-          }
-          
-          // Gráfico para Reportes: Tendencia Diaria
-          const ctxDaily = document.getElementById('chartDaily');
-          if (ctxDaily) {
-            try {
-              const response = await fetch('/api/admin/stats/daily-trend', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-              });
-              const result = await response.json();
-              const dailyData = result.data || [];
-              
-              new Chart(ctxDaily, {
-                type: 'line',
-                data: {
-                  labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-                  datasets: [{
-                    label: 'Solicitudes',
-                    data: dailyData,
-                    borderColor: '#280071',
-                    backgroundColor: 'rgba(40, 0, 113, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                  }]
-                },
-                options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  scales: {
-                    y: { beginAtZero: true }
-                  },
-                  plugins: {
-                    legend: { display: false }
-                  }
-                }
-              });
-            } catch (error) {
-              console.error('Error cargando tendencia diaria:', error);
-            }
-          }
+          this.loadReportData();
         },
         
         getTabTitle() {
