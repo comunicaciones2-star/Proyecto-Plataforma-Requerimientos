@@ -119,6 +119,18 @@ router.patch('/users/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Error al actualizar usuario:', error);
+
+    if (error.name === 'ValidationError') {
+      const details = Object.values(error.errors || {})
+        .map((item) => item.message)
+        .join(', ');
+
+      return res.status(400).json({
+        success: false,
+        message: details || 'Datos inválidos para actualizar usuario'
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Error al actualizar usuario'

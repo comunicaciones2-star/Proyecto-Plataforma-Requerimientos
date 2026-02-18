@@ -293,7 +293,7 @@
             <span class="font-medium">Asignación</span>
           </a>
           
-          <a @click="currentTab = 'admin'" 
+          <a @click="currentTab = 'admin'; if (user?.role === 'admin') loadAdminUsers()" 
              :class="currentTab === 'admin' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
              class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
             <i class="ri-user-settings-line text-xl mr-3"></i>
@@ -1497,6 +1497,14 @@
                   </button>
                 </div>
 
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                  <h4 class="text-base font-semibold text-gray-800">Gestión de Usuarios</h4>
+                  <button @click="openAdminUserModal()" class="px-4 py-2 bg-fenalco-green text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-opacity-90 transition">
+                    <i class="ri-user-add-line"></i>
+                    Nuevo Usuario
+                  </button>
+                </div>
+
                 <div class="overflow-x-auto">
                   <table class="w-full">
                     <thead>
@@ -1504,38 +1512,40 @@
                         <th class="text-left p-3 font-semibold text-gray-700">Email</th>
                         <th class="text-left p-3 font-semibold text-gray-700">Nombre</th>
                         <th class="text-left p-3 font-semibold text-gray-700">Rol</th>
-                        <th class="text-left p-3 font-semibold text-gray-700">Área</th>
+                        <th class="text-left p-3 font-semibold text-gray-700">Departamento</th>
                         <th class="text-left p-3 font-semibold text-gray-700">Estado</th>
+                        <th class="text-left p-3 font-semibold text-gray-700">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr class="border-b border-gray-100 hover:bg-gray-50">
-                        <td class="p-3 text-sm">asistentedireccion@fenalcosantander.com.co</td>
-                        <td class="p-3 text-sm font-medium">Ana María López</td>
-                        <td class="p-3"><span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">Admin</span></td>
-                        <td class="p-3 text-sm">Dirección</td>
-                        <td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span></td>
-                      </tr>
-                      <tr class="border-b border-gray-100 hover:bg-gray-50">
-                        <td class="p-3 text-sm">gerente@fenalcosantander.com.co</td>
-                        <td class="p-3 text-sm font-medium">María González</td>
-                        <td class="p-3"><span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">Gerente</span></td>
-                        <td class="p-3 text-sm">Comunicaciones</td>
-                        <td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span></td>
-                      </tr>
-                      <tr class="border-b border-gray-100 hover:bg-gray-50">
-                        <td class="p-3 text-sm">disenador@fenalcosantander.com.co</td>
-                        <td class="p-3 text-sm font-medium">Carlos Ruiz</td>
-                        <td class="p-3"><span class="px-2 py-1 bg-teal-100 text-teal-700 text-xs rounded-full">Diseñador</span></td>
-                        <td class="p-3 text-sm">Comunicaciones</td>
-                        <td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span></td>
-                      </tr>
-                      <tr class="border-b border-gray-100 hover:bg-gray-50">
-                        <td class="p-3 text-sm">practicante@fenalcosantander.com.co</td>
-                        <td class="p-3 text-sm font-medium">Ana Martínez</td>
-                        <td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Practicante</span></td>
-                        <td class="p-3 text-sm">Comunicaciones</td>
-                        <td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span></td>
+                      <template x-for="adminUser in adminUsers" :key="adminUser._id">
+                        <tr class="border-b border-gray-100 hover:bg-gray-50">
+                          <td class="p-3 text-sm" x-text="adminUser.email"></td>
+                          <td class="p-3 text-sm font-medium" x-text="adminUser.firstName + ' ' + adminUser.lastName"></td>
+                          <td class="p-3">
+                            <span class="px-2 py-1 text-xs rounded-full" :class="getAdminRoleBadgeClass(adminUser.role)" x-text="getAppRoleLabel(adminUser.role)"></span>
+                          </td>
+                          <td class="p-3 text-sm" x-text="adminUser.department || adminUser.area || 'Sin definir'"></td>
+                          <td class="p-3">
+                            <span class="px-2 py-1 text-xs rounded-full" :class="adminUser.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" x-text="adminUser.isActive ? 'Activo' : 'Inactivo'"></span>
+                          </td>
+                          <td class="p-3">
+                            <div class="flex items-center gap-2">
+                              <button @click="editAdminUser(adminUser)" class="text-blue-600 hover:text-blue-800" title="Editar usuario">
+                                <i class="ri-edit-line"></i>
+                              </button>
+                              <button @click="resetAdminUserPassword(adminUser)" class="text-amber-600 hover:text-amber-800" title="Resetear contraseña">
+                                <i class="ri-lock-password-line"></i>
+                              </button>
+                              <button @click="toggleAdminUserStatus(adminUser)" :class="adminUser.isActive ? 'text-red-500 hover:text-red-700' : 'text-green-600 hover:text-green-800'" :title="adminUser.isActive ? 'Desactivar usuario' : 'Activar usuario'">
+                                <i :class="adminUser.isActive ? 'ri-user-unfollow-line' : 'ri-user-follow-line'"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      </template>
+                      <tr x-show="adminUsers.length === 0">
+                        <td colspan="6" class="text-center py-8 text-gray-500">No hay usuarios registrados</td>
                       </tr>
                     </tbody>
                   </table>
@@ -1546,6 +1556,81 @@
         </div>
 
       </main>
+    </div>
+  </div>
+
+  <div x-show="showAdminUserModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="showAdminUserModal = false">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+      <div class="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+        <h3 class="text-2xl font-bold text-gray-800" x-text="adminUserForm.id ? 'Editar Usuario' : 'Nuevo Usuario'"></h3>
+        <button @click="showAdminUserModal = false" class="text-gray-400 hover:text-gray-600 text-2xl">
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+
+      <form @submit.prevent="saveAdminUser()" class="p-6 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+            <input type="text" x-model="adminUserForm.firstName" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Apellido *</label>
+            <input type="text" x-model="adminUserForm.lastName" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+            <input type="email" x-model="adminUserForm.email" :disabled="!!adminUserForm.id" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green disabled:bg-gray-100 disabled:text-gray-500">
+          </div>
+          <div x-show="!adminUserForm.id">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña *</label>
+            <input type="password" x-model="adminUserForm.password" :required="!adminUserForm.id" minlength="6" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Rol *</label>
+            <select x-model="adminUserForm.role" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+              <option value="admin">Administrador</option>
+              <option value="gerente">Gerente</option>
+              <option value="diseñador">Diseñador</option>
+              <option value="practicante">Practicante</option>
+              <option value="usuario">Usuario</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Departamento *</label>
+            <select x-model="adminUserForm.department" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+              <option value="Dirección">Dirección</option>
+              <option value="Comunicaciones">Comunicaciones</option>
+              <option value="Formación Empresarial">Formación Empresarial</option>
+              <option value="Comercial">Comercial</option>
+              <option value="Coworking - Casa Fenalco">Coworking - Casa Fenalco</option>
+              <option value="Jurídico">Jurídico</option>
+              <option value="Contabilidad">Contabilidad</option>
+              <option value="Fenalcobra">Fenalcobra</option>
+              <option value="Fenalempleo">Fenalempleo</option>
+            </select>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+            <input type="text" x-model="adminUserForm.phone" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+          </div>
+          <div x-show="adminUserForm.id" class="md:col-span-2">
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" x-model="adminUserForm.isActive" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+              <span class="text-sm text-gray-700">Usuario activo</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4 border-t">
+          <button type="button" @click="showAdminUserModal = false" class="px-6 py-2 border rounded-lg hover:bg-gray-50 transition">
+            Cancelar
+          </button>
+          <button type="submit" class="px-6 py-2 bg-fenalco-green text-white rounded-lg hover:bg-green-600 transition">
+            <i class="ri-save-line mr-1"></i> Guardar
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -2121,6 +2206,20 @@
         calendarYear: new Date().getFullYear(),
         calendarSelectedDate: new Date().toLocaleDateString('en-CA'),
         calendarWeekIndex: 0,
+
+        adminUsers: [],
+        showAdminUserModal: false,
+        adminUserForm: {
+          id: null,
+          email: '',
+          firstName: '',
+          lastName: '',
+          password: '',
+          role: 'usuario',
+          department: 'Comunicaciones',
+          phone: '',
+          isActive: true
+        },
         
         // Asignación
         executors: [],
@@ -3504,9 +3603,55 @@
             gerente: 'Gerente',
             'diseñador': 'Diseñador',
             practicante: 'Practicante',
-            usuario: 'Usuario'
+            usuario: 'Usuario',
+            manager: 'Gerente',
+            designer: 'Diseñador',
+            collaborator: 'Usuario'
           };
           return labels[role] || role;
+        },
+
+        normalizeRole(role) {
+          const roleMap = {
+            manager: 'gerente',
+            designer: 'diseñador',
+            collaborator: 'usuario',
+            gerente_comunicaciones: 'gerente',
+            disenador_grafico: 'diseñador'
+          };
+
+          return roleMap[role] || role || 'usuario';
+        },
+
+        normalizeDepartment(department) {
+          const allowedDepartments = [
+            'Dirección',
+            'Comunicaciones',
+            'Formación Empresarial',
+            'Comercial',
+            'Coworking - Casa Fenalco',
+            'Jurídico',
+            'Contabilidad',
+            'Fenalcobra',
+            'Fenalempleo'
+          ];
+
+          if (allowedDepartments.includes(department)) {
+            return department;
+          }
+
+          return 'Comunicaciones';
+        },
+
+        getAdminRoleBadgeClass(role) {
+          const badge = {
+            admin: 'bg-purple-100 text-purple-700',
+            gerente: 'bg-blue-100 text-blue-700',
+            'diseñador': 'bg-teal-100 text-teal-700',
+            practicante: 'bg-green-100 text-green-700',
+            usuario: 'bg-gray-100 text-gray-700'
+          };
+          return badge[role] || 'bg-gray-100 text-gray-700';
         },
 
         getUserCargo(role) {
@@ -3691,12 +3836,6 @@
           const confirmDelete = confirm(`¿Seguro que deseas eliminar la solicitud ${request.requestNumber}?\n\nEsta acción es permanente y no se puede deshacer.`);
           if (!confirmDelete) return;
 
-          const finalConfirmation = prompt('Para confirmar la eliminación, escribe: ELIMINAR');
-          if (finalConfirmation !== 'ELIMINAR') {
-            alert('❌ Eliminación cancelada. Debes escribir ELIMINAR exactamente para confirmar.');
-            return;
-          }
-
           try {
             const response = await fetch(`${API_URL}/requests/${request._id}`, {
               method: 'DELETE',
@@ -3785,6 +3924,187 @@
           } catch (error) {
             console.error('Error al cargar detalles de solicitud:', error);
             alert('❌ Error de conexión al cargar los detalles');
+          }
+        },
+
+        async loadAdminUsers() {
+          if (this.user?.role !== 'admin') return;
+
+          try {
+            const response = await fetch(`${API_URL}/admin/users?page=1&limit=200`, {
+              headers: {
+                'Authorization': `Bearer ${this.token}`
+              }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+              this.adminUsers = data.users || [];
+            }
+          } catch (error) {
+            console.error('Error al cargar usuarios:', error);
+            alert('❌ Error al cargar usuarios');
+          }
+        },
+
+        openAdminUserModal(adminUser = null) {
+          if (adminUser) {
+            this.adminUserForm = {
+              id: adminUser._id,
+              email: adminUser.email || '',
+              firstName: adminUser.firstName || '',
+              lastName: adminUser.lastName || '',
+              password: '',
+              role: this.normalizeRole(adminUser.role),
+              department: this.normalizeDepartment(adminUser.department || adminUser.area),
+              phone: adminUser.phone || '',
+              isActive: typeof adminUser.isActive === 'boolean' ? adminUser.isActive : true
+            };
+          } else {
+            this.adminUserForm = {
+              id: null,
+              email: '',
+              firstName: '',
+              lastName: '',
+              password: '',
+              role: 'usuario',
+              department: 'Comunicaciones',
+              phone: '',
+              isActive: true
+            };
+          }
+
+          this.showAdminUserModal = true;
+        },
+
+        editAdminUser(adminUser) {
+          this.openAdminUserModal(adminUser);
+        },
+
+        async saveAdminUser() {
+          try {
+            const isEditing = !!this.adminUserForm.id;
+            const endpoint = isEditing
+              ? `${API_URL}/admin/users/${this.adminUserForm.id}`
+              : `${API_URL}/admin/users`;
+            const method = isEditing ? 'PATCH' : 'POST';
+
+            const payload = {
+              firstName: this.adminUserForm.firstName,
+              lastName: this.adminUserForm.lastName,
+              role: this.normalizeRole(this.adminUserForm.role),
+              department: this.normalizeDepartment(this.adminUserForm.department),
+              area: this.normalizeDepartment(this.adminUserForm.department),
+              phone: this.adminUserForm.phone,
+              isActive: this.adminUserForm.isActive
+            };
+
+            if (!isEditing) {
+              payload.email = this.adminUserForm.email;
+              payload.password = this.adminUserForm.password;
+            }
+
+            const response = await fetch(endpoint, {
+              method,
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.token}`
+              },
+              body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            if (data.success) {
+              this.showAdminUserModal = false;
+              await this.loadAdminUsers();
+              alert(isEditing ? '✅ Usuario actualizado correctamente' : '✅ Usuario creado correctamente');
+            } else {
+              alert('❌ Error: ' + (data.message || 'No fue posible guardar el usuario'));
+            }
+          } catch (error) {
+            console.error('Error al guardar usuario:', error);
+            alert('❌ Error al guardar usuario');
+          }
+        },
+
+        async toggleAdminUserStatus(adminUser) {
+          const currentUserId = this.user?._id || this.user?.id;
+
+          if (adminUser.isActive && currentUserId && adminUser._id === currentUserId) {
+            alert('⚠️ No puedes desactivarte a ti mismo');
+            return;
+          }
+
+          try {
+            if (adminUser.isActive) {
+              const confirmDeactivate = confirm(`¿Deseas desactivar el usuario ${adminUser.firstName} ${adminUser.lastName}?`);
+              if (!confirmDeactivate) return;
+
+              const response = await fetch(`${API_URL}/admin/users/${adminUser._id}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${this.token}`
+                }
+              });
+
+              const data = await response.json();
+              if (!data.success) {
+                alert('❌ Error: ' + (data.message || 'No fue posible desactivar el usuario'));
+                return;
+              }
+            } else {
+              const response = await fetch(`${API_URL}/admin/users/${adminUser._id}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${this.token}`
+                },
+                body: JSON.stringify({
+                  firstName: adminUser.firstName,
+                  lastName: adminUser.lastName,
+                  role: this.normalizeRole(adminUser.role),
+                  department: this.normalizeDepartment(adminUser.department || adminUser.area),
+                  area: this.normalizeDepartment(adminUser.area || adminUser.department),
+                  phone: adminUser.phone || '',
+                  isActive: true
+                })
+              });
+
+              const data = await response.json();
+              if (!data.success) {
+                alert('❌ Error: ' + (data.message || 'No fue posible activar el usuario'));
+                return;
+              }
+            }
+
+            await this.loadAdminUsers();
+          } catch (error) {
+            console.error('Error al cambiar estado del usuario:', error);
+            alert('❌ Error al cambiar estado del usuario');
+          }
+        },
+
+        async resetAdminUserPassword(adminUser) {
+          const confirmReset = confirm(`¿Resetear contraseña de ${adminUser.firstName} ${adminUser.lastName} a password123?`);
+          if (!confirmReset) return;
+
+          try {
+            const response = await fetch(`${API_URL}/admin/users/${adminUser._id}/reset-password`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${this.token}`
+              }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+              alert('✅ Contraseña reseteada a: password123');
+            } else {
+              alert('❌ Error: ' + (data.message || 'No fue posible resetear la contraseña'));
+            }
+          } catch (error) {
+            console.error('Error al resetear contraseña:', error);
+            alert('❌ Error al resetear contraseña');
           }
         },
         
