@@ -1271,7 +1271,7 @@
           </div>
         </div>
 
-        <!-- Ejecutores Section -->
+        <!-- Asignación Section -->
         <div x-show="currentTab === 'ejecutores'">
           <!-- Header with filters -->
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -1355,7 +1355,7 @@
                     </div>
                     <div>
                       <h3 class="font-bold text-gray-800" x-text="executor.firstName + ' ' + executor.lastName"></h3>
-                      <p class="text-sm text-gray-600" x-text="executor.role"></p>
+                      <p class="text-sm text-gray-600" x-text="getExecutorRoleLabel(executor.role)"></p>
                     </div>
                   </div>
                   <button @click="toggleExecutorAvailability(executor._id, executor.executorProfile.available)"
@@ -2206,7 +2206,7 @@
         calendarSelectedDate: new Date().toLocaleDateString('en-CA'),
         calendarWeekIndex: 0,
         
-        // Ejecutores
+        // Asignación
         executors: [],
         executorStats: {},
         executorFilters: {
@@ -3572,6 +3572,15 @@
           };
           return labels[status] || status;
         },
+
+        getExecutorRoleLabel(role) {
+          const labels = {
+            gerente: 'Gerente',
+            'diseñador': 'Diseñador',
+            practicante: 'Practicante'
+          };
+          return labels[role] || role;
+        },
         
         openNewRequestModal() {
           this.openCreateRequestModal();
@@ -3841,7 +3850,7 @@
           }
         },
         
-        // ===== FUNCIONES DE EJECUTORES =====
+        // ===== FUNCIONES DE ASIGNACIÓN =====
         
         async loadExecutors() {
           try {
@@ -3931,7 +3940,7 @@
             const data = await response.json();
             
             if (data.success) {
-              alert(this.executorForm.id ? 'Ejecutor actualizado' : `Ejecutor creado. Contraseña temporal: ${data.temporaryPassword}`);
+              alert(this.executorForm.id ? 'Asignación actualizada' : `Asignación creada. Contraseña temporal: ${data.temporaryPassword}`);
               this.showExecutorModal = false;
               await this.loadExecutors();
             } else {
@@ -3939,7 +3948,7 @@
             }
           } catch (error) {
             console.error('Error al guardar ejecutor:', error);
-            alert('Error al guardar ejecutor');
+            alert('Error al guardar la asignación');
           }
         },
         
