@@ -169,6 +169,21 @@
     .btn-secondary:hover {
       background-color: #e5e7eb;
     }
+
+    @keyframes bell-ring {
+      0%, 100% { transform: rotate(0deg); }
+      15% { transform: rotate(18deg); }
+      30% { transform: rotate(-14deg); }
+      45% { transform: rotate(10deg); }
+      60% { transform: rotate(-6deg); }
+      75% { transform: rotate(3deg); }
+    }
+
+    .animate-bell {
+      display: inline-block;
+      transform-origin: top center;
+      animation: bell-ring 0.9s ease-in-out 2;
+    }
   </style>
 </head>
 
@@ -320,9 +335,9 @@
           
           <div class="flex items-center space-x-4">
             <div class="relative" x-data="{ openNotifications: false }">
-              <button @click="openNotifications = !openNotifications" class="relative p-2 text-gray-600 hover:text-fenalco-blue transition">
-                <i class="ri-notification-3-line text-2xl"></i>
-                <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              <button @click="openNotifications = !openNotifications; markNotificationsRead()" class="relative p-2 text-gray-600 hover:text-fenalco-blue transition">
+                <i class="ri-notification-3-line text-2xl" :class="bellAnimating ? 'animate-bell text-fenalco-blue' : ''"></i>
+                <span x-show="hasUnreadNotifications" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
               
               <div x-show="openNotifications" @click.away="openNotifications = false" x-cloak
@@ -568,9 +583,46 @@
               </button>
             </div>
             
-            <button @click="showCreateRequestModal = true" class="px-4 py-2 bg-fenalco-green text-white rounded-lg hover:bg-green-600 transition flex items-center gap-2">
+            <button @click="openCreateRequestModal()" class="px-4 py-2 bg-fenalco-green text-white rounded-lg hover:bg-green-600 transition flex items-center gap-2">
               <i class="ri-add-line"></i>Nueva Solicitud
             </button>
+          </div>
+
+          <div class="card mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div class="lg:col-span-2">
+                <input type="text"
+                       x-model="requestFilters.search"
+                       @input="onRequestFiltersChange()"
+                       placeholder="Buscar por número, título, tipo o descripción"
+                       class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+              </div>
+              <div>
+                <select x-model="requestFilters.status" @change="onRequestFiltersChange()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                  <option value="">Todos los estados</option>
+                  <option value="pending">Pendiente</option>
+                  <option value="in-process">En Proceso</option>
+                  <option value="completed">Completada</option>
+                  <option value="rejected">Rechazada</option>
+                </select>
+              </div>
+              <div>
+                <select x-model="requestFilters.urgency" @change="onRequestFiltersChange()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                  <option value="">Todas las urgencias</option>
+                  <option value="normal">Normal</option>
+                  <option value="urgent">Urgente</option>
+                  <option value="express">Express</option>
+                </select>
+              </div>
+              <div>
+                <select x-model="requestSort" @change="onRequestFiltersChange()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                  <option value="newest">Más recientes</option>
+                  <option value="oldest">Más antiguas</option>
+                  <option value="title-asc">Título A-Z</option>
+                  <option value="title-desc">Título Z-A</option>
+                </select>
+              </div>
+            </div>
           </div>
           
           <!-- List View -->
@@ -588,7 +640,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <template x-for="request in requests" :key="request._id">
+                  <template x-for="request in getPaginatedRequests()" :key="request._id">
                     <tr class="border-b border-gray-100 hover:bg-gray-50">
                       <td class="py-3 px-4" x-text="request.requestNumber"></td>
                       <td class="py-3 px-4 font-medium" x-text="request.title"></td>
@@ -600,30 +652,66 @@
                                 'bg-yellow-100 text-yellow-700': request.urgency === 'urgent',
                                 'bg-green-100 text-green-700': request.urgency === 'normal'
                               }"
-                              x-text="request.urgency"></span>
+                              x-text="getUrgencyLabel(request.urgency)"></span>
                       </td>
                       <td class="py-3 px-4">
                         <span class="px-2 py-1 text-xs rounded-full font-medium" 
                               :class="{
                                 'bg-yellow-100 text-yellow-700': request.status === 'pending',
                                 'bg-blue-100 text-blue-700': request.status === 'in-process',
-                                'bg-green-100 text-green-700': request.status === 'completed'
+                                'bg-green-100 text-green-700': request.status === 'completed',
+                                'bg-red-100 text-red-700': request.status === 'rejected'
                               }"
                               x-text="getStatusLabel(request.status)"></span>
                       </td>
-                      <td class="py-3 px-4">
+                      <td class="py-3 px-4 flex items-center gap-3">
                         <button @click="viewRequestDetails(request._id)" class="text-fenalco-blue hover:text-fenalco-blue-600 font-medium">
                           Ver
                         </button>
+                        <button x-show="canEditRequest(request)" @click="openEditRequestModal(request)" title="Editar" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition">
+                          <i class="ri-edit-line"></i>
+                        </button>
+                        <button x-show="canCancelRequest(request)" @click="cancelRequest(request)" title="Cancelar" class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 flex items-center justify-center transition">
+                          <i class="ri-close-circle-line"></i>
+                        </button>
+                        <button x-show="canDeleteRequest(request)" @click="deleteRequest(request)" title="Eliminar" class="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition">
+                          <i class="ri-delete-bin-line"></i>
+                        </button>
+                        <div class="relative" x-data="{ open: false }">
+                          <button @click.stop="open = !open" title="Información de acciones" class="w-8 h-8 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center justify-center transition">
+                            <i class="ri-information-line"></i>
+                          </button>
+                          <div x-show="open" x-cloak @click.away="open = false" class="absolute right-0 top-10 z-50 w-72 p-3 bg-white border border-gray-200 rounded-lg shadow-lg text-xs text-gray-700">
+                            <p class="font-semibold text-gray-800 mb-2">Acciones disponibles</p>
+                            <p><span class="font-medium">Editar:</span> actualiza la solicitud sin borrarla.</p>
+                            <p class="mt-1"><span class="font-medium">Cancelar:</span> cambia estado a cancelada/rechazada y conserva historial.</p>
+                            <p class="mt-1"><span class="font-medium">Eliminar:</span> borra permanentemente (con doble confirmación).</p>
+                            <p class="mt-2 text-gray-500">Permiso: creador o administrador.</p>
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   </template>
                 </tbody>
               </table>
               
-              <div x-show="requests.length === 0" class="text-center py-12 text-gray-500">
+              <div x-show="getProcessedRequests().length === 0" class="text-center py-12 text-gray-500">
                 <i class="ri-inbox-line text-6xl mb-4"></i>
                 <p>No hay solicitudes. ¡Crea una para comenzar!</p>
+              </div>
+
+              <div x-show="getTotalRequestPages() > 1" class="flex items-center justify-between mt-4 px-2">
+                <p class="text-sm text-gray-600">Página <span x-text="requestPagination.page"></span> de <span x-text="getTotalRequestPages()"></span></p>
+                <div class="flex gap-2">
+                  <button @click="changeRequestPage(requestPagination.page - 1)" :disabled="requestPagination.page === 1" class="px-3 py-1 border rounded-lg disabled:opacity-40">Anterior</button>
+                  <template x-for="pageNumber in getVisiblePageNumbers()" :key="pageNumber">
+                    <button @click="changeRequestPage(pageNumber)"
+                            class="px-3 py-1 border rounded-lg"
+                            :class="requestPagination.page === pageNumber ? 'bg-fenalco-blue text-white border-fenalco-blue' : ''"
+                            x-text="pageNumber"></button>
+                  </template>
+                  <button @click="changeRequestPage(requestPagination.page + 1)" :disabled="requestPagination.page === getTotalRequestPages()" class="px-3 py-1 border rounded-lg disabled:opacity-40">Siguiente</button>
+                </div>
               </div>
             </div>
           </div>
@@ -693,7 +781,7 @@
           
           <!-- Grid View -->
           <div x-show="requestView === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <template x-for="request in requests" :key="request._id">
+            <template x-for="request in getPaginatedRequests()" :key="request._id">
               <div @click="viewRequestDetails(request._id)" class="card hover:shadow-lg transition-shadow cursor-pointer">
                 <div class="flex items-start justify-between mb-3">
                   <span class="text-xs px-2 py-1 rounded-full font-medium"
@@ -709,7 +797,7 @@
                           'bg-yellow-100 text-yellow-700': request.urgency === 'urgent',
                           'bg-green-100 text-green-700': request.urgency === 'normal'
                         }"
-                        x-text="request.urgency"></span>
+                        x-text="getUrgencyLabel(request.urgency)"></span>
                 </div>
                 <h3 class="font-bold text-gray-800 mb-2" x-text="request.title"></h3>
                 <p class="text-sm text-gray-600 mb-3" x-text="request.description || 'Sin descripción'"></p>
@@ -719,10 +807,33 @@
                     <i class="ri-eye-line mr-1"></i>Ver detalles →
                   </button>
                 </div>
+                <div class="border-t mt-3 pt-3 flex items-center gap-3 text-sm">
+                  <button x-show="canEditRequest(request)" @click.stop="openEditRequestModal(request)" title="Editar" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition">
+                    <i class="ri-edit-line"></i>
+                  </button>
+                  <button x-show="canCancelRequest(request)" @click.stop="cancelRequest(request)" title="Cancelar" class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 flex items-center justify-center transition">
+                    <i class="ri-close-circle-line"></i>
+                  </button>
+                  <button x-show="canDeleteRequest(request)" @click.stop="deleteRequest(request)" title="Eliminar" class="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition">
+                    <i class="ri-delete-bin-line"></i>
+                  </button>
+                  <div class="relative" x-data="{ open: false }">
+                    <button @click.stop="open = !open" title="Información de acciones" class="w-8 h-8 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center justify-center transition">
+                      <i class="ri-information-line"></i>
+                    </button>
+                    <div x-show="open" x-cloak @click.away="open = false" class="absolute right-0 top-10 z-50 w-72 p-3 bg-white border border-gray-200 rounded-lg shadow-lg text-xs text-gray-700">
+                      <p class="font-semibold text-gray-800 mb-2">Acciones disponibles</p>
+                      <p><span class="font-medium">Editar:</span> actualiza la solicitud sin borrarla.</p>
+                      <p class="mt-1"><span class="font-medium">Cancelar:</span> cambia estado a cancelada/rechazada y conserva historial.</p>
+                      <p class="mt-1"><span class="font-medium">Eliminar:</span> borra permanentemente (con doble confirmación).</p>
+                      <p class="mt-2 text-gray-500">Permiso: creador o administrador.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </template>
             
-            <div x-show="requests.length === 0" class="col-span-3 text-center py-12 text-gray-500">
+            <div x-show="getProcessedRequests().length === 0" class="col-span-3 text-center py-12 text-gray-500">
               <i class="ri-inbox-line text-6xl mb-4"></i>
               <p>No hay solicitudes. ¡Crea una para comenzar!</p>
             </div>
@@ -730,7 +841,7 @@
           
           <!-- Timeline View -->
           <div x-show="requestView === 'timeline'" class="max-w-4xl mx-auto">
-            <template x-for="request in requests" :key="request._id">
+            <template x-for="request in getPaginatedRequests()" :key="request._id">
               <div class="relative pl-8 pb-8">
                 <!-- Timeline line -->
                 <div class="absolute left-3 top-0 w-0.5 h-full bg-gray-300"></div>
@@ -756,21 +867,55 @@
                             'bg-yellow-100 text-yellow-700': request.urgency === 'urgent',
                             'bg-green-100 text-green-700': request.urgency === 'normal'
                           }"
-                          x-text="request.urgency"></span>
+                          x-text="getUrgencyLabel(request.urgency)"></span>
                   </div>
                   <p class="text-sm text-gray-600 mb-3" x-text="request.description || 'Sin descripción'"></p>
                   <div class="flex items-center justify-between text-xs text-gray-500">
                     <span x-text="request.type"></span>
                     <span x-text="new Date(request.createdAt).toLocaleDateString('es-ES')"></span>
                   </div>
+                  <div class="border-t mt-3 pt-3 flex items-center gap-3 text-sm">
+                    <button x-show="canEditRequest(request)" @click.stop="openEditRequestModal(request)" title="Editar" class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition">
+                      <i class="ri-edit-line"></i>
+                    </button>
+                    <button x-show="canCancelRequest(request)" @click.stop="cancelRequest(request)" title="Cancelar" class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 flex items-center justify-center transition">
+                      <i class="ri-close-circle-line"></i>
+                    </button>
+                    <button x-show="canDeleteRequest(request)" @click.stop="deleteRequest(request)" title="Eliminar" class="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition">
+                      <i class="ri-delete-bin-line"></i>
+                    </button>
+                    <div class="relative" x-data="{ open: false }">
+                      <button @click.stop="open = !open" title="Información de acciones" class="w-8 h-8 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center justify-center transition">
+                        <i class="ri-information-line"></i>
+                      </button>
+                      <div x-show="open" x-cloak @click.away="open = false" class="absolute right-0 top-10 z-50 w-72 p-3 bg-white border border-gray-200 rounded-lg shadow-lg text-xs text-gray-700">
+                        <p class="font-semibold text-gray-800 mb-2">Acciones disponibles</p>
+                        <p><span class="font-medium">Editar:</span> actualiza la solicitud sin borrarla.</p>
+                        <p class="mt-1"><span class="font-medium">Cancelar:</span> cambia estado a cancelada/rechazada y conserva historial.</p>
+                        <p class="mt-1"><span class="font-medium">Eliminar:</span> borra permanentemente (con doble confirmación).</p>
+                        <p class="mt-2 text-gray-500">Permiso: creador o administrador.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </template>
             
-            <div x-show="requests.length === 0" class="text-center py-12 text-gray-500">
+            <div x-show="getProcessedRequests().length === 0" class="text-center py-12 text-gray-500">
               <i class="ri-inbox-line text-6xl mb-4"></i>
               <p>No hay solicitudes. ¡Crea una para comenzar!</p>
             </div>
+          </div>
+
+          <div x-show="(requestView === 'grid' || requestView === 'timeline') && getTotalRequestPages() > 1" class="flex items-center justify-center gap-2 mt-6">
+            <button @click="changeRequestPage(requestPagination.page - 1)" :disabled="requestPagination.page === 1" class="px-3 py-1 border rounded-lg disabled:opacity-40">Anterior</button>
+            <template x-for="pageNumber in getVisiblePageNumbers()" :key="'mobile-' + pageNumber">
+              <button @click="changeRequestPage(pageNumber)"
+                      class="px-3 py-1 border rounded-lg"
+                      :class="requestPagination.page === pageNumber ? 'bg-fenalco-blue text-white border-fenalco-blue' : ''"
+                      x-text="pageNumber"></button>
+            </template>
+            <button @click="changeRequestPage(requestPagination.page + 1)" :disabled="requestPagination.page === getTotalRequestPages()" class="px-3 py-1 border rounded-lg disabled:opacity-40">Siguiente</button>
           </div>
         </div>
 
@@ -1930,13 +2075,13 @@
   <div x-show="showCreateRequestModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="showCreateRequestModal = false">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
       <div class="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-        <h3 class="text-2xl font-bold text-gray-800">Nueva Solicitud</h3>
+        <h3 class="text-2xl font-bold text-gray-800" x-text="editingRequestId ? 'Editar Solicitud' : 'Nueva Solicitud'"></h3>
         <button @click="showCreateRequestModal = false" class="text-gray-400 hover:text-gray-600 text-2xl">
           <i class="ri-close-line"></i>
         </button>
       </div>
       
-      <form @submit.prevent="createRequest()" class="p-6 space-y-4">
+      <form @submit.prevent="saveRequest()" class="p-6 space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Título *</label>
           <input type="text" x-model="newRequest.title" required 
@@ -1969,7 +2114,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">Urgencia *</label>
             <select x-model="newRequest.urgency" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
               <option value="normal">Normal (3 días)</option>
-              <option value="urgente">Urgente (2 días)</option>
+              <option value="urgent">Urgente (2 días)</option>
               <option value="express">Express (1 día)</option>
             </select>
           </div>
@@ -1998,7 +2143,7 @@
                  placeholder="https://ejemplo.com">
         </div>
         
-        <div>
+        <div x-show="!editingRequestId">
           <label class="block text-sm font-medium text-gray-700 mb-1">
             <i class="ri-attachment-line mr-1"></i>
             Adjuntar Archivos
@@ -2025,7 +2170,8 @@
           </button>
           <button type="submit" 
                   class="px-6 py-2 bg-fenalco-green text-white rounded-lg hover:bg-green-600 transition">
-            <i class="ri-add-line mr-1"></i> Crear Solicitud
+            <i :class="editingRequestId ? 'ri-save-line mr-1' : 'ri-add-line mr-1'"></i>
+            <span x-text="editingRequestId ? 'Guardar Cambios' : 'Crear Solicitud'"></span>
           </button>
         </div>
       </form>
@@ -2118,10 +2264,10 @@
                 <span class="px-3 py-1 text-xs rounded-full font-semibold" 
                       :class="{
                         'bg-red-100 text-red-700': selectedRequest?.urgency === 'express',
-                        'bg-yellow-100 text-yellow-700': selectedRequest?.urgency === 'urgente',
+                        'bg-yellow-100 text-yellow-700': selectedRequest?.urgency === 'urgente' || selectedRequest?.urgency === 'urgent',
                         'bg-green-100 text-green-700': selectedRequest?.urgency === 'normal'
                       }"
-                      x-text="selectedRequest?.urgency === 'express' ? 'Express (1 día)' : selectedRequest?.urgency === 'urgente' ? 'Urgente (2 días)' : 'Normal (3 días)'"></span>
+                      x-text="selectedRequest?.urgency === 'express' ? 'Express (1 día)' : (selectedRequest?.urgency === 'urgente' || selectedRequest?.urgency === 'urgent') ? 'Urgente (2 días)' : 'Normal (3 días)'"></span>
               </div>
             </div>
           </div>
@@ -2225,6 +2371,7 @@
         requestView: 'list',
         reportPeriod: 'today',
         showCreateRequestModal: false,
+        editingRequestId: null,
         showRequestDetails: false,
         selectedRequest: null,
         loginForm: {
@@ -2249,6 +2396,20 @@
         },
         requests: [],
         notifications: [],
+        wsConnection: null,
+        bellAnimating: false,
+        hasUnreadNotifications: false,
+        customNotificationSoundUrl: '/Notification.mp3',
+        requestFilters: {
+          search: '',
+          status: '',
+          urgency: ''
+        },
+        requestSort: 'newest',
+        requestPagination: {
+          page: 1,
+          perPage: 9
+        },
         
         // Nueva Solicitud
         newRequest: {
@@ -2306,6 +2467,7 @@
               this.token = token;
               this.loadDashboard();
               this.loadRequests();
+              this.initWebSocket();
             } catch (error) {
               console.error('Error al parsear usuario:', error);
               // Limpiar localStorage si hay error
@@ -2340,6 +2502,7 @@
               this.isAuthenticated = true;
               this.loadDashboard();
               this.loadRequests();
+              this.initWebSocket();
             } else {
               this.loginError = data.message || 'Error al iniciar sesión';
             }
@@ -2350,6 +2513,14 @@
         },
         
         logout() {
+          if (this.wsConnection) {
+            try {
+              this.wsConnection.close();
+            } catch (error) {
+              console.warn('No se pudo cerrar WebSocket:', error);
+            }
+          }
+          this.wsConnection = null;
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           this.isAuthenticated = false;
@@ -2654,17 +2825,243 @@
         async loadRequests() {
           try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/requests`, {
+            const response = await fetch(`${API_URL}/requests?page=1&limit=5000`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
             
             if (data.success) {
-              this.requests = data.requests || [];
-              this.notifications = this.buildNotifications(this.requests);
+              this.requests = (data.requests || []).map((request) => ({
+                ...request,
+                urgency: request.urgency === 'urgente' ? 'urgent' : request.urgency
+              }));
+              const realtimeNotifications = this.notifications.filter((notification) =>
+                notification.id && notification.id.toString().startsWith('rt-')
+              );
+              const listNotifications = this.buildNotifications(this.requests);
+              this.notifications = [...realtimeNotifications, ...listNotifications].slice(0, 50);
+              const totalPages = this.getTotalRequestPages();
+              if (this.requestPagination.page > totalPages) {
+                this.requestPagination.page = Math.max(totalPages, 1);
+              }
             }
           } catch (error) {
             console.error('Error loading requests:', error);
+          }
+        },
+
+        onRequestFiltersChange() {
+          this.requestPagination.page = 1;
+        },
+
+        getProcessedRequests() {
+          const searchValue = (this.requestFilters.search || '').toLowerCase().trim();
+
+          let result = [...this.requests].filter((request) => {
+            const matchesStatus = !this.requestFilters.status || request.status === this.requestFilters.status;
+            const matchesUrgency = !this.requestFilters.urgency || request.urgency === this.requestFilters.urgency;
+            const matchesSearch = !searchValue || [
+              request.requestNumber,
+              request.title,
+              request.type,
+              request.description
+            ].some((value) => (value || '').toString().toLowerCase().includes(searchValue));
+
+            return matchesStatus && matchesUrgency && matchesSearch;
+          });
+
+          if (this.requestSort === 'newest') {
+            result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          } else if (this.requestSort === 'oldest') {
+            result.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+          } else if (this.requestSort === 'title-asc') {
+            result.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'es'));
+          } else if (this.requestSort === 'title-desc') {
+            result.sort((a, b) => (b.title || '').localeCompare(a.title || '', 'es'));
+          }
+
+          return result;
+        },
+
+        getPaginatedRequests() {
+          const allRequests = this.getProcessedRequests();
+          const start = (this.requestPagination.page - 1) * this.requestPagination.perPage;
+          const end = start + this.requestPagination.perPage;
+          return allRequests.slice(start, end);
+        },
+
+        getTotalRequestPages() {
+          const total = this.getProcessedRequests().length;
+          return Math.max(1, Math.ceil(total / this.requestPagination.perPage));
+        },
+
+        getVisiblePageNumbers() {
+          const totalPages = this.getTotalRequestPages();
+          const currentPage = this.requestPagination.page;
+          const start = Math.max(1, currentPage - 2);
+          const end = Math.min(totalPages, start + 4);
+          const pages = [];
+
+          for (let page = start; page <= end; page += 1) {
+            pages.push(page);
+          }
+
+          return pages;
+        },
+
+        changeRequestPage(page) {
+          const totalPages = this.getTotalRequestPages();
+          if (page < 1 || page > totalPages) return;
+          this.requestPagination.page = page;
+        },
+
+        getUrgencyLabel(urgency) {
+          const labels = {
+            normal: 'normal',
+            urgent: 'urgente',
+            express: 'express'
+          };
+          return labels[urgency] || urgency;
+        },
+
+        markNotificationsRead() {
+          this.hasUnreadNotifications = false;
+          this.bellAnimating = false;
+        },
+
+        triggerBellAnimation() {
+          this.hasUnreadNotifications = true;
+          this.bellAnimating = false;
+          this.$nextTick(() => {
+            this.bellAnimating = true;
+            setTimeout(() => {
+              this.bellAnimating = false;
+            }, 1800);
+          });
+        },
+
+        playNotificationSound() {
+          if (this.customNotificationSoundUrl) {
+            const customAudio = new Audio(this.customNotificationSoundUrl);
+            customAudio.volume = 0.6;
+            customAudio.play().catch(() => this.playFallbackBeep());
+            return;
+          }
+          this.playFallbackBeep();
+        },
+
+        playFallbackBeep() {
+          try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.22);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.24);
+          } catch (error) {
+            console.warn('No se pudo reproducir sonido de notificación:', error);
+          }
+        },
+
+        formatIncomingNotification(message) {
+          const requestTitle = message?.title || message?.requestData?.title || message?.requestNumber || 'Solicitud';
+
+          if (message.type === 'NEW_REQUEST') {
+            return {
+              id: `rt-${Date.now()}-${message.requestId || Math.random()}`,
+              requestId: message.requestId,
+              title: requestTitle,
+              subtitle: 'NUEVA SOLICITUD',
+              time: 'Hace unos segundos',
+              iconClass: 'ri-file-list-line text-blue-600',
+              bgClass: 'bg-blue-100'
+            };
+          }
+
+          if (message.type === 'STATUS_CHANGE') {
+            return {
+              id: `rt-${Date.now()}-${message.requestId || Math.random()}`,
+              requestId: message.requestId,
+              title: requestTitle,
+              subtitle: `ACTUALIZACIÓN DE ESTADO: ${this.getStatusLabel(message.newStatus)}`,
+              time: 'Hace unos segundos',
+              iconClass: 'ri-refresh-line text-amber-600',
+              bgClass: 'bg-amber-100'
+            };
+          }
+
+          if (message.type === 'REQUEST_UPDATED') {
+            const actionLabel = {
+              edited: 'SOLICITUD EDITADA',
+              deleted: 'SOLICITUD ELIMINADA'
+            };
+            return {
+              id: `rt-${Date.now()}-${message.requestId || Math.random()}`,
+              requestId: message.requestId,
+              title: requestTitle,
+              subtitle: actionLabel[message.action] || 'SOLICITUD ACTUALIZADA',
+              time: 'Hace unos segundos',
+              iconClass: message.action === 'deleted' ? 'ri-delete-bin-line text-red-600' : 'ri-edit-line text-purple-600',
+              bgClass: message.action === 'deleted' ? 'bg-red-100' : 'bg-purple-100'
+            };
+          }
+
+          return null;
+        },
+
+        initWebSocket() {
+          if (!this.token || this.wsConnection) return;
+
+          const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+          const wsUrl = `${wsProtocol}://${window.location.host}`;
+
+          try {
+            const socket = new WebSocket(wsUrl);
+
+            socket.onopen = () => {
+              socket.send(JSON.stringify({
+                type: 'AUTH',
+                token: this.token
+              }));
+            };
+
+            socket.onmessage = (event) => {
+              try {
+                const message = JSON.parse(event.data);
+
+                if (['NEW_REQUEST', 'STATUS_CHANGE', 'REQUEST_UPDATED'].includes(message.type)) {
+                  const notification = this.formatIncomingNotification(message);
+                  if (notification) {
+                    this.notifications = [notification, ...this.notifications].slice(0, 50);
+                    this.triggerBellAnimation();
+                    this.playNotificationSound();
+                  }
+                  this.loadRequests();
+                }
+              } catch (error) {
+                console.error('Error procesando mensaje WS:', error);
+              }
+            };
+
+            socket.onclose = () => {
+              this.wsConnection = null;
+            };
+
+            socket.onerror = (error) => {
+              console.warn('WebSocket error:', error);
+            };
+
+            this.wsConnection = socket;
+          } catch (error) {
+            console.warn('No se pudo iniciar WebSocket:', error);
           }
         },
 
@@ -2673,15 +3070,37 @@
             .sort((a, b) => new Date(b.createdAt || b.updatedAt || 0) - new Date(a.createdAt || a.updatedAt || 0));
 
           return sortedRequests.map((request) => {
-            const isCompleted = request.status === 'completed';
+            const statusConfig = {
+              completed: {
+                subtitle: 'SOLICITUD COMPLETADA',
+                iconClass: 'ri-check-line text-green-600',
+                bgClass: 'bg-green-100'
+              },
+              rejected: {
+                subtitle: 'SOLICITUD CANCELADA',
+                iconClass: 'ri-close-circle-line text-red-600',
+                bgClass: 'bg-red-100'
+              },
+              'in-process': {
+                subtitle: 'SOLICITUD EN PROCESO',
+                iconClass: 'ri-loader-4-line text-amber-600',
+                bgClass: 'bg-amber-100'
+              },
+              pending: {
+                subtitle: 'NUEVA SOLICITUD',
+                iconClass: 'ri-file-list-line text-blue-600',
+                bgClass: 'bg-blue-100'
+              }
+            };
+            const config = statusConfig[request.status] || statusConfig.pending;
             return {
               id: request._id,
               requestId: request._id,
-              title: isCompleted ? 'Solicitud completada' : 'Nueva solicitud registrada',
-              subtitle: request.title || request.requestNumber || 'Solicitud',
+              title: request.title || request.requestNumber || 'Solicitud',
+              subtitle: config.subtitle,
               time: this.getRelativeTime(request.createdAt || request.updatedAt),
-              iconClass: isCompleted ? 'ri-check-line text-green-600' : 'ri-file-list-line text-blue-600',
-              bgClass: isCompleted ? 'bg-green-100' : 'bg-blue-100'
+              iconClass: config.iconClass,
+              bgClass: config.bgClass
             };
           });
         },
@@ -2907,9 +3326,69 @@
         },
         
         openNewRequestModal() {
-          alert('Función de crear solicitud próximamente');
+          this.openCreateRequestModal();
         },
-        
+
+        resetRequestForm() {
+          this.newRequest = {
+            title: '',
+            description: '',
+            type: '',
+            urgency: 'normal',
+            deliveryDate: '',
+            targetAudience: '',
+            referenceLinks: '',
+            selectedFiles: []
+          };
+          this.editingRequestId = null;
+        },
+
+        openCreateRequestModal() {
+          this.resetRequestForm();
+          this.showCreateRequestModal = true;
+        },
+
+        openEditRequestModal(request) {
+          this.editingRequestId = request._id;
+          this.newRequest = {
+            title: request.title || '',
+            description: request.description || '',
+            type: request.type || '',
+            urgency: request.urgency || 'normal',
+            deliveryDate: request.deliveryDate ? new Date(request.deliveryDate).toISOString().split('T')[0] : '',
+            targetAudience: request.targetAudience || '',
+            referenceLinks: request.referenceLinks || '',
+            selectedFiles: []
+          };
+          this.showCreateRequestModal = true;
+        },
+
+        async saveRequest() {
+          if (this.editingRequestId) {
+            await this.updateRequest();
+          } else {
+            await this.createRequest();
+          }
+        },
+
+        isRequestOwner(request) {
+          const requesterId = request?.requester?._id || request?.requester;
+          const currentUserId = this.user?._id || this.user?.id;
+          return requesterId && currentUserId && requesterId.toString() === currentUserId.toString();
+        },
+
+        canEditRequest(request) {
+          return this.user?.role === 'admin' || this.isRequestOwner(request);
+        },
+
+        canDeleteRequest(request) {
+          return this.user?.role === 'admin' || this.isRequestOwner(request);
+        },
+
+        canCancelRequest(request) {
+          return (this.user?.role === 'admin' || this.isRequestOwner(request)) && !['completed', 'rejected'].includes(request.status);
+        },
+
         async createRequest() {
           try {
             const formData = new FormData();
@@ -2959,16 +3438,7 @@
               this.showCreateRequestModal = false;
               
               // Limpiar formulario
-              this.newRequest = { 
-                title: '', 
-                description: '', 
-                type: '', 
-                urgency: 'normal',
-                deliveryDate: '',
-                targetAudience: '',
-                referenceLinks: '',
-                selectedFiles: []
-              };
+              this.resetRequestForm();
               
               // Recargar solicitudes
               await this.loadRequests();
@@ -2984,6 +3454,104 @@
           } catch (error) {
             console.error('Error al crear solicitud:', error);
             alert('❌ Error de conexión al crear solicitud. Por favor verifica tu conexión e intenta nuevamente.');
+          }
+        },
+
+        async updateRequest() {
+          try {
+            const payload = {
+              title: this.newRequest.title,
+              description: this.newRequest.description,
+              type: this.newRequest.type,
+              urgency: this.newRequest.urgency,
+              deliveryDate: this.newRequest.deliveryDate
+            };
+
+            const response = await fetch(`${API_URL}/requests/${this.editingRequestId}/edit`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.token}`
+              },
+              body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+              this.showCreateRequestModal = false;
+              this.resetRequestForm();
+              await this.loadRequests();
+              alert('✅ Solicitud actualizada correctamente');
+            } else {
+              alert('❌ Error al editar: ' + data.message);
+            }
+          } catch (error) {
+            console.error('Error al editar solicitud:', error);
+            alert('❌ Error de conexión al editar la solicitud');
+          }
+        },
+
+        async deleteRequest(request) {
+          const confirmDelete = confirm(`¿Seguro que deseas eliminar la solicitud ${request.requestNumber}?\n\nEsta acción es permanente y no se puede deshacer.`);
+          if (!confirmDelete) return;
+
+          const finalConfirmation = prompt('Para confirmar la eliminación, escribe: ELIMINAR');
+          if (finalConfirmation !== 'ELIMINAR') {
+            alert('❌ Eliminación cancelada. Debes escribir ELIMINAR exactamente para confirmar.');
+            return;
+          }
+
+          try {
+            const response = await fetch(`${API_URL}/requests/${request._id}`, {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${this.token}`
+              }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+              await this.loadRequests();
+              alert('✅ Solicitud eliminada exitosamente');
+            } else {
+              alert('❌ Error al eliminar: ' + data.message);
+            }
+          } catch (error) {
+            console.error('Error al eliminar solicitud:', error);
+            alert('❌ Error de conexión al eliminar la solicitud');
+          }
+        },
+
+        async cancelRequest(request) {
+          const confirmCancel = confirm(`¿Deseas cancelar la solicitud ${request.requestNumber}?`);
+          if (!confirmCancel) return;
+
+          try {
+            const response = await fetch(`${API_URL}/requests/${request._id}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.token}`
+              },
+              body: JSON.stringify({
+                status: 'rejected',
+                comment: 'Solicitud cancelada por el usuario'
+              })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+              await this.loadRequests();
+              alert('✅ Solicitud cancelada');
+            } else {
+              alert('❌ No fue posible cancelar: ' + data.message);
+            }
+          } catch (error) {
+            console.error('Error al cancelar solicitud:', error);
+            alert('❌ Error de conexión al cancelar la solicitud');
           }
         },
         

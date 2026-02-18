@@ -6,7 +6,7 @@ const fs = require('fs');
 const { authenticate } = require('../middleware/auth');
 const Request = require('../models/Request');
 const { sendNewRequestEmail, sendStatusChangeEmail } = require('../config/email');
-const { notifyNewRequest, notifyStatusChange, notifyNewComment } = require('../utils/websocket');
+const { notifyNewRequest, notifyStatusChange, notifyNewComment, notifyRequestUpdated } = require('../utils/websocket');
 const { autoAssignRequest } = require('../utils/autoAssign');
 
 const router = express.Router();
@@ -332,7 +332,6 @@ router.get('/queue/list', async (req, res) => {
  */
 router.patch('/:id', async (req, res) => {
   const logger = global.logger || console;
-  const { authorize } = require('../middleware/auth');
   
   try {
     const { status, comment, assignedTo } = req.body;
@@ -349,24 +348,37 @@ router.patch('/:id', async (req, res) => {
       });
     }
 
-    if (status) {
-      // Validación de roles para cambio de estado
-      const allowedRoles = ['designer', 'manager', 'admin', 'gerente_comunicaciones', 'disenador_grafico'];
-      if (!allowedRoles.includes(req.user.role)) {
-        logger.warn(`⚠️ Usuario ${req.user.email} intentó cambiar estado sin permisos`);
-        return res.status(403).json({ 
-          success: false, 
-          message: 'Acceso denegado: no puede cambiar el estado' 
-        });
-      }
+    const requesterId = request.requester?._id?.toString() || request.requester?.toString();
+    const isRequester = requesterId === req.user.id;
+    const isAdmin = req.user.role === 'admin';
 
-      // Solo admin y manager pueden marcar como completado
-      if (status === 'completed' && !['admin', 'manager', 'gerente_comunicaciones'].includes(req.user.role)) {
-        logger.warn(`⚠️ Usuario ${req.user.email} intentó completar solicitud sin permisos`);
-        return res.status(403).json({
-          success: false,
-          message: 'Solo administradores y gerentes pueden marcar solicitudes como completadas'
-        });
+    if (status) {
+      if (status === 'rejected') {
+        if (!isRequester && !isAdmin) {
+          return res.status(403).json({
+            success: false,
+            message: 'Solo el creador o el administrador pueden cancelar esta solicitud'
+          });
+        }
+      } else {
+        // Validación de roles para cambio de estado general
+        const allowedRoles = ['designer', 'manager', 'admin', 'gerente_comunicaciones', 'disenador_grafico'];
+        if (!allowedRoles.includes(req.user.role)) {
+          logger.warn(`⚠️ Usuario ${req.user.email} intentó cambiar estado sin permisos`);
+          return res.status(403).json({ 
+            success: false, 
+            message: 'Acceso denegado: no puede cambiar el estado' 
+          });
+        }
+
+        // Solo admin y manager pueden marcar como completado
+        if (status === 'completed' && !['admin', 'manager', 'gerente_comunicaciones'].includes(req.user.role)) {
+          logger.warn(`⚠️ Usuario ${req.user.email} intentó completar solicitud sin permisos`);
+          return res.status(403).json({
+            success: false,
+            message: 'Solo administradores y gerentes pueden marcar solicitudes como completadas'
+          });
+        }
       }
 
       request.status = status;
@@ -495,11 +507,14 @@ router.put('/:id/edit', async (req, res) => {
       });
     }
 
-    // Solo el creador puede editar
-    if (request.requester.toString() !== req.user.id) {
+    const isRequester = request.requester.toString() === req.user.id;
+    const isAdmin = req.user.role === 'admin';
+
+    // Solo el creador o admin pueden editar
+    if (!isRequester && !isAdmin) {
       return res.status(403).json({
         success: false,
-        message: 'Solo el creador puede editar esta solicitud'
+        message: 'Solo el creador o el administrador pueden editar esta solicitud'
       });
     }
 
@@ -541,6 +556,16 @@ router.put('/:id/edit', async (req, res) => {
       }
     }
 
+    try {
+      notifyRequestUpdated('edited', request, {
+        id: req.user.id,
+        name: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
+        role: req.user.role
+      });
+    } catch (e) {
+      console.warn('Error notifying request edited via WS:', e.message || e);
+    }
+
     res.json({
       success: true,
       message: 'Solicitud actualizada exitosamente',
@@ -580,6 +605,16 @@ router.delete('/:id', async (req, res) => {
     }
 
     await Request.findByIdAndDelete(req.params.id);
+
+    try {
+      notifyRequestUpdated('deleted', request, {
+        id: req.user.id,
+        name: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
+        role: req.user.role
+      });
+    } catch (e) {
+      console.warn('Error notifying request deleted via WS:', e.message || e);
+    }
 
     res.json({
       success: true,
