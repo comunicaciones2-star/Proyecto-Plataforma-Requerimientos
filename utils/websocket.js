@@ -222,12 +222,31 @@ function notifyNewComment(request, comment) {
   if (request.requester) notifyUser(request.requester, msg);
 }
 
+function notifyRequestUpdated(action, request, actor = {}) {
+  const msg = {
+    type: 'REQUEST_UPDATED',
+    action,
+    requestId: request?._id,
+    requestNumber: request?.requestNumber,
+    title: request?.title,
+    actor: {
+      id: actor.id || null,
+      name: actor.name || null,
+      role: actor.role || null
+    },
+    timestamp: new Date()
+  };
+  broadcast(msg);
+  if (request?.requester) notifyUser(request.requester, msg);
+}
+
 module.exports = {
   initializeWebSocket,
   closeWebSocket,
   notifyStatusChange,
   notifyNewRequest,
   notifyNewComment,
+  notifyRequestUpdated,
   notifyUser,
   broadcast,
   // helpers para tests / debug
