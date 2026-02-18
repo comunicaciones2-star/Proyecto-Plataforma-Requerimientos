@@ -330,34 +330,29 @@
                 <div class="p-4 border-b border-gray-200">
                   <h3 class="font-semibold text-gray-800">Notificaciones</h3>
                 </div>
-                <div class="max-h-96 overflow-y-auto">
-                  <div class="p-4 hover:bg-gray-50 border-b border-gray-100 cursor-pointer">
-                    <div class="flex gap-3">
-                      <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <i class="ri-file-list-line text-blue-600"></i>
-                      </div>
-                      <div class="flex-1">
-                        <p class="text-sm font-medium text-gray-800">Nueva solicitud asignada</p>
-                        <p class="text-xs text-gray-500">Banner Fenalco 2026</p>
-                        <p class="text-xs text-gray-400 mt-1">Hace 5 minutos</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="p-4 hover:bg-gray-50 border-b border-gray-100 cursor-pointer">
-                    <div class="flex gap-3">
-                      <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                        <i class="ri-check-line text-green-600"></i>
-                      </div>
-                      <div class="flex-1">
-                        <p class="text-sm font-medium text-gray-800">Solicitud completada</p>
-                        <p class="text-xs text-gray-500">Post redes sociales</p>
-                        <p class="text-xs text-gray-400 mt-1">Hace 1 hora</p>
+                <div class="max-h-72 overflow-y-auto">
+                  <template x-if="notifications.length === 0">
+                    <div class="p-4 text-sm text-gray-500">No hay notificaciones recientes</div>
+                  </template>
+                  <template x-for="notification in notifications" :key="notification.id">
+                    <div class="p-4 hover:bg-gray-50 border-b border-gray-100 cursor-pointer"
+                         @click="openNotifications = false; openNotificationRequest(notification.requestId)">
+                      <div class="flex gap-3">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                             :class="notification.bgClass">
+                          <i :class="notification.iconClass"></i>
+                        </div>
+                        <div class="flex-1">
+                          <p class="text-sm font-medium text-gray-800" x-text="notification.title"></p>
+                          <p class="text-xs text-gray-500" x-text="notification.subtitle"></p>
+                          <p class="text-xs text-gray-400 mt-1" x-text="notification.time"></p>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </template>
                 </div>
                 <div class="p-3 text-center border-t border-gray-200">
-                  <button class="text-sm text-fenalco-blue hover:text-fenalco-blue-600 font-medium" @click="currentTab = 'solicitudes'">Ver todas</button>
+                  <button class="text-sm text-fenalco-blue hover:text-fenalco-blue-600 font-medium" @click="openNotifications = false; currentTab = 'solicitudes'; loadRequests()">Ver todas</button>
                 </div>
               </div>
             </div>
@@ -2253,6 +2248,7 @@
           satisfaction: 0
         },
         requests: [],
+        notifications: [],
         
         // Nueva Solicitud
         newRequest: {
@@ -2392,40 +2388,40 @@
             // Tiempo Promedio
             doc.text('Tiempo Promedio de Entrega:', 20, yPos);
             doc.setFont(undefined, 'bold');
-            doc.text('4.2 días', 120, yPos);
+            doc.text(`${this.dashboardStats.averageTime || 0} días`, 120, yPos);
             doc.setFont(undefined, 'normal');
-            doc.setTextColor(0, 150, 0);
-            doc.text('↓ -0.5 días', 150, yPos);
+            doc.setTextColor(40, 0, 113);
+            doc.text('Métrica global', 150, yPos);
             
             // Tasa de Ejecución
             doc.setTextColor(0, 0, 0);
             yPos += 10;
             doc.text('Tasa de Ejecución:', 20, yPos);
             doc.setFont(undefined, 'bold');
-            doc.text('85%', 120, yPos);
+            doc.text(`${this.dashboardStats.completionPercentage || 0}%`, 120, yPos);
             doc.setFont(undefined, 'normal');
-            doc.setTextColor(0, 150, 0);
-            doc.text('↑ +2%', 150, yPos);
+            doc.setTextColor(40, 0, 113);
+            doc.text(`${this.dashboardStats.completedRequests || 0} completadas`, 150, yPos);
             
             // Solicitudes Urgentes
             doc.setTextColor(0, 0, 0);
             yPos += 10;
             doc.text('Solicitudes Urgentes:', 20, yPos);
             doc.setFont(undefined, 'bold');
-            doc.text('33%', 120, yPos);
+            doc.text(`${this.dashboardStats.urgentPercentage || 0}%`, 120, yPos);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(200, 100, 0);
-            doc.text('⚠ Atención', 150, yPos);
+            doc.text(`${this.dashboardStats.urgentRequests || 0} urgentes`, 150, yPos);
             
             // Satisfacción
             doc.setTextColor(0, 0, 0);
             yPos += 10;
             doc.text('Satisfacción del Cliente:', 20, yPos);
             doc.setFont(undefined, 'bold');
-            doc.text('92%', 120, yPos);
+            doc.text(`${this.dashboardStats.satisfaction || 0}%`, 120, yPos);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(0, 150, 0);
-            doc.text('★ Excelente', 150, yPos);
+            doc.text('Indicador de calidad', 150, yPos);
             
             // Statistics Summary
             doc.setTextColor(40, 0, 113);
@@ -2443,6 +2439,37 @@
             doc.text(`En Proceso: ${this.stats.inProcess || 0}`, 20, yPos);
             yPos += 7;
             doc.text(`Completadas: ${this.stats.completed || 0}`, 20, yPos);
+
+            const performanceCanvas = document.getElementById('chartPerformance');
+            if (performanceCanvas) {
+              try {
+                const performanceImage = performanceCanvas.toDataURL('image/png', 1.0);
+                doc.addPage();
+                doc.setFontSize(16);
+                doc.setTextColor(40, 0, 113);
+                doc.text('Gráfica: Performance Mensual', 20, 20);
+                doc.addImage(performanceImage, 'PNG', 15, 30, 180, 90);
+              } catch (error) {
+                console.warn('No se pudo adjuntar gráfica de performance al PDF:', error);
+              }
+            }
+
+            const urgencyCanvas = document.getElementById('chartUrgencia');
+            if (urgencyCanvas) {
+              try {
+                const urgencyImage = urgencyCanvas.toDataURL('image/png', 1.0);
+                const currentPage = doc.getCurrentPageInfo().pageNumber;
+                if (currentPage === 1) {
+                  doc.addPage();
+                }
+                doc.setFontSize(16);
+                doc.setTextColor(40, 0, 113);
+                doc.text('Gráfica: Distribución por Urgencia', 20, 140);
+                doc.addImage(urgencyImage, 'PNG', 45, 150, 120, 120);
+              } catch (error) {
+                console.warn('No se pudo adjuntar gráfica de urgencia al PDF:', error);
+              }
+            }
             
             // Footer
             doc.setFontSize(8);
@@ -2634,10 +2661,51 @@
             
             if (data.success) {
               this.requests = data.requests || [];
+              this.notifications = this.buildNotifications(this.requests);
             }
           } catch (error) {
             console.error('Error loading requests:', error);
           }
+        },
+
+        buildNotifications(requests) {
+          const sortedRequests = [...(requests || [])]
+            .sort((a, b) => new Date(b.createdAt || b.updatedAt || 0) - new Date(a.createdAt || a.updatedAt || 0));
+
+          return sortedRequests.map((request) => {
+            const isCompleted = request.status === 'completed';
+            return {
+              id: request._id,
+              requestId: request._id,
+              title: isCompleted ? 'Solicitud completada' : 'Nueva solicitud registrada',
+              subtitle: request.title || request.requestNumber || 'Solicitud',
+              time: this.getRelativeTime(request.createdAt || request.updatedAt),
+              iconClass: isCompleted ? 'ri-check-line text-green-600' : 'ri-file-list-line text-blue-600',
+              bgClass: isCompleted ? 'bg-green-100' : 'bg-blue-100'
+            };
+          });
+        },
+
+        getRelativeTime(dateValue) {
+          if (!dateValue) return 'Reciente';
+          const now = new Date();
+          const date = new Date(dateValue);
+          const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+
+          if (Number.isNaN(diffInMinutes) || diffInMinutes < 1) return 'Hace unos segundos';
+          if (diffInMinutes < 60) return `Hace ${diffInMinutes} minuto${diffInMinutes === 1 ? '' : 's'}`;
+
+          const diffInHours = Math.floor(diffInMinutes / 60);
+          if (diffInHours < 24) return `Hace ${diffInHours} hora${diffInHours === 1 ? '' : 's'}`;
+
+          const diffInDays = Math.floor(diffInHours / 24);
+          return `Hace ${diffInDays} día${diffInDays === 1 ? '' : 's'}`;
+        },
+
+        async openNotificationRequest(requestId) {
+          this.currentTab = 'solicitudes';
+          await this.loadRequests();
+          await this.viewRequestDetails(requestId);
         },
         
         async initCharts() {
