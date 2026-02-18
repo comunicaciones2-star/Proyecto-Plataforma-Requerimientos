@@ -48,6 +48,7 @@ db/
 
 # Archivos de prueba
 test-*.js
+!test-all-endpoints.js
 *.test.js
 *-test.js
 
