@@ -290,7 +290,7 @@
              :class="currentTab === 'ejecutores' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
              class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
             <i class="ri-team-line text-xl mr-3"></i>
-            <span class="font-medium">Ejecutores</span>
+            <span class="font-medium">Asignación</span>
           </a>
           
           <a x-show="user?.role === 'admin'" @click="currentTab = 'admin'" 
@@ -1276,11 +1276,11 @@
           <!-- Header with filters -->
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-              <h2 class="text-2xl font-bold text-gray-800">Gestión de Ejecutores</h2>
+              <h2 class="text-2xl font-bold text-gray-800">Asignación</h2>
               <p class="text-gray-600 mt-1">Gerentes, diseñadores y practicantes</p>
             </div>
             <button @click="openExecutorModal()" class="px-4 py-2 bg-fenalco-green text-white rounded-lg font-medium flex items-center gap-2 hover:bg-opacity-90 transition">
-              <i class="ri-user-add-line"></i> Nuevo Ejecutor
+              <i class="ri-user-add-line"></i> Nueva Asignación
             </button>
           </div>
 
@@ -1412,7 +1412,7 @@
 
             <div x-show="executors.length === 0" class="col-span-full text-center py-12 text-gray-500">
               <i class="ri-user-line text-6xl mb-4"></i>
-              <p>No hay ejecutores registrados</p>
+              <p>No hay asignaciones registradas</p>
             </div>
           </div>
         </div>
@@ -1633,11 +1633,11 @@
     </div>
   </div>
 
-  <!-- Modal: Crear/Editar Ejecutor -->
+  <!-- Modal: Crear/Editar Asignación -->
   <div x-show="showExecutorModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="showExecutorModal = false">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
       <div class="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-        <h3 class="text-2xl font-bold text-gray-800" x-text="executorForm.id ? 'Editar Ejecutor' : 'Nuevo Ejecutor'"></h3>
+        <h3 class="text-2xl font-bold text-gray-800" x-text="executorForm.id ? 'Editar Asignación' : 'Nueva Asignación'"></h3>
         <button @click="showExecutorModal = false" class="text-gray-400 hover:text-gray-600 text-2xl">
           <i class="ri-close-line"></i>
         </button>
@@ -1711,7 +1711,7 @@
     </div>
   </div>
 
-  <!-- Modal: Detalles de Ejecutor -->
+  <!-- Modal: Detalles de Asignación -->
   <div x-show="showExecutorDetailsModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="showExecutorDetailsModal = false">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto m-4">
       <template x-if="currentExecutor">
@@ -3556,7 +3556,7 @@
             solicitudes: 'Mis Solicitudes',
             reportes: 'Reportes y Análisis',
             calendario: 'Calendario de Entregas',
-            ejecutores: 'Gestión de Ejecutores',
+            ejecutores: 'Asignación',
             admin: 'Administración'
           };
           return titles[this.currentTab] || 'Dashboard';
