@@ -471,6 +471,9 @@
           <!-- Estadísticas por Área -->
           <div class="card">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Estadísticas por Área</h3>
+            <div class="chart-wrapper mb-6">
+              <canvas id="chartAreas"></canvas>
+            </div>
             <div class="overflow-x-auto">
               <table class="w-full">
                 <thead>
@@ -2427,6 +2430,11 @@
           status: null,
           daily: null
         },
+        dashboardCharts: {
+          performance: null,
+          urgency: null,
+          areas: null
+        },
         reportData: {
           totalRequests: 0,
           completedRequests: 0,
@@ -2946,11 +2954,45 @@
               if (this.requestPagination.page > totalPages) {
                 this.requestPagination.page = Math.max(totalPages, 1);
               }
+              this.renderDashboardAreasChart();
               this.loadReportData();
             }
           } catch (error) {
             console.error('Error loading requests:', error);
           }
+        },
+
+        getDashboardAreaData() {
+          const areaOrder = [
+            'Dirección',
+            'Comunicaciones',
+            'Formación Empresarial',
+            'Comercial',
+            'Coworking - Casa Fenalco',
+            'Jurídico',
+            'Contabilidad',
+            'Fenalcobra',
+            'Fenalempleo'
+          ];
+
+          const counters = {};
+          areaOrder.forEach((area) => {
+            counters[area] = 0;
+          });
+
+          (this.requests || []).forEach((request) => {
+            const area = request?.area;
+            if (!area) return;
+            if (typeof counters[area] !== 'number') {
+              counters[area] = 0;
+            }
+            counters[area] += 1;
+          });
+
+          return {
+            labels: areaOrder,
+            values: areaOrder.map((area) => counters[area] || 0)
+          };
         },
 
         getMonthLabel(monthNumber, yearNumber) {
@@ -3117,7 +3159,7 @@
         },
 
         renderReportCharts() {
-          const ctxStatus = document.getElementById('chartStatus');
+          const ctxStatus = this.getChartContext('chartStatus');
           if (ctxStatus) {
             if (this.reportCharts.status) {
               this.reportCharts.status.destroy();
@@ -3155,7 +3197,7 @@
             });
           }
 
-          const ctxDaily = document.getElementById('chartDaily');
+          const ctxDaily = this.getChartContext('chartDaily');
           if (ctxDaily) {
             if (this.reportCharts.daily) {
               this.reportCharts.daily.destroy();
@@ -3186,6 +3228,12 @@
               }
             });
           }
+        },
+
+        getChartContext(canvasId) {
+          const canvas = document.getElementById(canvasId);
+          if (!canvas || typeof canvas.getContext !== 'function') return null;
+          return canvas.getContext('2d');
         },
 
         getCalendarYearOptions() {
@@ -3725,16 +3773,34 @@
         
         async initCharts() {
           // Gráfico de Performance Mensual
-          const ctxPerformance = document.getElementById('chartPerformance');
+          const ctxPerformance = this.getChartContext('chartPerformance');
           if (ctxPerformance) {
             try {
               const response = await fetch('/api/admin/stats/monthly-performance', {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
               });
               const result = await response.json();
-              const monthlyData = result.data || [];
+              let monthlyData = [];
+
+              if (Array.isArray(result?.data)) {
+                monthlyData = result.data;
+              } else if (Array.isArray(result)) {
+                monthlyData = result;
+              }
+
+              if (!Array.isArray(monthlyData) || monthlyData.length !== 12) {
+                const normalized = new Array(12).fill(0);
+                (monthlyData || []).slice(0, 12).forEach((value, index) => {
+                  normalized[index] = Number(value) || 0;
+                });
+                monthlyData = normalized;
+              }
+
+              if (this.dashboardCharts.performance) {
+                this.dashboardCharts.performance.destroy();
+              }
               
-              new Chart(ctxPerformance, {
+              this.dashboardCharts.performance = new Chart(ctxPerformance, {
                 type: 'line',
                 data: {
                   labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
@@ -3773,25 +3839,60 @@
               });
             } catch (error) {
               console.error('Error cargando datos de performance mensual:', error);
+
+              if (this.dashboardCharts.performance) {
+                this.dashboardCharts.performance.destroy();
+              }
+
+              this.dashboardCharts.performance = new Chart(ctxPerformance, {
+                type: 'line',
+                data: {
+                  labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                  datasets: [{
+                    label: 'Completadas',
+                    data: new Array(12).fill(0),
+                    borderColor: '#00CE7C',
+                    backgroundColor: 'rgba(0, 206, 124, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: true, position: 'top' } },
+                  scales: { y: { beginAtZero: true } }
+                }
+              });
             }
           }
           
           // Gráfico de Distribución por Urgencia
-          const ctxUrgencia = document.getElementById('chartUrgencia');
+          const ctxUrgencia = this.getChartContext('chartUrgencia');
           if (ctxUrgencia) {
             try {
               const response = await fetch('/api/admin/stats/urgency-distribution', {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
               });
               const result = await response.json();
-              const urgencyData = result.data || { normal: 0, urgent: 0, express: 0 };
+              const urgencyData = result?.data || result || { normal: 0, urgent: 0, express: 0 };
+
+              const urgencyValues = [
+                Number(urgencyData.normal) || 0,
+                Number(urgencyData.urgent) || 0,
+                Number(urgencyData.express) || 0
+              ];
+
+              if (this.dashboardCharts.urgency) {
+                this.dashboardCharts.urgency.destroy();
+              }
               
-              new Chart(ctxUrgencia, {
+              this.dashboardCharts.urgency = new Chart(ctxUrgencia, {
                 type: 'doughnut',
                 data: {
                   labels: ['Normal', 'Urgente', 'Express'],
                   datasets: [{
-                    data: [urgencyData.normal, urgencyData.urgent, urgencyData.express],
+                    data: urgencyValues,
                     backgroundColor: ['#00CE7C', '#FFB549', '#FF8674'],
                     borderWidth: 0
                   }]
@@ -3815,10 +3916,75 @@
               });
             } catch (error) {
               console.error('Error cargando datos de urgencia:', error);
+
+              if (this.dashboardCharts.urgency) {
+                this.dashboardCharts.urgency.destroy();
+              }
+
+              this.dashboardCharts.urgency = new Chart(ctxUrgencia, {
+                type: 'doughnut',
+                data: {
+                  labels: ['Normal', 'Urgente', 'Express'],
+                  datasets: [{
+                    data: [0, 0, 0],
+                    backgroundColor: ['#00CE7C', '#FFB549', '#FF8674'],
+                    borderWidth: 0
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { position: 'bottom' } },
+                  cutout: '60%'
+                }
+              });
             }
           }
+
+          this.renderDashboardAreasChart();
           
           this.loadReportData();
+        },
+
+        renderDashboardAreasChart() {
+          const ctxAreas = this.getChartContext('chartAreas');
+          if (!ctxAreas) return;
+
+          const areaData = this.getDashboardAreaData();
+
+          if (this.dashboardCharts.areas) {
+            this.dashboardCharts.areas.destroy();
+          }
+
+          this.dashboardCharts.areas = new Chart(ctxAreas, {
+            type: 'bar',
+            data: {
+              labels: areaData.labels,
+              datasets: [{
+                label: 'Solicitudes',
+                data: areaData.values,
+                backgroundColor: 'rgba(40, 0, 113, 0.75)',
+                borderRadius: 6,
+                maxBarThickness: 28
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: { precision: 0 }
+                },
+                x: {
+                  ticks: { maxRotation: 45, minRotation: 30 }
+                }
+              }
+            }
+          });
         },
         
         getTabTitle() {
