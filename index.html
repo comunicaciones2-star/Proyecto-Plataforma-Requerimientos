@@ -1843,10 +1843,12 @@
             <select x-model="newRequest.type" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
               <option value="">Seleccionar...</option>
               <option value="redes">Redes Sociales</option>
+              <option value="emailing">Mailing</option>
               <option value="pieza_impresa">Pieza Impresa</option>
               <option value="presentacion">Presentación</option>
               <option value="video">Video</option>
               <option value="banner">Banner</option>
+              <option value="landing_page">Landing Page</option>
               <option value="otro">Otro</option>
             </select>
           </div>
@@ -1858,6 +1860,96 @@
               <option value="urgent">Urgente (2 días)</option>
               <option value="express">Express (1 día)</option>
             </select>
+          </div>
+        </div>
+
+        <div x-show="getRequestCategoryGroup(newRequest.type) === 'digital'" class="space-y-4 border rounded-lg p-4 bg-gray-50">
+          <h4 class="font-semibold text-gray-800">Campos esenciales: Redes / Mailing / WhatsApp</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Canal específico *</label>
+              <select x-model="newRequest.categoryDetails.digital.channel" :required="getRequestCategoryGroup(newRequest.type) === 'digital'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                <option value="">Seleccionar...</option>
+                <option value="Instagram Post">Instagram Post</option>
+                <option value="Instagram Story">Instagram Story</option>
+                <option value="Banner Web">Banner Web</option>
+                <option value="Mailing">Mailing</option>
+                <option value="WhatsApp">WhatsApp</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Objetivo *</label>
+              <select x-model="newRequest.categoryDetails.digital.objective" :required="getRequestCategoryGroup(newRequest.type) === 'digital'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                <option value="">Seleccionar...</option>
+                <option value="venta">Venta</option>
+                <option value="informativo">Informativo</option>
+                <option value="institucional">Institucional</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Texto (Copy) - Título *</label>
+            <input type="text" x-model="newRequest.categoryDetails.digital.copyTitle" :required="getRequestCategoryGroup(newRequest.type) === 'digital'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Título principal del mensaje">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Texto (Copy) - Cuerpo *</label>
+            <textarea x-model="newRequest.categoryDetails.digital.copyBody" :required="getRequestCategoryGroup(newRequest.type) === 'digital'" rows="2" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Cuerpo del mensaje"></textarea>
+          </div>
+        </div>
+
+        <div x-show="getRequestCategoryGroup(newRequest.type) === 'print'" class="space-y-4 border rounded-lg p-4 bg-gray-50">
+          <h4 class="font-semibold text-gray-800">Campos esenciales: Impresos</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Medidas *</label>
+              <input type="text" x-model="newRequest.categoryDetails.print.size" :required="getRequestCategoryGroup(newRequest.type) === 'print'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Ej: Carta, A4, 10x15 cm">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Material *</label>
+              <input type="text" x-model="newRequest.categoryDetails.print.material" :required="getRequestCategoryGroup(newRequest.type) === 'print'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Ej: Propalcote, bond, mate/brillante">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Acabados *</label>
+            <input type="text" x-model="newRequest.categoryDetails.print.finishes" :required="getRequestCategoryGroup(newRequest.type) === 'print'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Ej: Troquel, barniz UV, plegado específico">
+          </div>
+        </div>
+
+        <div x-show="getRequestCategoryGroup(newRequest.type) === 'video'" class="space-y-4 border rounded-lg p-4 bg-gray-50">
+          <h4 class="font-semibold text-gray-800">Campos esenciales: Video</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Duración estimada *</label>
+              <input type="text" x-model="newRequest.categoryDetails.video.duration" :required="getRequestCategoryGroup(newRequest.type) === 'video'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Ej: 15s, 30s, 1 min">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Formato *</label>
+              <select x-model="newRequest.categoryDetails.video.format" :required="getRequestCategoryGroup(newRequest.type) === 'video'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                <option value="">Seleccionar...</option>
+                <option value="vertical_9_16">Vertical 9:16</option>
+                <option value="horizontal_16_9">Horizontal 16:9</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Guion / Locución *</label>
+            <select x-model="newRequest.categoryDetails.video.voiceOver" :required="getRequestCategoryGroup(newRequest.type) === 'video'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+              <option value="">Seleccionar...</option>
+              <option value="voz_off">Requiere voz en off</option>
+              <option value="solo_musica">Solo música</option>
+            </select>
+          </div>
+        </div>
+
+        <div x-show="getRequestCategoryGroup(newRequest.type) === 'landing'" class="space-y-4 border rounded-lg p-4 bg-gray-50">
+          <h4 class="font-semibold text-gray-800">Campos esenciales: Landing Page</h4>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Estructura (secciones deseadas) *</label>
+            <textarea x-model="newRequest.categoryDetails.landing.sections" :required="getRequestCategoryGroup(newRequest.type) === 'landing'" rows="2" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Ej: formulario, beneficios, contacto"></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">URL de referencia *</label>
+            <input type="url" x-model="newRequest.categoryDetails.landing.referenceUrl" :required="getRequestCategoryGroup(newRequest.type) === 'landing'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="https://ejemplo.com/landing">
           </div>
         </div>
         
@@ -2043,6 +2135,26 @@
                  class="text-base text-fenalco-blue hover:underline mt-1 block" 
                  x-text="selectedRequest?.referenceLinks"></a>
             </div>
+            <div x-show="selectedRequest?.categoryDetails">
+              <label class="text-sm font-medium text-gray-600">Requerimientos por categoría:</label>
+              <div class="mt-2 text-sm text-gray-700 space-y-1">
+                <p x-show="selectedRequest?.categoryDetails?.digital?.channel"><strong>Canal:</strong> <span x-text="selectedRequest?.categoryDetails?.digital?.channel"></span></p>
+                <p x-show="selectedRequest?.categoryDetails?.digital?.objective"><strong>Objetivo:</strong> <span x-text="selectedRequest?.categoryDetails?.digital?.objective"></span></p>
+                <p x-show="selectedRequest?.categoryDetails?.digital?.copyTitle"><strong>Copy Título:</strong> <span x-text="selectedRequest?.categoryDetails?.digital?.copyTitle"></span></p>
+                <p x-show="selectedRequest?.categoryDetails?.digital?.copyBody"><strong>Copy Cuerpo:</strong> <span x-text="selectedRequest?.categoryDetails?.digital?.copyBody"></span></p>
+
+                <p x-show="selectedRequest?.categoryDetails?.print?.size"><strong>Medidas:</strong> <span x-text="selectedRequest?.categoryDetails?.print?.size"></span></p>
+                <p x-show="selectedRequest?.categoryDetails?.print?.material"><strong>Material:</strong> <span x-text="selectedRequest?.categoryDetails?.print?.material"></span></p>
+                <p x-show="selectedRequest?.categoryDetails?.print?.finishes"><strong>Acabados:</strong> <span x-text="selectedRequest?.categoryDetails?.print?.finishes"></span></p>
+
+                <p x-show="selectedRequest?.categoryDetails?.video?.duration"><strong>Duración:</strong> <span x-text="selectedRequest?.categoryDetails?.video?.duration"></span></p>
+                <p x-show="selectedRequest?.categoryDetails?.video?.voiceOver"><strong>Guion/Locución:</strong> <span x-text="selectedRequest?.categoryDetails?.video?.voiceOver"></span></p>
+                <p x-show="selectedRequest?.categoryDetails?.video?.format"><strong>Formato:</strong> <span x-text="selectedRequest?.categoryDetails?.video?.format"></span></p>
+
+                <p x-show="selectedRequest?.categoryDetails?.landing?.sections"><strong>Estructura:</strong> <span x-text="selectedRequest?.categoryDetails?.landing?.sections"></span></p>
+                <p x-show="selectedRequest?.categoryDetails?.landing?.referenceUrl"><strong>URL referencia:</strong> <span x-text="selectedRequest?.categoryDetails?.landing?.referenceUrl"></span></p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2098,6 +2210,24 @@
     </div>
   </div>
 
+  <div x-show="dialog.open" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]" @click.self="resolveDialog(false)">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md m-4">
+      <div class="p-6 border-b border-gray-200 flex items-center justify-between">
+        <h3 class="text-xl font-bold text-gray-800" x-text="dialog.title"></h3>
+        <button @click="resolveDialog(false)" class="text-gray-400 hover:text-gray-600 text-2xl">
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+      <div class="p-6">
+        <p class="text-gray-700 whitespace-pre-line" x-text="dialog.message"></p>
+      </div>
+      <div class="px-6 pb-6 flex justify-end gap-3">
+        <button x-show="dialog.type === 'confirm'" @click="resolveDialog(false)" class="px-5 py-2 border rounded-lg hover:bg-gray-50 transition" x-text="dialog.cancelText"></button>
+        <button @click="resolveDialog(true)" class="px-5 py-2 bg-fenalco-green text-white rounded-lg hover:bg-green-600 transition" x-text="dialog.confirmText"></button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const API_URL = 'http://localhost:5000/api';
     
@@ -2115,6 +2245,15 @@
         editingRequestId: null,
         showRequestDetails: false,
         selectedRequest: null,
+        dialog: {
+          open: false,
+          title: '',
+          message: '',
+          type: 'alert',
+          confirmText: 'Aceptar',
+          cancelText: 'Cancelar'
+        },
+        dialogResolver: null,
         loginForm: {
           email: 'asistentedireccion@fenalcosantander.com.co',
           password: 'password123'
@@ -2161,6 +2300,28 @@
           deliveryDate: '',
           targetAudience: '',
           referenceLinks: '',
+          categoryDetails: {
+            digital: {
+              channel: '',
+              objective: '',
+              copyTitle: '',
+              copyBody: ''
+            },
+            print: {
+              size: '',
+              material: '',
+              finishes: ''
+            },
+            video: {
+              duration: '',
+              voiceOver: '',
+              format: ''
+            },
+            landing: {
+              sections: '',
+              referenceUrl: ''
+            }
+          },
           selectedFiles: []
         },
         
@@ -3643,6 +3804,35 @@
           return 'Comunicaciones';
         },
 
+        openDialog(config = {}) {
+          return new Promise((resolve) => {
+            this.dialog = {
+              open: true,
+              title: config.title || 'Aviso',
+              message: config.message || '',
+              type: config.type || 'alert',
+              confirmText: config.confirmText || 'Aceptar',
+              cancelText: config.cancelText || 'Cancelar'
+            };
+            this.dialogResolver = resolve;
+          });
+        },
+
+        async showAlert(message, title = 'Aviso') {
+          await this.openDialog({ title, message, type: 'alert', confirmText: 'Aceptar' });
+        },
+
+        showConfirm(message, title = 'Confirmación') {
+          return this.openDialog({ title, message, type: 'confirm', confirmText: 'Aceptar', cancelText: 'Cancelar' });
+        },
+
+        resolveDialog(result) {
+          this.dialog.open = false;
+          const resolver = this.dialogResolver;
+          this.dialogResolver = null;
+          if (resolver) resolver(result);
+        },
+
         getAdminRoleBadgeClass(role) {
           const badge = {
             admin: 'bg-purple-100 text-purple-700',
@@ -3664,6 +3854,63 @@
           };
           return cargos[role] || 'Colaborador';
         },
+
+        getRequestCategoryGroup(type) {
+          if (['redes', 'emailing', 'banner'].includes(type)) return 'digital';
+          if (type === 'pieza_impresa') return 'print';
+          if (type === 'video') return 'video';
+          if (type === 'landing_page') return 'landing';
+          return '';
+        },
+
+        getEmptyCategoryDetails() {
+          return {
+            digital: {
+              channel: '',
+              objective: '',
+              copyTitle: '',
+              copyBody: ''
+            },
+            print: {
+              size: '',
+              material: '',
+              finishes: ''
+            },
+            video: {
+              duration: '',
+              voiceOver: '',
+              format: ''
+            },
+            landing: {
+              sections: '',
+              referenceUrl: ''
+            }
+          };
+        },
+
+        normalizeCategoryDetails(details) {
+          const base = this.getEmptyCategoryDetails();
+          if (!details) return base;
+
+          return {
+            digital: {
+              ...base.digital,
+              ...(details.digital || {})
+            },
+            print: {
+              ...base.print,
+              ...(details.print || {})
+            },
+            video: {
+              ...base.video,
+              ...(details.video || {})
+            },
+            landing: {
+              ...base.landing,
+              ...(details.landing || {})
+            }
+          };
+        },
         
         openNewRequestModal() {
           this.openCreateRequestModal();
@@ -3678,6 +3925,7 @@
             deliveryDate: '',
             targetAudience: '',
             referenceLinks: '',
+            categoryDetails: this.getEmptyCategoryDetails(),
             selectedFiles: []
           };
           this.editingRequestId = null;
@@ -3698,6 +3946,7 @@
             deliveryDate: request.deliveryDate ? new Date(request.deliveryDate).toISOString().split('T')[0] : '',
             targetAudience: request.targetAudience || '',
             referenceLinks: request.referenceLinks || '',
+            categoryDetails: this.normalizeCategoryDetails(request.categoryDetails),
             selectedFiles: []
           };
           this.showCreateRequestModal = true;
@@ -3747,6 +3996,7 @@
             if (this.newRequest.referenceLinks) {
               formData.append('referenceLinks', this.newRequest.referenceLinks);
             }
+            formData.append('categoryDetails', JSON.stringify(this.newRequest.categoryDetails || this.getEmptyCategoryDetails()));
             
             // Agregar archivos
             if (this.newRequest.selectedFiles && this.newRequest.selectedFiles.length > 0) {
@@ -3833,7 +4083,10 @@
         },
 
         async deleteRequest(request) {
-          const confirmDelete = confirm(`¿Seguro que deseas eliminar la solicitud ${request.requestNumber}?\n\nEsta acción es permanente y no se puede deshacer.`);
+          const confirmDelete = await this.showConfirm(
+            `¿Seguro que deseas eliminar la solicitud ${request.requestNumber}?\n\nEsta acción es permanente y no se puede deshacer.`,
+            'Eliminar solicitud'
+          );
           if (!confirmDelete) return;
 
           try {
@@ -3848,18 +4101,18 @@
 
             if (data.success) {
               await this.loadRequests();
-              alert('✅ Solicitud eliminada exitosamente');
+              await this.showAlert('Solicitud eliminada exitosamente', 'Éxito');
             } else {
-              alert('❌ Error al eliminar: ' + data.message);
+              await this.showAlert('Error al eliminar: ' + data.message, 'Error');
             }
           } catch (error) {
             console.error('Error al eliminar solicitud:', error);
-            alert('❌ Error de conexión al eliminar la solicitud');
+            await this.showAlert('Error de conexión al eliminar la solicitud', 'Error');
           }
         },
 
         async cancelRequest(request) {
-          const confirmCancel = confirm(`¿Deseas cancelar la solicitud ${request.requestNumber}?`);
+          const confirmCancel = await this.showConfirm(`¿Deseas cancelar la solicitud ${request.requestNumber}?`, 'Cancelar solicitud');
           if (!confirmCancel) return;
 
           try {
@@ -3879,13 +4132,13 @@
 
             if (data.success) {
               await this.loadRequests();
-              alert('✅ Solicitud cancelada');
+              await this.showAlert('Solicitud cancelada', 'Éxito');
             } else {
-              alert('❌ No fue posible cancelar: ' + data.message);
+              await this.showAlert('No fue posible cancelar: ' + data.message, 'Error');
             }
           } catch (error) {
             console.error('Error al cancelar solicitud:', error);
-            alert('❌ Error de conexión al cancelar la solicitud');
+            await this.showAlert('Error de conexión al cancelar la solicitud', 'Error');
           }
         },
         
@@ -4017,13 +4270,13 @@
             if (data.success) {
               this.showAdminUserModal = false;
               await this.loadAdminUsers();
-              alert(isEditing ? '✅ Usuario actualizado correctamente' : '✅ Usuario creado correctamente');
+              await this.showAlert(isEditing ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente', 'Éxito');
             } else {
-              alert('❌ Error: ' + (data.message || 'No fue posible guardar el usuario'));
+              await this.showAlert('Error: ' + (data.message || 'No fue posible guardar el usuario'), 'Error');
             }
           } catch (error) {
             console.error('Error al guardar usuario:', error);
-            alert('❌ Error al guardar usuario');
+            await this.showAlert('Error al guardar usuario', 'Error');
           }
         },
 
@@ -4031,13 +4284,16 @@
           const currentUserId = this.user?._id || this.user?.id;
 
           if (adminUser.isActive && currentUserId && adminUser._id === currentUserId) {
-            alert('⚠️ No puedes desactivarte a ti mismo');
+            await this.showAlert('No puedes desactivarte a ti mismo', 'Aviso');
             return;
           }
 
           try {
             if (adminUser.isActive) {
-              const confirmDeactivate = confirm(`¿Deseas desactivar el usuario ${adminUser.firstName} ${adminUser.lastName}?`);
+              const confirmDeactivate = await this.showConfirm(
+                `¿Deseas desactivar el usuario ${adminUser.firstName} ${adminUser.lastName}?`,
+                'Desactivar usuario'
+              );
               if (!confirmDeactivate) return;
 
               const response = await fetch(`${API_URL}/admin/users/${adminUser._id}`, {
@@ -4049,7 +4305,7 @@
 
               const data = await response.json();
               if (!data.success) {
-                alert('❌ Error: ' + (data.message || 'No fue posible desactivar el usuario'));
+                await this.showAlert('Error: ' + (data.message || 'No fue posible desactivar el usuario'), 'Error');
                 return;
               }
             } else {
@@ -4072,7 +4328,7 @@
 
               const data = await response.json();
               if (!data.success) {
-                alert('❌ Error: ' + (data.message || 'No fue posible activar el usuario'));
+                await this.showAlert('Error: ' + (data.message || 'No fue posible activar el usuario'), 'Error');
                 return;
               }
             }
@@ -4080,12 +4336,15 @@
             await this.loadAdminUsers();
           } catch (error) {
             console.error('Error al cambiar estado del usuario:', error);
-            alert('❌ Error al cambiar estado del usuario');
+            await this.showAlert('Error al cambiar estado del usuario', 'Error');
           }
         },
 
         async resetAdminUserPassword(adminUser) {
-          const confirmReset = confirm(`¿Resetear contraseña de ${adminUser.firstName} ${adminUser.lastName} a password123?`);
+          const confirmReset = await this.showConfirm(
+            `¿Resetear contraseña de ${adminUser.firstName} ${adminUser.lastName} a password123?`,
+            'Resetear contraseña'
+          );
           if (!confirmReset) return;
 
           try {
@@ -4098,13 +4357,13 @@
 
             const data = await response.json();
             if (data.success) {
-              alert('✅ Contraseña reseteada a: password123');
+              await this.showAlert('Contraseña reseteada a: password123', 'Éxito');
             } else {
-              alert('❌ Error: ' + (data.message || 'No fue posible resetear la contraseña'));
+              await this.showAlert('Error: ' + (data.message || 'No fue posible resetear la contraseña'), 'Error');
             }
           } catch (error) {
             console.error('Error al resetear contraseña:', error);
-            alert('❌ Error al resetear contraseña');
+            await this.showAlert('Error al resetear contraseña', 'Error');
           }
         },
         

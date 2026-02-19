@@ -63,8 +63,23 @@ router.post('/', upload.array('files'), async (req, res) => {
       urgency,
       deliveryDate,
       targetAudience,
-      referenceLinks
+      referenceLinks,
+      categoryDetails
     } = req.body;
+
+    let parsedCategoryDetails = {};
+    if (categoryDetails) {
+      try {
+        parsedCategoryDetails = typeof categoryDetails === 'string'
+          ? JSON.parse(categoryDetails)
+          : categoryDetails;
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: 'Los campos por categoría tienen un formato inválido'
+        });
+      }
+    }
 
     if (!area || !type || !title || !description || !deliveryDate) {
       return res.status(400).json({
@@ -99,6 +114,7 @@ router.post('/', upload.array('files'), async (req, res) => {
       deliveryDate,
       targetAudience,
       referenceLinks,
+      categoryDetails: parsedCategoryDetails,
       requester: req.user.id,
       attachments,
       queuedAt: new Date()

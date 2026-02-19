@@ -151,6 +151,7 @@ const requestSchema = new Schema(
         'presentacion',
         'video',
         'banner',
+        'landing_page',
         'merchandising',
         'emailing',
         'otro'
@@ -178,6 +179,29 @@ const requestSchema = new Schema(
     referenceLinks: {
       type: String,
       trim: true
+    },
+
+    categoryDetails: {
+      digital: {
+        channel: { type: String, trim: true },
+        objective: { type: String, trim: true },
+        copyTitle: { type: String, trim: true },
+        copyBody: { type: String, trim: true }
+      },
+      print: {
+        size: { type: String, trim: true },
+        material: { type: String, trim: true },
+        finishes: { type: String, trim: true }
+      },
+      video: {
+        duration: { type: String, trim: true },
+        voiceOver: { type: String, trim: true },
+        format: { type: String, trim: true }
+      },
+      landing: {
+        sections: { type: String, trim: true },
+        referenceUrl: { type: String, trim: true }
+      }
     },
 
     urgency: {
