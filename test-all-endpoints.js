@@ -180,14 +180,35 @@ async function runCompleteTests() {
     // 8. CREAR NUEVA SOLICITUD
     console.log(colors.blue + '➕ 8. CREAR NUEVA SOLICITUD' + colors.reset);
     res = await makeRequest('POST', '/api/requests', {
-      area: 'comunicaciones',
+      area: 'Comunicaciones',
       type: 'redes',
       title: 'Posts para redes sociales - Febrero 2026',
       description: 'Necesitamos 5 posts diseñados para Instagram, Facebook y LinkedIn',
       urgency: 'normal',
+      preferredExecutorRole: 'diseñador',
       deliveryDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
       targetAudience: 'Seguidores en redes sociales',
-      referenceLinks: 'https://fenalcosantander.com.co'
+      referenceLinks: 'https://fenalcosantander.com.co',
+      categoryDetails: {
+        digital: {
+          channels: ['Facebook', 'Instagram'],
+          channelConfigs: {
+            Facebook: {
+              format: 'Post',
+              publication: 'Feed',
+              size: '1080x1080 - 1:1'
+            },
+            Instagram: {
+              format: 'Reel',
+              publication: 'Feed',
+              size: '1080x1920 - 9:16'
+            }
+          },
+          objective: 'informativo',
+          copyTitle: 'Nuevo contenido institucional',
+          copyBody: 'Conoce nuestras novedades de este mes'
+        }
+      }
     }, token);
     if (res.status === 201 && res.data.success) {
       console.log(colors.green + '   ✅ Solicitud creada exitosamente' + colors.reset);
