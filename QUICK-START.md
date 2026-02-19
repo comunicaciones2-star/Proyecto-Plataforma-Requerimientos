@@ -5,19 +5,21 @@
 **Cada vez que abras el proyecto, ejecuta estos comandos:**
 
 ```powershell
-# 1. Verificar MongoDB (servicio o proceso)
-$mongoService = Get-Service -Name MongoDB -ErrorAction SilentlyContinue
-if ($mongoService) {
-	$mongoService.Status
-} else {
-	Get-Process mongod -ErrorAction SilentlyContinue
-}
+# Opción recomendada (todo en uno):
+npm run morning
+```
 
-# 2. Si usas MongoDB local y no está corriendo, iniciarlo:
-net start MongoDB
+El script `npm run morning` hace automáticamente:
+1. Verifica MongoDB (local o Atlas según `MONGODB_URI`).
+2. Inicia servidor si no está arriba.
+3. Espera health check en `http://localhost:5000/api/health`.
+4. Ejecuta smoke test.
+5. Deja URLs listas para abrir.
 
-# 3. Iniciar el servidor
-npm run dev
+Opcionalmente puedes ejecutar el script con parámetros:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/morning-start.ps1 -SkipSmoke
 ```
 
 **Listo:** Abre http://localhost:5000 en tu navegador
@@ -122,6 +124,7 @@ npm start          # Iniciar servidor producción
 npm run dev        # Iniciar servidor desarrollo (nodemon)
 npm run seed       # Poblar BD con datos de prueba
 npm run smoke      # Smoke test post-deploy (health/login/stats/create/delete)
+npm run morning    # Arranque matutino automático (Mongo + servidor + smoke)
 npm run build      # Compilar frontend (Vite)
 npm run preview    # Vista previa build
 npm run dev-frontend  # Servidor desarrollo frontend (Vite)

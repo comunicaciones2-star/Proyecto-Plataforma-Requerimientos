@@ -8,6 +8,7 @@
     "dev": "nodemon server.js",
     "seed": "node scripts/seed.js",
     "smoke": "node scripts/smoke-test.js",
+    "morning": "powershell -ExecutionPolicy Bypass -File scripts/morning-start.ps1",
     "build": "vite build",
     "preview": "vite preview",
     "dev-frontend": "vite",
