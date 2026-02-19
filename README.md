@@ -165,8 +165,8 @@ node test-all-endpoints.js
 # Smoke test rápido post-deploy
 npm run smoke
 
-# Test simple de conectividad
-node test-simple.js
+# Test rápido de API
+node test-api.js
 
 # Poblar base de datos
 npm run seed

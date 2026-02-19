@@ -20,11 +20,9 @@ Antes de deployar, verifica que TODO esté completo:
 - [ ] Winston logger configurado
 
 ### ✅ Testing
-- [ ] Tests unitarios pasan: `npm run test:unit`
-- [ ] Tests integración pasan: `npm run test:integration`
-- [ ] Coverage > 50%: `npm test`
-- [ ] ESLint sin errores: `npm run lint`
-- [ ] Prettier formateado: `npm run format:check`
+- [ ] Smoke test pasa: `npm run smoke`
+- [ ] Test de endpoints pasa: `node test-all-endpoints.js`
+- [ ] Build producción sin errores: `npm run build`
 
 ### ✅ Base de Datos
 - [ ] MongoDB indexes creados (9 indexes totales)

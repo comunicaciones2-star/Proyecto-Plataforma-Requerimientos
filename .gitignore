@@ -55,6 +55,7 @@ test-*.js
 !test-all-endpoints.js
 *.test.js
 *-test.js
+!scripts/smoke-test.js
 
 # Backup
 *.backup
