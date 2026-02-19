@@ -42,6 +42,10 @@ temp/
 dist/
 build/
 
+# Archivos subidos por usuarios
+uploads/*
+!uploads/.gitkeep
+
 # MongoDB local
 data/
 db/
