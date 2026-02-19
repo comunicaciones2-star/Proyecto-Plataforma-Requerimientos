@@ -11,10 +11,15 @@ async function findBestExecutor(request) {
   try {
     const designType = request.designType || request.type;
     const urgency = request.urgency;
+    const preferredRole = request.preferredExecutorRole;
 
     // Buscar ejecutores disponibles
+    const rolesToSearch = preferredRole
+      ? [preferredRole]
+      : ['gerente', 'diseñador', 'practicante'];
+
     const availableExecutors = await User.find({
-      role: { $in: ['gerente', 'diseñador', 'practicante'] },
+      role: { $in: rolesToSearch },
       isActive: true,
       'executorProfile.available': true
     }).sort({ 'executorProfile.priority': 1 }); // Ordenar por prioridad
@@ -68,29 +73,26 @@ async function findBestExecutor(request) {
 
 /**
  * Asigna automáticamente una solicitud al mejor ejecutor disponible
- * @param {String} requestId - ID de la solicitud
- * @returns {Boolean} - True si se asignó exitosamente
+ * @param {String|Object} requestInput - ID o documento de solicitud
+ * @returns {Object|null} - Ejecut@r asignad@ o null si no hay disponibles
  */
-async function autoAssignRequest(requestId) {
+async function autoAssignRequest(requestInput) {
   try {
-    const request = await Request.findById(requestId);
-    if (!request) return false;
+    const request = typeof requestInput === 'object' && requestInput !== null
+      ? requestInput
+      : await Request.findById(requestInput);
+    if (!request) return null;
 
     const executor = await findBestExecutor(request);
-    if (!executor) return false;
-
-    request.assignedTo = executor._id;
-    request.status = 'in-process';
-    request.assignedAt = new Date();
-    await request.save();
+    if (!executor) return null;
 
     // Actualizar estadísticas del ejecutor
     await executor.updateStats();
 
-    return true;
+    return executor;
   } catch (error) {
     console.error('Error al asignar solicitud:', error);
-    return false;
+    return null;
   }
 }
 

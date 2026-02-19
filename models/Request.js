@@ -159,6 +159,12 @@ const requestSchema = new Schema(
       required: true
     },
 
+    preferredExecutorRole: {
+      type: String,
+      enum: ['gerente', 'diseñador', 'practicante'],
+      default: 'diseñador'
+    },
+
     title: {
       type: String,
       required: true,
@@ -183,7 +189,11 @@ const requestSchema = new Schema(
 
     categoryDetails: {
       digital: {
-        channel: { type: String, trim: true },
+        channels: [{ type: String, trim: true }],
+        channelConfigs: {
+          type: Schema.Types.Mixed,
+          default: {}
+        },
         objective: { type: String, trim: true },
         copyTitle: { type: String, trim: true },
         copyBody: { type: String, trim: true }

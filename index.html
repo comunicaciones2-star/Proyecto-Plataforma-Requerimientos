@@ -1863,19 +1863,46 @@
           </div>
         </div>
 
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Perfil de Asignación *</label>
+            <select x-model="newRequest.preferredExecutorRole" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+              <option value="gerente">Gerente</option>
+              <option value="diseñador">Diseñador</option>
+              <option value="practicante">Practicante</option>
+            </select>
+            <p class="text-xs text-gray-500 mt-1">La solicitud se asignará a un ejecutor disponible de este perfil</p>
+          </div>
+        </div>
+
         <div x-show="getRequestCategoryGroup(newRequest.type) === 'digital'" class="space-y-4 border rounded-lg p-4 bg-gray-50">
           <h4 class="font-semibold text-gray-800">Campos esenciales: Redes / Mailing / WhatsApp</h4>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Canal específico *</label>
-              <select x-model="newRequest.categoryDetails.digital.channel" :required="getRequestCategoryGroup(newRequest.type) === 'digital'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
-                <option value="">Seleccionar...</option>
-                <option value="Instagram Post">Instagram Post</option>
-                <option value="Instagram Story">Instagram Story</option>
-                <option value="Banner Web">Banner Web</option>
-                <option value="Mailing">Mailing</option>
-                <option value="WhatsApp">WhatsApp</option>
-              </select>
+              <div class="grid grid-cols-2 gap-2 border rounded-lg p-3 bg-white">
+                <label class="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" value="Facebook" x-model="newRequest.categoryDetails.digital.channels" @change="syncDigitalChannelConfigs()" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                  <span>Facebook</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" value="Instagram" x-model="newRequest.categoryDetails.digital.channels" @change="syncDigitalChannelConfigs()" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                  <span>Instagram</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" value="WhatsApp" x-model="newRequest.categoryDetails.digital.channels" @change="syncDigitalChannelConfigs()" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                  <span>WhatsApp</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" value="Banner Web" x-model="newRequest.categoryDetails.digital.channels" @change="syncDigitalChannelConfigs()" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                  <span>Banner Web</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" value="Mailing" x-model="newRequest.categoryDetails.digital.channels" @change="syncDigitalChannelConfigs()" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                  <span>Mailing</span>
+                </label>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">Puedes seleccionar múltiples canales</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Objetivo *</label>
@@ -1887,6 +1914,44 @@
               </select>
             </div>
           </div>
+
+          <div x-show="newRequest.categoryDetails.digital.channels.length > 0" class="space-y-3">
+            <template x-for="channel in newRequest.categoryDetails.digital.channels" :key="channel">
+              <div class="border rounded-lg p-3 bg-white">
+                <p class="text-sm font-semibold text-gray-800 mb-2" x-text="`Configuración para ${channel}`"></p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Formato *</label>
+                    <select x-model="newRequest.categoryDetails.digital.channelConfigs[channel].format" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                      <option value="">Seleccionar...</option>
+                      <template x-for="format in getDigitalFormatOptions(channel)" :key="`${channel}-${format}`">
+                        <option :value="format" x-text="format"></option>
+                      </template>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Publicación *</label>
+                    <select x-model="newRequest.categoryDetails.digital.channelConfigs[channel].publication" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                      <option value="">Seleccionar...</option>
+                      <template x-for="publication in getDigitalPublicationOptions(channel)" :key="`${channel}-${publication}`">
+                        <option :value="publication" x-text="publication"></option>
+                      </template>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tamaño / Aspecto *</label>
+                    <select x-model="newRequest.categoryDetails.digital.channelConfigs[channel].size" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                      <option value="">Seleccionar...</option>
+                      <template x-for="size in getDigitalSizeOptions(channel)" :key="`${channel}-${size}`">
+                        <option :value="size" x-text="size"></option>
+                      </template>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Texto (Copy) - Título *</label>
             <input type="text" x-model="newRequest.categoryDetails.digital.copyTitle" :required="getRequestCategoryGroup(newRequest.type) === 'digital'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Título principal del mensaje">
@@ -2092,6 +2157,10 @@
                       :class="selectedRequest?.assignedTo ? 'text-fenalco-blue' : 'text-gray-400'"
                       x-text="selectedRequest?.assignedTo ? (selectedRequest?.assignedTo?.firstName + ' ' + selectedRequest?.assignedTo?.lastName) : 'Sin asignar'"></span>
               </div>
+              <div class="flex justify-between py-2 border-b border-gray-100">
+                <span class="text-sm text-gray-600">Perfil solicitado:</span>
+                <span class="text-sm font-medium" x-text="selectedRequest?.preferredExecutorRole ? getExecutorRoleLabel(selectedRequest?.preferredExecutorRole) : 'No definido'"></span>
+              </div>
               <div class="flex justify-between py-2">
                 <span class="text-sm text-gray-600">Nivel de Urgencia:</span>
                 <span class="px-3 py-1 text-xs rounded-full font-semibold" 
@@ -2138,7 +2207,10 @@
             <div x-show="selectedRequest?.categoryDetails">
               <label class="text-sm font-medium text-gray-600">Requerimientos por categoría:</label>
               <div class="mt-2 text-sm text-gray-700 space-y-1">
-                <p x-show="selectedRequest?.categoryDetails?.digital?.channel"><strong>Canal:</strong> <span x-text="selectedRequest?.categoryDetails?.digital?.channel"></span></p>
+                <p x-show="selectedRequest?.categoryDetails?.digital?.channels?.length"><strong>Canales:</strong> <span x-text="selectedRequest?.categoryDetails?.digital?.channels?.join(', ')"></span></p>
+                <template x-for="channel in selectedRequest?.categoryDetails?.digital?.channels || []" :key="`view-${channel}`">
+                  <p x-show="selectedRequest?.categoryDetails?.digital?.channelConfigs?.[channel]"><strong x-text="channel + ':'"></strong> <span x-text="`${selectedRequest?.categoryDetails?.digital?.channelConfigs?.[channel]?.format || '-'} | ${selectedRequest?.categoryDetails?.digital?.channelConfigs?.[channel]?.publication || '-'} | ${selectedRequest?.categoryDetails?.digital?.channelConfigs?.[channel]?.size || '-'}`"></span></p>
+                </template>
                 <p x-show="selectedRequest?.categoryDetails?.digital?.objective"><strong>Objetivo:</strong> <span x-text="selectedRequest?.categoryDetails?.digital?.objective"></span></p>
                 <p x-show="selectedRequest?.categoryDetails?.digital?.copyTitle"><strong>Copy Título:</strong> <span x-text="selectedRequest?.categoryDetails?.digital?.copyTitle"></span></p>
                 <p x-show="selectedRequest?.categoryDetails?.digital?.copyBody"><strong>Copy Cuerpo:</strong> <span x-text="selectedRequest?.categoryDetails?.digital?.copyBody"></span></p>
@@ -2297,12 +2369,14 @@
           description: '',
           type: '',
           urgency: 'normal',
+          preferredExecutorRole: 'diseñador',
           deliveryDate: '',
           targetAudience: '',
           referenceLinks: '',
           categoryDetails: {
             digital: {
-              channel: '',
+              channels: [],
+              channelConfigs: {},
               objective: '',
               copyTitle: '',
               copyBody: ''
@@ -3866,7 +3940,8 @@
         getEmptyCategoryDetails() {
           return {
             digital: {
-              channel: '',
+              channels: [],
+              channelConfigs: {},
               objective: '',
               copyTitle: '',
               copyBody: ''
@@ -3892,10 +3967,23 @@
           const base = this.getEmptyCategoryDetails();
           if (!details) return base;
 
+          const normalizedChannels = Array.isArray(details?.digital?.channels)
+            ? details.digital.channels
+            : (details?.digital?.channel ? [details.digital.channel] : []);
+
+          const normalizedConfigs = { ...(details?.digital?.channelConfigs || {}) };
+          normalizedChannels.forEach((channel) => {
+            if (!normalizedConfigs[channel]) {
+              normalizedConfigs[channel] = { format: '', publication: '', size: '' };
+            }
+          });
+
           return {
             digital: {
               ...base.digital,
-              ...(details.digital || {})
+              ...(details.digital || {}),
+              channels: normalizedChannels,
+              channelConfigs: normalizedConfigs
             },
             print: {
               ...base.print,
@@ -3911,6 +3999,71 @@
             }
           };
         },
+
+        getDigitalFormatOptions(channel) {
+          const options = {
+            Facebook: ['Post', 'Carrusel', 'Reel', 'Video'],
+            Instagram: ['Post', 'Carrusel', 'Reel', 'Video', 'Historia'],
+            WhatsApp: ['Estado', 'Historia', 'Video', 'Imagen'],
+            'Banner Web': ['Banner estático', 'Banner animado', 'Banner HTML5'],
+            Mailing: ['Header', 'Cuerpo HTML', 'Banner mailing']
+          };
+
+          return options[channel] || ['Post'];
+        },
+
+        getDigitalPublicationOptions(channel) {
+          const options = {
+            Facebook: ['Feed', 'Pauta', 'Historias'],
+            Instagram: ['Feed', 'Pauta', 'Historias'],
+            WhatsApp: ['Estados', 'Difusión'],
+            'Banner Web': ['Sitio web', 'Display Ads'],
+            Mailing: ['Boletín', 'Campaña']
+          };
+
+          return options[channel] || ['Feed'];
+        },
+
+        getDigitalSizeOptions(channel) {
+          const socialSizes = [
+            '1080x1080 - 1:1',
+            '1080x1350 - 4:5',
+            '1080x1920 - 9:16',
+            '1200x628 - 1.91:1'
+          ];
+
+          const options = {
+            Facebook: socialSizes,
+            Instagram: socialSizes,
+            WhatsApp: ['1080x1920 - 9:16', '1080x1080 - 1:1'],
+            'Banner Web': ['1200x628 - 1.91:1', '1080x1080 - 1:1', '1080x1920 - 9:16'],
+            Mailing: ['600x200 - 3:1', '600x300 - 2:1', '600x600 - 1:1']
+          };
+
+          return options[channel] || socialSizes;
+        },
+
+        syncDigitalChannelConfigs() {
+          const digital = this.newRequest?.categoryDetails?.digital;
+          if (!digital) return;
+
+          if (!digital.channelConfigs || typeof digital.channelConfigs !== 'object') {
+            digital.channelConfigs = {};
+          }
+
+          const channels = Array.isArray(digital.channels) ? digital.channels : [];
+          channels.forEach((channel) => {
+            if (!digital.channelConfigs[channel]) {
+              digital.channelConfigs[channel] = { format: '', publication: '', size: '' };
+            }
+          });
+
+          Object.keys(digital.channelConfigs).forEach((channel) => {
+            if (!channels.includes(channel)) {
+              delete digital.channelConfigs[channel];
+            }
+          });
+        },
         
         openNewRequestModal() {
           this.openCreateRequestModal();
@@ -3922,6 +4075,7 @@
             description: '',
             type: '',
             urgency: 'normal',
+            preferredExecutorRole: 'diseñador',
             deliveryDate: '',
             targetAudience: '',
             referenceLinks: '',
@@ -3943,16 +4097,35 @@
             description: request.description || '',
             type: request.type || '',
             urgency: request.urgency || 'normal',
+            preferredExecutorRole: request.preferredExecutorRole || 'diseñador',
             deliveryDate: request.deliveryDate ? new Date(request.deliveryDate).toISOString().split('T')[0] : '',
             targetAudience: request.targetAudience || '',
             referenceLinks: request.referenceLinks || '',
             categoryDetails: this.normalizeCategoryDetails(request.categoryDetails),
             selectedFiles: []
           };
+          this.syncDigitalChannelConfigs();
           this.showCreateRequestModal = true;
         },
 
         async saveRequest() {
+          this.syncDigitalChannelConfigs();
+
+          if (this.getRequestCategoryGroup(this.newRequest.type) === 'digital' && (!this.newRequest.categoryDetails.digital.channels || this.newRequest.categoryDetails.digital.channels.length === 0)) {
+            await this.showAlert('Debes seleccionar al menos un canal específico', 'Campo requerido');
+            return;
+          }
+
+          if (this.getRequestCategoryGroup(this.newRequest.type) === 'digital') {
+            for (const channel of this.newRequest.categoryDetails.digital.channels) {
+              const channelConfig = this.newRequest.categoryDetails.digital.channelConfigs?.[channel] || {};
+              if (!channelConfig.format || !channelConfig.publication || !channelConfig.size) {
+                await this.showAlert(`Completa formato, publicación y tamaño para ${channel}`, 'Campo requerido');
+                return;
+              }
+            }
+          }
+
           if (this.editingRequestId) {
             await this.updateRequest();
           } else {
@@ -3987,6 +4160,7 @@
             formData.append('description', this.newRequest.description);
             formData.append('type', this.newRequest.type);
             formData.append('urgency', this.newRequest.urgency);
+            formData.append('preferredExecutorRole', this.newRequest.preferredExecutorRole);
             formData.append('deliveryDate', this.newRequest.deliveryDate);
             formData.append('area', this.user.department);
             
@@ -4054,6 +4228,7 @@
               description: this.newRequest.description,
               type: this.newRequest.type,
               urgency: this.newRequest.urgency,
+              preferredExecutorRole: this.newRequest.preferredExecutorRole,
               deliveryDate: this.newRequest.deliveryDate
             };
 

@@ -61,6 +61,7 @@ router.post('/', upload.array('files'), async (req, res) => {
       title,
       description,
       urgency,
+      preferredExecutorRole,
       deliveryDate,
       targetAudience,
       referenceLinks,
@@ -111,6 +112,7 @@ router.post('/', upload.array('files'), async (req, res) => {
       title,
       description,
       urgency: urgency || 'normal',
+      preferredExecutorRole: preferredExecutorRole || 'diseñador',
       deliveryDate,
       targetAudience,
       referenceLinks,
@@ -534,7 +536,7 @@ router.put('/:id/edit', async (req, res) => {
       });
     }
 
-    const { title, description, urgency, deliveryDate, type } = req.body;
+    const { title, description, urgency, deliveryDate, type, preferredExecutorRole } = req.body;
     
     // Guardar cambios para historial
     const changes = [];
@@ -543,6 +545,7 @@ router.put('/:id/edit', async (req, res) => {
     if (urgency && urgency !== request.urgency) changes.push(`Urgencia: ${request.urgency} → ${urgency}`);
     if (deliveryDate && deliveryDate !== request.deliveryDate) changes.push(`Fecha entrega modificada`);
     if (type && type !== request.type) changes.push(`Tipo: ${request.type} → ${type}`);
+    if (preferredExecutorRole && preferredExecutorRole !== request.preferredExecutorRole) changes.push(`Perfil asignación: ${request.preferredExecutorRole || 'sin definir'} → ${preferredExecutorRole}`);
 
     // Actualizar campos
     if (title) request.title = title;
@@ -550,6 +553,7 @@ router.put('/:id/edit', async (req, res) => {
     if (urgency) request.urgency = urgency;
     if (deliveryDate) request.deliveryDate = deliveryDate;
     if (type) request.type = type;
+    if (preferredExecutorRole) request.preferredExecutorRole = preferredExecutorRole;
 
     // Agregar al historial
     request.editHistory.push({
