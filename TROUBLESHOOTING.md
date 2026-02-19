@@ -366,7 +366,7 @@ node test-mongo.js
 
 **4. Reiniciar servidor:**
 ```bash
-npm run dev-backend
+npm run dev
 ```
 
 ### 📍 Archivos relevantes
@@ -436,9 +436,9 @@ node test-all-endpoints.js
 node test-mongo.js
 ```
 
-### Crear Usuario de Prueba
+### Poblar Datos de Prueba
 ```bash
-node create-test-user.js
+npm run seed
 ```
 
 ---
@@ -448,14 +448,14 @@ node create-test-user.js
 ### Si ninguna solución funciona:
 
 1. **Revisar logs:**
-   - Terminal Backend: `npm run dev-backend`
+  - Terminal Backend: `npm run dev`
    - Terminal Frontend: `npm run dev-frontend`
    - DevTools Console: F12 → Console
 
 2. **Verificar archivos:**
-   - `SLICED-INTEGRATION.md` - Documentación técnica
-   - `README-INTEGRATION.md` - Guía general
-   - `CHECKLIST-INTEGRACION.md` - Estado de implementación
+  - `README.md` - Guía general
+  - `QUICK-START.md` - Inicio rápido
+  - `DEPLOYMENT.md` - Proceso de despliegue
 
 3. **Revisar estado:**
    ```bash

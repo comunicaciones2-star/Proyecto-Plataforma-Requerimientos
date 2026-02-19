@@ -5,10 +5,15 @@
 **Cada vez que abras el proyecto, ejecuta estos comandos:**
 
 ```powershell
-# 1. Verificar que MongoDB esté corriendo
-Get-Service MongoDB
+# 1. Verificar MongoDB (servicio o proceso)
+$mongoService = Get-Service -Name MongoDB -ErrorAction SilentlyContinue
+if ($mongoService) {
+	$mongoService.Status
+} else {
+	Get-Process mongod -ErrorAction SilentlyContinue
+}
 
-# 2. Si MongoDB no está corriendo, iniciarlo:
+# 2. Si usas MongoDB local y no está corriendo, iniciarlo:
 net start MongoDB
 
 # 3. Iniciar el servidor
@@ -27,9 +32,11 @@ node --version  # Debe ser >= 16.0.0
 npm --version   # Debe ser >= 8.0.0
 ```
 
-## 2️⃣ Iniciar MongoDB Local
+## 2️⃣ Iniciar MongoDB Local (solo si `MONGODB_URI` apunta a local)
 
-**El proyecto está configurado para usar MongoDB LOCAL** en `localhost:27017`
+La conexión depende de `MONGODB_URI` en `.env`:
+- Si usa `mongodb://localhost:27017/...`, necesitas MongoDB local.
+- Si usa `mongodb+srv://...`, usa MongoDB Atlas y puedes omitir este paso.
 
 ### Opción A: MongoDB instalado en Windows
 ```bash
@@ -63,7 +70,12 @@ npm install
 El archivo `.env` ya está configurado con tus credenciales reales.
 Si necesitas cambiar algo:
 ```bash
+# PowerShell
+Copy-Item .env.example .env
+
+# Git Bash
 cp .env.example .env
+
 # Edita .env con tus valores
 ```
 
@@ -126,7 +138,14 @@ npm run smoke
 Opcionalmente puedes apuntar a otro ambiente y credenciales:
 
 ```bash
-TEST_BASE_URL=https://tu-dominio.com TEST_LOGIN_EMAIL=usuario@dominio.com TEST_LOGIN_PASSWORD=tu_clave npm run smoke
+# PowerShell
+$env:TEST_BASE_URL="https://tu-dominio.com"
+$env:TEST_LOGIN_EMAIL="usuario@dominio.com"
+$env:TEST_LOGIN_PASSWORD="tu_clave"
+npm run smoke
+
+# (Opcional) Limpiar variables luego de la prueba
+Remove-Item Env:TEST_BASE_URL, Env:TEST_LOGIN_EMAIL, Env:TEST_LOGIN_PASSWORD -ErrorAction SilentlyContinue
 ```
 
 ## ✅ Verificación Rápida
@@ -175,4 +194,4 @@ npm install
 
 ---
 **Estado**: ✅ Proyecto configurado y listo para desarrollo
-**Fecha**: 24 de enero de 2026
+**Fecha**: 19 de febrero de 2026
