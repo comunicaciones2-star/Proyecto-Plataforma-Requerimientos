@@ -1497,60 +1497,81 @@
                   </button>
                 </div>
 
-                <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-                  <h4 class="text-base font-semibold text-gray-800">Gestión de Usuarios</h4>
-                  <button @click="openAdminUserModal()" class="px-4 py-2 bg-fenalco-green text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-opacity-90 transition">
-                    <i class="ri-user-add-line"></i>
-                    Nuevo Usuario
+                <div class="border rounded-lg p-4 bg-gray-50">
+                  <h4 class="text-base font-semibold text-gray-800 mb-2">Gestión de Usuarios</h4>
+                  <p class="text-sm text-gray-600 mb-3">La administración de usuarios se gestiona en una ventana separada.</p>
+                  <button @click="currentTab = 'admin-users'; loadAdminUsers()" class="px-4 py-2 bg-fenalco-green text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-opacity-90 transition">
+                    <i class="ri-external-link-line"></i>
+                    Ir a Gestión de Usuarios
                   </button>
                 </div>
-
-                <div class="overflow-x-auto">
-                  <table class="w-full">
-                    <thead>
-                      <tr class="border-b border-gray-200">
-                        <th class="text-left p-3 font-semibold text-gray-700">Email</th>
-                        <th class="text-left p-3 font-semibold text-gray-700">Nombre</th>
-                        <th class="text-left p-3 font-semibold text-gray-700">Rol</th>
-                        <th class="text-left p-3 font-semibold text-gray-700">Departamento</th>
-                        <th class="text-left p-3 font-semibold text-gray-700">Estado</th>
-                        <th class="text-left p-3 font-semibold text-gray-700">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <template x-for="adminUser in adminUsers" :key="adminUser._id">
-                        <tr class="border-b border-gray-100 hover:bg-gray-50">
-                          <td class="p-3 text-sm" x-text="adminUser.email"></td>
-                          <td class="p-3 text-sm font-medium" x-text="adminUser.firstName + ' ' + adminUser.lastName"></td>
-                          <td class="p-3">
-                            <span class="px-2 py-1 text-xs rounded-full" :class="getAdminRoleBadgeClass(adminUser.role)" x-text="getAppRoleLabel(adminUser.role)"></span>
-                          </td>
-                          <td class="p-3 text-sm" x-text="adminUser.department || adminUser.area || 'Sin definir'"></td>
-                          <td class="p-3">
-                            <span class="px-2 py-1 text-xs rounded-full" :class="adminUser.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" x-text="adminUser.isActive ? 'Activo' : 'Inactivo'"></span>
-                          </td>
-                          <td class="p-3">
-                            <div class="flex items-center gap-2">
-                              <button @click="editAdminUser(adminUser)" class="text-blue-600 hover:text-blue-800" title="Editar usuario">
-                                <i class="ri-edit-line"></i>
-                              </button>
-                              <button @click="resetAdminUserPassword(adminUser)" class="text-amber-600 hover:text-amber-800" title="Resetear contraseña">
-                                <i class="ri-lock-password-line"></i>
-                              </button>
-                              <button @click="toggleAdminUserStatus(adminUser)" :class="adminUser.isActive ? 'text-red-500 hover:text-red-700' : 'text-green-600 hover:text-green-800'" :title="adminUser.isActive ? 'Desactivar usuario' : 'Activar usuario'">
-                                <i :class="adminUser.isActive ? 'ri-user-unfollow-line' : 'ri-user-follow-line'"></i>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      </template>
-                      <tr x-show="adminUsers.length === 0">
-                        <td colspan="6" class="text-center py-8 text-gray-500">No hay usuarios registrados</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div x-show="currentTab === 'admin-users' && user?.role === 'admin'">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-800">Gestión de Usuarios</h2>
+              <p class="text-sm text-gray-600">Administración de usuarios de la plataforma</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button @click="currentTab = 'admin'" class="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50 transition">
+                Volver a Perfil
+              </button>
+              <button @click="openAdminUserModal()" class="px-4 py-2 bg-fenalco-green text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-opacity-90 transition">
+                <i class="ri-user-add-line"></i>
+                Nuevo Usuario
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="border-b border-gray-200">
+                    <th class="text-left p-3 font-semibold text-gray-700">Email</th>
+                    <th class="text-left p-3 font-semibold text-gray-700">Nombre</th>
+                    <th class="text-left p-3 font-semibold text-gray-700">Rol</th>
+                    <th class="text-left p-3 font-semibold text-gray-700">Departamento</th>
+                    <th class="text-left p-3 font-semibold text-gray-700">Estado</th>
+                    <th class="text-left p-3 font-semibold text-gray-700">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="adminUser in adminUsers" :key="adminUser._id">
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                      <td class="p-3 text-sm" x-text="adminUser.email"></td>
+                      <td class="p-3 text-sm font-medium" x-text="adminUser.firstName + ' ' + adminUser.lastName"></td>
+                      <td class="p-3">
+                        <span class="px-2 py-1 text-xs rounded-full" :class="getAdminRoleBadgeClass(adminUser.role)" x-text="getAppRoleLabel(adminUser.role)"></span>
+                      </td>
+                      <td class="p-3 text-sm" x-text="adminUser.department || adminUser.area || 'Sin definir'"></td>
+                      <td class="p-3">
+                        <span class="px-2 py-1 text-xs rounded-full" :class="adminUser.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" x-text="adminUser.isActive ? 'Activo' : 'Inactivo'"></span>
+                      </td>
+                      <td class="p-3">
+                        <div class="flex items-center gap-2">
+                          <button @click="editAdminUser(adminUser)" class="text-blue-600 hover:text-blue-800" title="Editar usuario">
+                            <i class="ri-edit-line"></i>
+                          </button>
+                          <button @click="resetAdminUserPassword(adminUser)" class="text-amber-600 hover:text-amber-800" title="Resetear contraseña">
+                            <i class="ri-lock-password-line"></i>
+                          </button>
+                          <button @click="toggleAdminUserStatus(adminUser)" :class="adminUser.isActive ? 'text-red-500 hover:text-red-700' : 'text-green-600 hover:text-green-800'" :title="adminUser.isActive ? 'Desactivar usuario' : 'Activar usuario'">
+                            <i :class="adminUser.isActive ? 'ri-user-unfollow-line' : 'ri-user-follow-line'"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                  <tr x-show="adminUsers.length === 0">
+                    <td colspan="6" class="text-center py-8 text-gray-500">No hay usuarios registrados</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -3807,7 +3828,8 @@
             reportes: 'Reportes y Análisis',
             calendario: 'Calendario de Entregas',
             ejecutores: 'Asignación',
-            admin: 'Perfil'
+            admin: 'Perfil',
+            'admin-users': 'Gestión de Usuarios'
           };
           return titles[this.currentTab] || 'Dashboard';
         },
