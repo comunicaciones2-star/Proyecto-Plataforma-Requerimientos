@@ -109,9 +109,24 @@ El servidor estará en: **http://localhost:5000**
 npm start          # Iniciar servidor producción
 npm run dev        # Iniciar servidor desarrollo (nodemon)
 npm run seed       # Poblar BD con datos de prueba
+npm run smoke      # Smoke test post-deploy (health/login/stats/create/delete)
 npm run build      # Compilar frontend (Vite)
 npm run preview    # Vista previa build
 npm run dev-frontend  # Servidor desarrollo frontend (Vite)
+```
+
+## 🧪 Smoke Test Post-Deploy
+
+Con el servidor levantado, ejecuta:
+
+```bash
+npm run smoke
+```
+
+Opcionalmente puedes apuntar a otro ambiente y credenciales:
+
+```bash
+TEST_BASE_URL=https://tu-dominio.com TEST_LOGIN_EMAIL=usuario@dominio.com TEST_LOGIN_PASSWORD=tu_clave npm run smoke
 ```
 
 ## ✅ Verificación Rápida

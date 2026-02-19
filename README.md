@@ -162,6 +162,9 @@ GET    /api/reports/area        # Estadísticas por área
 # Ejecutar tests completos de API
 node test-all-endpoints.js
 
+# Smoke test rápido post-deploy
+npm run smoke
+
 # Test simple de conectividad
 node test-simple.js
 
@@ -176,6 +179,7 @@ npm run seed
   "start": "node server.js",              // Producción
   "dev": "nodemon server.js",             // Desarrollo con auto-reload
   "seed": "node scripts/seed.js",         // Poblar BD
+  "smoke": "node scripts/smoke-test.js",  // Smoke test post-deploy
   "build": "vite build",                  // Build frontend
   "preview": "vite preview",              // Preview build
   "dev-frontend": "vite"                  // Dev frontend solo
