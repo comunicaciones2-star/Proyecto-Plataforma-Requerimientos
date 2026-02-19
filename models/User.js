@@ -92,7 +92,7 @@ const userSchema = new Schema(
             case 'gerente': 
               return ['all']; // Puede hacer todo
             case 'diseñador': 
-              return ['redes', 'pieza_impresa', 'presentacion', 'video', 'banner'];
+              return ['redes', 'pieza_impresa', 'presentacion', 'video', 'banner', 'landing_page'];
             case 'practicante': 
               return ['redes', 'pieza_impresa']; // Solo tareas básicas
             default: 
