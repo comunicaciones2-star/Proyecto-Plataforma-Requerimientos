@@ -15,6 +15,22 @@ Se implementaron **13 mejoras críticas** de seguridad, performance y calidad de
 
 ## 🆕 ACTUALIZACIÓN - 18 FEBRERO 2026
 
+## 🆕 ACTUALIZACIÓN - 20 FEBRERO 2026
+
+### ✅ 15. Transferencia de administrador de la app en base de datos
+**Tipo:** Ajuste operativo (sin cambios de código)
+
+**Cambio aplicado:**
+- Se transfirió el rol `admin` de `asistentedireccion@fenalcosantander.com.co` a `comunicaciones2@fenalcosantander.com.co`.
+- El usuario `asistentedireccion@fenalcosantander.com.co` quedó con rol `usuario`.
+
+**Criterio funcional registrado:**
+- Se deja explícito que **cargo organizacional** y **rol dentro de la app** son conceptos distintos.
+- El cargo describe la función interna de la persona en Fenalco.
+- El rol en la app controla permisos y visibilidad de módulos.
+
+---
+
 ### ✅ 14. Sección Admin migrada a Perfil con panel administrativo integrado
 **Archivo:** `index.html`
 
