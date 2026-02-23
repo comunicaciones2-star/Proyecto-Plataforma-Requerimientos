@@ -4,9 +4,77 @@ const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const User = require('../models/User');
 const Request = require('../models/Request');
+const { POSITION_CATALOG } = require('../config/positionCatalog');
+
+const EXECUTOR_TYPES = ['gerente', 'diseñador', 'practicante'];
+
+function normalizeAppRole(role) {
+  return role === 'admin' ? 'admin' : 'usuario';
+}
+
+function normalizeExecutorType(value) {
+  const typeMap = {
+    manager: 'gerente',
+    designer: 'diseñador',
+    disenador: 'diseñador'
+  };
+
+  const rawValue = String(value || '').trim().toLowerCase();
+  const normalized = typeMap[rawValue] || rawValue;
+  return EXECUTOR_TYPES.includes(normalized) ? normalized : '';
+}
+
+function resolveExecutorType(user) {
+  const profileType = user?.executorProfile?.executorType;
+  if (EXECUTOR_TYPES.includes(profileType)) {
+    return profileType;
+  }
+
+  return EXECUTOR_TYPES.includes(user?.role) ? user.role : '';
+}
+
+function isInvalidCargo(value) {
+  const normalized = (value || '').toString().trim().toLowerCase();
+  return ['usuario', 'user', 'colaborador', 'solicitante', ''].includes(normalized);
+}
+
+function normalizeCargo(position, role) {
+  const rawPosition = (position || '').toString().trim();
+  if (rawPosition && !isInvalidCargo(rawPosition)) return rawPosition;
+
+  const cargoByLegacyRole = {
+    gerente: 'Gerente',
+    manager: 'Gerente',
+    'diseñador': 'Diseñador gráfico',
+    designer: 'Diseñador gráfico',
+    practicante: 'Practicante',
+    collaborator: ''
+  };
+
+  return cargoByLegacyRole[role] || '';
+}
+
+function normalizeUserForApp(userDoc) {
+  const user = userDoc.toObject ? userDoc.toObject() : { ...userDoc };
+  const originalRole = user.role;
+  user.role = normalizeAppRole(originalRole);
+  user.position = normalizeCargo(user.position, originalRole);
+  return user;
+}
 
 // Todas las rutas de este archivo requieren ser ADMIN
 router.use(authenticate, authorize(['admin']));
+
+/**
+ * GET /api/admin/catalogs/positions
+ * Catálogo de cargos permitido/sugerido en la plataforma
+ */
+router.get('/catalogs/positions', async (req, res) => {
+  res.json({
+    success: true,
+    positions: POSITION_CATALOG
+  });
+});
 
 /**
  * GET /api/admin/users
@@ -27,10 +95,12 @@ router.get('/users', async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
+
+    const normalizedUsers = users.map((user) => normalizeUserForApp(user));
       
     res.json({
       success: true,
-      users,
+      users: normalizedUsers,
       pagination: {
         page,
         limit,
@@ -53,7 +123,7 @@ router.get('/users', async (req, res) => {
  */
 router.post('/users', async (req, res) => {
   try {
-    const { email, firstName, lastName, password, role, area, phone, department } = req.body;
+    const { email, firstName, lastName, password, role, area, phone, department, position, cargo } = req.body;
 
     const exists = await User.findOne({ email });
     if (exists) {
@@ -68,7 +138,8 @@ router.post('/users', async (req, res) => {
       firstName,
       lastName,
       password,
-      role,
+      role: normalizeAppRole(role),
+      position: normalizeCargo(position || cargo, role),
       area,
       phone,
       department
@@ -76,7 +147,7 @@ router.post('/users', async (req, res) => {
 
     await user.save();
 
-    const userSafe = user.toObject();
+    const userSafe = normalizeUserForApp(user);
     delete userSafe.password;
 
     res.status(201).json({
@@ -98,11 +169,49 @@ router.post('/users', async (req, res) => {
  */
 router.patch('/users/:id', async (req, res) => {
   try {
-    const { firstName, lastName, role, area, phone, department, isActive } = req.body;
+    const { firstName, lastName, role, area, phone, department, isActive, position, cargo, email } = req.body;
+
+    const updateData = {
+      firstName,
+      lastName,
+      area,
+      phone,
+      department,
+      isActive
+    };
+
+    if (typeof email !== 'undefined') {
+      const normalizedEmail = String(email || '').trim().toLowerCase();
+      if (!normalizedEmail) {
+        return res.status(400).json({
+          success: false,
+          message: 'El email es obligatorio'
+        });
+      }
+
+      const emailExists = await User.findOne({ email: normalizedEmail, _id: { $ne: req.params.id } });
+      if (emailExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Ya existe un usuario con ese email'
+        });
+      }
+
+      updateData.email = normalizedEmail;
+    }
+
+    if (typeof role !== 'undefined') {
+      updateData.role = normalizeAppRole(role);
+    }
+
+    if (typeof position !== 'undefined' || typeof cargo !== 'undefined') {
+      const roleForCargo = typeof role !== 'undefined' ? role : undefined;
+      updateData.position = normalizeCargo(position || cargo, roleForCargo);
+    }
 
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { firstName, lastName, role, area, phone, department, isActive },
+      updateData,
       { new: true, runValidators: true }
     ).select('-password');
 
@@ -115,7 +224,7 @@ router.patch('/users/:id', async (req, res) => {
 
     res.json({
       success: true,
-      user
+      user: normalizeUserForApp(user)
     });
   } catch (error) {
     console.error('Error al actualizar usuario:', error);
@@ -292,14 +401,15 @@ router.get('/export/users', async (req, res) => {
   try {
     const users = await User.find().select('-password').lean();
 
-    const header = 'email,firstName,lastName,role,area,isActive,createdAt\n';
+    const header = 'email,firstName,lastName,role,cargo,area,isActive,createdAt\n';
     const rows = users
       .map(u =>
         [
           u.email,
           u.firstName,
           u.lastName,
-          u.role,
+          normalizeAppRole(u.role),
+          normalizeCargo(u.position, u.role),
           u.area,
           u.isActive,
           u.createdAt.toISOString()
@@ -377,15 +487,24 @@ router.get('/executors', async (req, res) => {
   const logger = global.logger || console;
   
   try {
-    const { role, available } = req.query;
+    const { role, executorType, available } = req.query;
+    const requestedType = normalizeExecutorType(executorType || role);
     
     // Construir filtro
     const filter = {
-      role: { $in: ['gerente', 'diseñador', 'practicante'] },
+      $or: [
+        { 'executorProfile.executorType': { $in: EXECUTOR_TYPES } },
+        { role: { $in: EXECUTOR_TYPES } }
+      ],
       isActive: true
     };
     
-    if (role) filter.role = role;
+    if (requestedType) {
+      filter.$or = [
+        { 'executorProfile.executorType': requestedType },
+        { role: requestedType }
+      ];
+    }
     if (available !== undefined) filter['executorProfile.available'] = available === 'true';
     
     // Obtener ejecutores
@@ -397,9 +516,11 @@ router.get('/executors', async (req, res) => {
     const executorsWithStats = await Promise.all(executors.map(async (executor) => {
       const currentLoad = await executor.getCurrentLoad();
       const loadPercentage = (currentLoad / executor.executorProfile.capacity) * 100;
+      const normalizedExecutorType = resolveExecutorType(executor);
       
       return {
         ...executor.toObject(),
+        executorType: normalizedExecutorType,
         currentLoad,
         loadPercentage: Math.round(loadPercentage),
         hasCapacity: await executor.hasCapacity()
@@ -435,6 +556,8 @@ router.post('/executors', async (req, res) => {
       lastName,
       cedula,
       role,
+      executorType,
+      position,
       department,
       phone,
       capacity,
@@ -442,9 +565,10 @@ router.post('/executors', async (req, res) => {
       allowedDesignTypes,
       specialties
     } = req.body;
+    const selectedExecutorType = normalizeExecutorType(executorType || role);
     
     // Validar que sea un rol de ejecutor
-    if (!['gerente', 'diseñador', 'practicante'].includes(role)) {
+    if (!selectedExecutorType) {
       return res.status(400).json({
         success: false,
         message: 'El rol debe ser gerente, diseñador o practicante'
@@ -462,25 +586,34 @@ router.post('/executors', async (req, res) => {
     
     // Generar contraseña segura
     const password = generateSecurePassword(12);
+
+    const normalizedCedula = String(cedula || '').trim();
     
     // Crear usuario ejecutor
-    const executor = new User({
+    const executorData = {
       email,
       firstName,
       lastName,
-      cedula,
-      role,
+      role: 'usuario',
+      position: normalizeCargo(position, selectedExecutorType),
       department: department || 'Comunicaciones',
       phone,
       password,
       executorProfile: {
-        capacity: capacity || (role === 'gerente' ? 15 : role === 'diseñador' ? 8 : 5),
-        priority: priority || (role === 'gerente' ? 1 : role === 'diseñador' ? 2 : 3),
-        allowedDesignTypes: allowedDesignTypes || (role === 'gerente' ? ['all'] : []),
+        executorType: selectedExecutorType,
+        capacity: capacity || (selectedExecutorType === 'gerente' ? 15 : selectedExecutorType === 'diseñador' ? 8 : 5),
+        priority: priority || (selectedExecutorType === 'gerente' ? 1 : selectedExecutorType === 'diseñador' ? 2 : 3),
+        allowedDesignTypes: allowedDesignTypes || (selectedExecutorType === 'gerente' ? ['all'] : []),
         specialties: specialties || [],
         available: true
       }
-    });
+    };
+
+    if (normalizedCedula) {
+      executorData.cedula = normalizedCedula;
+    }
+
+    const executor = new User(executorData);
     
     await executor.save();
     
@@ -493,7 +626,7 @@ router.post('/executors', async (req, res) => {
       details: {
         executorId: executor._id,
         executorEmail: executor.email,
-        role: executor.role
+        executorType: selectedExecutorType
       },
       ip: req.ip,
       userAgent: req.headers['user-agent']
@@ -535,6 +668,9 @@ router.put('/executors/:id', async (req, res) => {
       lastName,
       cedula,
       email,
+      role,
+      executorType,
+      position,
       phone,
       capacity,
       priority,
@@ -576,7 +712,17 @@ router.put('/executors/:id', async (req, res) => {
     // Actualizar campos básicos
     if (firstName) executor.firstName = firstName;
     if (lastName) executor.lastName = lastName;
-    if (cedula) executor.cedula = cedula;
+    if (typeof cedula !== 'undefined') {
+      const normalizedCedula = String(cedula || '').trim();
+      executor.cedula = normalizedCedula || undefined;
+    }
+    const nextExecutorType = normalizeExecutorType(executorType || role);
+    if (nextExecutorType) {
+      executor.executorProfile.executorType = nextExecutorType;
+    }
+    if (typeof position !== 'undefined') {
+      executor.position = normalizeCargo(position, nextExecutorType || resolveExecutorType(executor));
+    }
     if (phone) executor.phone = phone;
     
     // Actualizar perfil de ejecutor
@@ -943,15 +1089,18 @@ router.get('/stats/executors', async (req, res) => {
   try {
     // Obtener todos los ejecutores activos
     const executors = await User.find({
-      role: { $in: ['gerente', 'diseñador', 'practicante'] },
+      $or: [
+        { 'executorProfile.executorType': { $in: EXECUTOR_TYPES } },
+        { role: { $in: EXECUTOR_TYPES } }
+      ],
       isActive: true
     });
     
     // Calcular estadísticas por rol
     const statsByRole = {};
     
-    for (const role of ['gerente', 'diseñador', 'practicante']) {
-      const roleExecutors = executors.filter(e => e.role === role);
+    for (const role of EXECUTOR_TYPES) {
+      const roleExecutors = executors.filter((e) => resolveExecutorType(e) === role);
       
       if (roleExecutors.length === 0) {
         statsByRole[role] = {
@@ -1003,7 +1152,7 @@ router.get('/stats/executors', async (req, res) => {
       .map(e => ({
         id: e._id,
         name: `${e.firstName} ${e.lastName}`,
-        role: e.role,
+        role: resolveExecutorType(e),
         totalCompleted: e.executorProfile.stats.totalCompleted,
         onTimeDeliveryRate: Math.round(e.executorProfile.stats.onTimeDeliveryRate),
         averageCompletionTime: Math.round(e.executorProfile.stats.averageCompletionTime * 10) / 10

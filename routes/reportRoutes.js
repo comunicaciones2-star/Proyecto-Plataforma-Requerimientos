@@ -56,6 +56,157 @@ router.get('/dashboard', async (req, res) => {
 });
 
 /**
+ * GET /api/reports/dashboard-summary
+ * Resumen de métricas para tarjetas del dashboard (usuarios autenticados)
+ * Estructura compatible con /api/admin/stats/dashboard
+ */
+router.get('/dashboard-summary', async (req, res) => {
+  try {
+    const completedStatuses = ['completed', 'completada'];
+    const inProcessStatuses = ['in-process', 'en_proceso'];
+    const pendingStatuses = ['pending', 'pendiente'];
+    const urgentLevels = ['urgent', 'urgente', 'express'];
+
+    const totalRequests = await Request.countDocuments();
+    const completedRequests = await Request.countDocuments({
+      status: { $in: completedStatuses }
+    });
+    const inProcessRequests = await Request.countDocuments({
+      status: { $in: inProcessStatuses }
+    });
+    const pendingRequests = await Request.countDocuments({
+      status: { $in: pendingStatuses }
+    });
+    const urgentRequests = await Request.countDocuments({
+      urgency: { $in: urgentLevels }
+    });
+
+    const urgentPercentage = totalRequests > 0
+      ? Math.round((urgentRequests / totalRequests) * 100)
+      : 0;
+
+    const completionPercentage = totalRequests > 0
+      ? Math.round((completedRequests / totalRequests) * 100)
+      : 0;
+
+    const completedWithDates = await Request.find({
+      status: { $in: completedStatuses }
+    }).select('requestDate completedDate createdAt completedAt');
+
+    let averageTime = 0;
+    if (completedWithDates.length > 0) {
+      const totalDays = completedWithDates.reduce((sum, currentRequest) => {
+        const startDate = currentRequest.requestDate || currentRequest.createdAt;
+        const endDate = currentRequest.completedDate || currentRequest.completedAt;
+
+        if (!startDate || !endDate) {
+          return sum;
+        }
+
+        const days = (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
+        return days > 0 ? sum + days : sum;
+      }, 0);
+
+      const validCompletedCount = completedWithDates.filter((currentRequest) => {
+        const startDate = currentRequest.requestDate || currentRequest.createdAt;
+        const endDate = currentRequest.completedDate || currentRequest.completedAt;
+        return Boolean(startDate && endDate && new Date(endDate) > new Date(startDate));
+      }).length;
+
+      averageTime = validCompletedCount > 0 ? totalDays / validCompletedCount : 0;
+    }
+
+    const satisfaction = 92;
+
+    res.json({
+      totalRequests,
+      completedRequests,
+      inProcessRequests,
+      pendingRequests,
+      urgentRequests,
+      urgentPercentage,
+      completionPercentage,
+      averageTime: parseFloat(averageTime.toFixed(1)),
+      satisfaction,
+      scope: {
+        mode: 'global'
+      }
+    });
+  } catch (error) {
+    console.error('Error en /reports/dashboard-summary:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener resumen del dashboard'
+    });
+  }
+});
+
+/**
+ * GET /api/reports/monthly-performance
+ * Performance mensual global para usuarios autenticados
+ */
+router.get('/monthly-performance', async (req, res) => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const monthlyData = [];
+
+    for (let month = 0; month < 12; month++) {
+      const startDate = new Date(currentYear, month, 1);
+      const endDate = new Date(currentYear, month + 1, 0, 23, 59, 59);
+
+      const completed = await Request.countDocuments({
+        status: { $in: ['completed', 'completada'] },
+        $or: [
+          { completedDate: { $gte: startDate, $lte: endDate } },
+          { completedAt: { $gte: startDate, $lte: endDate } }
+        ]
+      });
+
+      monthlyData.push(completed);
+    }
+
+    res.json({
+      success: true,
+      data: monthlyData,
+      year: currentYear
+    });
+  } catch (error) {
+    console.error('Error en /reports/monthly-performance:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener performance mensual'
+    });
+  }
+});
+
+/**
+ * GET /api/reports/urgency-distribution
+ * Distribución global por urgencia para usuarios autenticados
+ */
+router.get('/urgency-distribution', async (req, res) => {
+  try {
+    const normal = await Request.countDocuments({ urgency: 'normal' });
+    const urgent = await Request.countDocuments({ urgency: { $in: ['urgent', 'urgente'] } });
+    const express = await Request.countDocuments({ urgency: 'express' });
+
+    res.json({
+      success: true,
+      data: {
+        normal,
+        urgent,
+        express
+      }
+    });
+  } catch (error) {
+    console.error('Error en /reports/urgency-distribution:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener distribución por urgencia'
+    });
+  }
+});
+
+/**
  * GET /api/reports/by-area
  * Estadísticas agrupadas por área
  */

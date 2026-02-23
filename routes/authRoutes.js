@@ -33,15 +33,52 @@ const registerLimiter = rateLimit({
   message: 'Demasiados registros desde esta IP. Intenta de nuevo en 1 hora.'
 });
 
+function normalizeAppRole(role) {
+  return role === 'admin' ? 'admin' : 'usuario';
+}
+
+function isInvalidCargo(value) {
+  const normalized = (value || '').toString().trim().toLowerCase();
+  return ['usuario', 'user', 'colaborador', 'solicitante', ''].includes(normalized);
+}
+
+function getCargoFromUser(user) {
+  if (user.position && !isInvalidCargo(user.position)) {
+    return String(user.position).trim();
+  }
+
+  const cargoByLegacyRole = {
+    gerente: 'Gerente',
+    manager: 'Gerente',
+    'diseñador': 'Diseñador gráfico',
+    designer: 'Diseñador gráfico',
+    practicante: 'Practicante',
+    collaborator: ''
+  };
+
+  return cargoByLegacyRole[user.role] || '';
+}
+
+function sanitizeUserForApp(userDoc) {
+  const userSafe = userDoc.toObject ? userDoc.toObject() : { ...userDoc };
+  delete userSafe.password;
+
+  userSafe.role = normalizeAppRole(userSafe.role);
+  userSafe.position = userSafe.position || getCargoFromUser(userSafe);
+
+  return userSafe;
+}
+
 // Función para generar tokens JWT
 function generateToken(user) {
   return jwt.sign(
     {
       id: user._id,
       email: user.email,
-      role: user.role,
+      role: normalizeAppRole(user.role),
       firstName: user.firstName,
-      lastName: user.lastName
+      lastName: user.lastName,
+      position: getCargoFromUser(user)
     },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRE || '7d' }
@@ -101,8 +138,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     logger.info(`✅ Login exitoso: ${email} (${user.role})`);
 
     // Preparar usuario sin contraseña
-    const userSafe = user.toObject();
-    delete userSafe.password;
+    const userSafe = sanitizeUserForApp(user);
 
     res.json({
       success: true,
@@ -167,8 +203,7 @@ router.post('/register', registerLimiter, async (req, res) => {
 
     const token = generateToken(user);
 
-    const userSafe = user.toObject();
-    delete userSafe.password;
+    const userSafe = sanitizeUserForApp(user);
 
     res.status(201).json({
       success: true,
@@ -198,8 +233,7 @@ router.get('/me', require('../middleware/auth').authenticate, async (req, res) =
       });
     }
 
-    const userSafe = user.toObject();
-    delete userSafe.password;
+    const userSafe = sanitizeUserForApp(user);
 
     res.json({
       success: true,

@@ -36,8 +36,13 @@ const userSchema = new Schema(
     },
     role: {
       type: String,
-      enum: ['admin', 'gerente', 'diseñador', 'practicante', 'usuario'],
+      enum: ['admin', 'usuario', 'gerente', 'diseñador', 'practicante', 'manager', 'designer', 'collaborator'],
       default: 'usuario'
+    },
+    position: {
+      type: String,
+      trim: true,
+      default: ''
     },
     department: {
       type: String,
@@ -56,6 +61,11 @@ const userSchema = new Schema(
     },
     // NUEVO: Perfil de ejecutor (subdocumento)
     executorProfile: {
+      executorType: {
+        type: String,
+        enum: ['gerente', 'diseñador', 'practicante', ''],
+        default: ''
+      },
       // Capacidad de tareas simultáneas
       capacity: {
         type: Number,
@@ -184,8 +194,34 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
+userSchema.methods.getAppRole = function() {
+  return this.role === 'admin' ? 'admin' : 'usuario';
+};
+
+userSchema.methods.getCargo = function() {
+  if (this.position && this.position.trim()) {
+    return this.position.trim();
+  }
+
+  const cargoByLegacyRole = {
+    gerente: 'Gerente',
+    manager: 'Gerente',
+    'diseñador': 'Diseñador gráfico',
+    designer: 'Diseñador gráfico',
+    practicante: 'Practicante',
+    collaborator: 'Usuario'
+  };
+
+  return cargoByLegacyRole[this.role] || '';
+};
+
 // Método para verificar si es un ejecutor
 userSchema.methods.isExecutor = function() {
+  const executorType = this.executorProfile?.executorType;
+  if (executorType) {
+    return ['gerente', 'diseñador', 'practicante'].includes(executorType);
+  }
+
   return ['gerente', 'diseñador', 'practicante'].includes(this.role);
 };
 

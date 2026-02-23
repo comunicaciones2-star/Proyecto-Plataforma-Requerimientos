@@ -310,7 +310,7 @@
               </div>
               <div class="ml-3">
                 <p class="text-sm font-semibold text-gray-800" x-text="user?.firstName + ' ' + user?.lastName"></p>
-                <p class="text-xs text-gray-500" x-text="user?.role"></p>
+                <p class="text-xs text-gray-500" x-text="getAppRoleLabel(user?.role)"></p>
               </div>
             </div>
             <button @click="logout()" class="text-red-500 hover:text-red-700">
@@ -374,7 +374,7 @@
             <div class="flex items-center gap-3 pl-4 border-l border-gray-200">
               <div class="text-right hidden md:block">
                 <p class="text-sm font-semibold text-gray-800" x-text="user?.firstName + ' ' + user?.lastName"></p>
-                <p class="text-xs text-gray-500" x-text="user?.role"></p>
+                <p class="text-xs text-gray-500" x-text="getAppRoleLabel(user?.role)"></p>
               </div>
               <div class="w-10 h-10 rounded-full bg-fenalco-green text-white flex items-center justify-center font-bold">
                 <span x-text="user?.firstName?.charAt(0)"></span>
@@ -1291,7 +1291,7 @@
           <div class="card mb-6">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de ejecutor</label>
                 <select x-model="executorFilters.role" @change="loadExecutors()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
                   <option value="">Todos</option>
                   <option value="gerente">Gerente</option>
@@ -1350,15 +1350,15 @@
                   <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
                          :class="{
-                           'bg-purple-500': executor.role === 'gerente',
-                           'bg-blue-500': executor.role === 'diseñador',
-                           'bg-green-500': executor.role === 'practicante'
+                           'bg-purple-500': getExecutorType(executor) === 'gerente',
+                           'bg-blue-500': getExecutorType(executor) === 'diseñador',
+                           'bg-green-500': getExecutorType(executor) === 'practicante'
                          }">
                       <span x-text="executor.firstName.charAt(0) + executor.lastName.charAt(0)"></span>
                     </div>
                     <div>
                       <h3 class="font-bold text-gray-800" x-text="executor.firstName + ' ' + executor.lastName"></h3>
-                      <p class="text-sm text-gray-600" x-text="getExecutorRoleLabel(executor.role)"></p>
+                      <p class="text-sm text-gray-600" x-text="getExecutorCargoLabel(executor)"></p>
                     </div>
                   </div>
                   <button @click="toggleExecutorAvailability(executor._id, executor.executorProfile.available)"
@@ -1446,7 +1446,7 @@
                   </div>
                   <div class="flex justify-between py-2 border-b">
                     <span class="text-gray-600">Cargo:</span>
-                    <span class="font-medium" x-text="getUserCargo(user?.role)"></span>
+                    <span class="font-medium" x-text="getUserCargo(user)"></span>
                   </div>
                   <div class="flex justify-between py-2 border-b">
                     <span class="text-gray-600">Departamento:</span>
@@ -1513,7 +1513,7 @@
           </div>
         </div>
 
-        <div x-show="currentTab === 'admin-users' && user?.role === 'admin'">
+        <div x-show="currentTab === 'admin-users' && user?.role === 'admin'" @keydown.window.escape="clearAdminUserFilters()">
           <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
             <div>
               <h2 class="text-2xl font-bold text-gray-800">Gestión de Usuarios</h2>
@@ -1531,26 +1531,78 @@
           </div>
 
           <div class="card">
-            <div class="overflow-x-auto">
+            <div class="p-4 border-b border-gray-100 flex flex-wrap items-end gap-3">
+              <div class="w-full md:w-80">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Filtrar por cargo</label>
+                <input
+                  type="text"
+                  x-ref="adminCargoFilter"
+                  x-model="adminUserFilters.cargo"
+                  placeholder="Ej: Director Ejecutivo, Gerente, Diseñador gráfico"
+                  class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green"
+                >
+              </div>
+              <div class="w-full md:w-48">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+                <select x-model="adminUserFilters.role" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                  <option value="">Todos</option>
+                  <option value="admin">Administrador</option>
+                  <option value="usuario">Usuario</option>
+                </select>
+              </div>
+              <div class="w-full md:w-56">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
+                <select x-model="adminUserFilters.department" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                  <option value="">Todos</option>
+                  <option value="Dirección">Dirección</option>
+                  <option value="Comunicaciones">Comunicaciones</option>
+                  <option value="Formación Empresarial">Formación Empresarial</option>
+                  <option value="Comercial">Comercial</option>
+                  <option value="Coworking - Casa Fenalco">Coworking - Casa Fenalco</option>
+                  <option value="Jurídico">Jurídico</option>
+                  <option value="Contabilidad">Contabilidad</option>
+                  <option value="Fenalcobra">Fenalcobra</option>
+                  <option value="Fenalempleo">Fenalempleo</option>
+                </select>
+              </div>
+              <button
+                type="button"
+                x-show="hasActiveAdminUserFilters()"
+                @click="clearAdminUserFilters()"
+                class="px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 transition"
+              >
+                Limpiar
+              </button>
+              <span
+                class="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium md:ml-auto transition"
+                :class="getFilteredAdminUsers().length === 0 ? 'bg-red-100 text-red-700' : (getFilteredAdminUsers().length === adminUsers.length ? 'bg-gray-100 text-gray-700' : 'bg-green-100 text-green-700')"
+              >
+                <i x-show="getFilteredAdminUsers().length === 0" class="ri-alert-line mr-2"></i>
+                <span x-text="'Mostrando ' + getFilteredAdminUsers().length + ' de ' + adminUsers.length + ' usuarios'"></span>
+              </span>
+            </div>
+            <div class="overflow-x-auto overflow-y-auto max-h-[60vh]">
               <table class="w-full">
                 <thead>
                   <tr class="border-b border-gray-200">
-                    <th class="text-left p-3 font-semibold text-gray-700">Email</th>
-                    <th class="text-left p-3 font-semibold text-gray-700">Nombre</th>
-                    <th class="text-left p-3 font-semibold text-gray-700">Rol</th>
-                    <th class="text-left p-3 font-semibold text-gray-700">Departamento</th>
-                    <th class="text-left p-3 font-semibold text-gray-700">Estado</th>
-                    <th class="text-left p-3 font-semibold text-gray-700">Acciones</th>
+                    <th class="text-left p-3 font-semibold text-gray-700 sticky top-0 bg-white z-10">Email</th>
+                    <th class="text-left p-3 font-semibold text-gray-700 sticky top-0 bg-white z-10">Nombre</th>
+                    <th class="text-left p-3 font-semibold text-gray-700 sticky top-0 bg-white z-10">Rol</th>
+                    <th class="text-left p-3 font-semibold text-gray-700 sticky top-0 bg-white z-10">Cargo</th>
+                    <th class="text-left p-3 font-semibold text-gray-700 sticky top-0 bg-white z-10">Departamento</th>
+                    <th class="text-left p-3 font-semibold text-gray-700 sticky top-0 bg-white z-10">Estado</th>
+                    <th class="text-left p-3 font-semibold text-gray-700 sticky top-0 bg-white z-10">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <template x-for="adminUser in adminUsers" :key="adminUser._id">
+                  <template x-for="adminUser in getFilteredAdminUsers()" :key="adminUser._id">
                     <tr class="border-b border-gray-100 hover:bg-gray-50">
                       <td class="p-3 text-sm" x-text="adminUser.email"></td>
                       <td class="p-3 text-sm font-medium" x-text="adminUser.firstName + ' ' + adminUser.lastName"></td>
                       <td class="p-3">
                         <span class="px-2 py-1 text-xs rounded-full" :class="getAdminRoleBadgeClass(adminUser.role)" x-text="getAppRoleLabel(adminUser.role)"></span>
                       </td>
+                      <td class="p-3 text-sm" x-text="adminUser.position || adminUser.cargo || 'Sin definir'"></td>
                       <td class="p-3 text-sm" x-text="adminUser.department || adminUser.area || 'Sin definir'"></td>
                       <td class="p-3">
                         <span class="px-2 py-1 text-xs rounded-full" :class="adminUser.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" x-text="adminUser.isActive ? 'Activo' : 'Inactivo'"></span>
@@ -1570,8 +1622,21 @@
                       </td>
                     </tr>
                   </template>
-                  <tr x-show="adminUsers.length === 0">
-                    <td colspan="6" class="text-center py-8 text-gray-500">No hay usuarios registrados</td>
+                  <tr x-show="getFilteredAdminUsers().length === 0">
+                    <td colspan="7" class="text-center py-8 text-gray-500">
+                      <div class="flex flex-col items-center gap-3">
+                        <i class="ri-search-eye-line text-2xl text-gray-400" x-show="hasActiveAdminUserFilters()"></i>
+                        <p x-text="hasActiveAdminUserFilters() ? 'No hay coincidencias para los filtros actuales' : 'No hay usuarios registrados'"></p>
+                        <button
+                          type="button"
+                          x-show="hasActiveAdminUserFilters()"
+                          @click="clearAdminUserFilters()"
+                          class="px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 transition"
+                        >
+                          Quitar filtros
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -1604,7 +1669,7 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-            <input type="email" x-model="adminUserForm.email" :disabled="!!adminUserForm.id" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green disabled:bg-gray-100 disabled:text-gray-500">
+            <input type="email" x-model="adminUserForm.email" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
           </div>
           <div x-show="!adminUserForm.id">
             <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña *</label>
@@ -1614,11 +1679,17 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">Rol *</label>
             <select x-model="adminUserForm.role" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
               <option value="admin">Administrador</option>
-              <option value="gerente">Gerente</option>
-              <option value="diseñador">Diseñador</option>
-              <option value="practicante">Practicante</option>
               <option value="usuario">Usuario</option>
             </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Cargo *</label>
+            <input type="text" x-model="adminUserForm.position" list="cargoSuggestions" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Ej: Director Ejecutivo, Gerente, Diseñador gráfico">
+            <datalist id="cargoSuggestions">
+              <template x-for="cargoOption in cargoSuggestions" :key="cargoOption">
+                <option :value="cargoOption"></option>
+              </template>
+            </datalist>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Departamento *</label>
@@ -1696,12 +1767,16 @@
               <input type="tel" x-model="executorForm.phone" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Rol *</label>
-              <select x-model="executorForm.role" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" @change="executorForm.capacity = executorForm.role === 'gerente' ? 15 : executorForm.role === 'diseñador' ? 8 : 5; executorForm.priority = executorForm.role === 'gerente' ? 1 : executorForm.role === 'diseñador' ? 2 : 3">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de ejecutor *</label>
+              <select x-model="executorForm.executorType" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" @change="executorForm.capacity = executorForm.executorType === 'gerente' ? 15 : executorForm.executorType === 'diseñador' ? 8 : 5; executorForm.priority = executorForm.executorType === 'gerente' ? 1 : executorForm.executorType === 'diseñador' ? 2 : 3">
                 <option value="gerente">Gerente</option>
                 <option value="diseñador">Diseñador</option>
                 <option value="practicante">Practicante</option>
               </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Cargo *</label>
+              <input type="text" x-model="executorForm.position" list="cargoSuggestions" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Ej: Diseñador gráfico, Coordinador, Gerente">
             </div>
           </div>
         </div>
@@ -1746,15 +1821,16 @@
             <div class="flex items-center gap-4">
               <div class="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold"
                    :class="{
-                     'bg-purple-500': currentExecutor.executor.role === 'gerente',
-                     'bg-blue-500': currentExecutor.executor.role === 'diseñador',
-                     'bg-green-500': currentExecutor.executor.role === 'practicante'
+                     'bg-purple-500': getExecutorType(currentExecutor.executor) === 'gerente',
+                     'bg-blue-500': getExecutorType(currentExecutor.executor) === 'diseñador',
+                     'bg-green-500': getExecutorType(currentExecutor.executor) === 'practicante'
                    }">
                 <span x-text="currentExecutor.executor.firstName.charAt(0) + currentExecutor.executor.lastName.charAt(0)"></span>
               </div>
               <div>
                 <h3 class="text-2xl font-bold text-gray-800" x-text="currentExecutor.executor.firstName + ' ' + currentExecutor.executor.lastName"></h3>
                 <p class="text-gray-600" x-text="currentExecutor.executor.email"></p>
+                <p class="text-sm text-gray-500" x-text="getExecutorCargoLabel(currentExecutor.executor)"></p>
               </div>
             </div>
             <button @click="showExecutorDetailsModal = false" class="text-gray-400 hover:text-gray-600 text-2xl">
@@ -2365,6 +2441,8 @@
           totalRequests: 0,
           completedRequests: 0,
           inProcessRequests: 0,
+          pendingRequests: 0,
+          urgentRequests: 0,
           urgentPercentage: 0,
           completionPercentage: 0,
           averageTime: 0,
@@ -2472,6 +2550,23 @@
         calendarWeekIndex: 0,
 
         adminUsers: [],
+        adminUserFilters: {
+          cargo: '',
+          role: '',
+          department: ''
+        },
+        cargoSuggestions: [
+          'Director Ejecutivo',
+          'Gerente',
+          'Coordinador',
+          'Ejecutivo Formación Empresarial',
+          'Diseñador gráfico',
+          'Practicante',
+          'Asistente de Dirección',
+          'Analista Comercial',
+          'Profesional Jurídico',
+          'Auxiliar Contable'
+        ],
         showAdminUserModal: false,
         adminUserForm: {
           id: null,
@@ -2480,6 +2575,7 @@
           lastName: '',
           password: '',
           role: 'usuario',
+          position: '',
           department: 'Comunicaciones',
           phone: '',
           isActive: true
@@ -2500,7 +2596,8 @@
           firstName: '',
           lastName: '',
           cedula: '',
-          role: 'diseñador',
+          executorType: 'diseñador',
+          position: '',
           phone: '',
           capacity: 8,
           priority: 2,
@@ -2921,9 +3018,39 @@
               headers: { 'Authorization': `Bearer ${token}` }
             });
             const dashboardData = await dashboardResponse.json();
+
+            let normalizedDashboardData = null;
             
-            if (dashboardData) {
-              this.dashboardStats = dashboardData;
+            if (dashboardResponse.ok && dashboardData && typeof dashboardData === 'object') {
+              normalizedDashboardData = dashboardData;
+            } else {
+              console.warn('No fue posible cargar estadísticas del dashboard:', dashboardData?.message || 'respuesta inválida');
+
+              const reportDashboardResponse = await fetch(`${API_URL}/reports/dashboard-summary`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              const reportDashboardData = await reportDashboardResponse.json();
+
+              if (reportDashboardResponse.ok && reportDashboardData && typeof reportDashboardData === 'object') {
+                normalizedDashboardData = reportDashboardData;
+              } else {
+                console.warn('No fue posible cargar fallback de reportes:', reportDashboardData?.message || 'respuesta inválida');
+              }
+            }
+
+            if (normalizedDashboardData) {
+              this.dashboardStats = {
+                ...this.dashboardStats,
+                totalRequests: Number(normalizedDashboardData.totalRequests) || 0,
+                completedRequests: Number(normalizedDashboardData.completedRequests) || 0,
+                inProcessRequests: Number(normalizedDashboardData.inProcessRequests) || 0,
+                pendingRequests: Number(normalizedDashboardData.pendingRequests) || 0,
+                urgentRequests: Number(normalizedDashboardData.urgentRequests) || 0,
+                urgentPercentage: Number(normalizedDashboardData.urgentPercentage) || 0,
+                completionPercentage: Number(normalizedDashboardData.completionPercentage) || 0,
+                averageTime: Number(normalizedDashboardData.averageTime) || 0,
+                satisfaction: Number(normalizedDashboardData.satisfaction) || 0
+              };
             }
             
             this.initCharts();
@@ -3776,10 +3903,19 @@
           const ctxPerformance = this.getChartContext('chartPerformance');
           if (ctxPerformance) {
             try {
-              const response = await fetch('/api/admin/stats/monthly-performance', {
+              const token = localStorage.getItem('token');
+              let response = await fetch('/api/admin/stats/monthly-performance', {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
               });
-              const result = await response.json();
+              let result = await response.json();
+
+              if (!response.ok) {
+                response = await fetch('/api/reports/monthly-performance', {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+                result = await response.json();
+              }
+
               let monthlyData = [];
 
               if (Array.isArray(result?.data)) {
@@ -3871,10 +4007,19 @@
           const ctxUrgencia = this.getChartContext('chartUrgencia');
           if (ctxUrgencia) {
             try {
-              const response = await fetch('/api/admin/stats/urgency-distribution', {
+              const token = localStorage.getItem('token');
+              let response = await fetch('/api/admin/stats/urgency-distribution', {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
               });
-              const result = await response.json();
+              let result = await response.json();
+
+              if (!response.ok) {
+                response = await fetch('/api/reports/urgency-distribution', {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+                result = await response.json();
+              }
+
               const urgencyData = result?.data || result || { normal: 0, urgent: 0, express: 0 };
 
               const urgencyValues = [
@@ -4020,30 +4165,47 @@
           return labels[role] || role;
         },
 
+        getExecutorType(executor) {
+          return executor?.executorType || executor?.executorProfile?.executorType || executor?.role || '';
+        },
+
+        getExecutorCargoLabel(executor) {
+          const normalizedPosition = this.normalizeCargoValue(executor?.position || '');
+          if (normalizedPosition) {
+            return normalizedPosition;
+          }
+          return this.getExecutorRoleLabel(this.getExecutorType(executor));
+        },
+
         getAppRoleLabel(role) {
           const labels = {
             admin: 'Administrador',
-            gerente: 'Gerente',
-            'diseñador': 'Diseñador',
-            practicante: 'Practicante',
             usuario: 'Usuario',
-            manager: 'Gerente',
-            designer: 'Diseñador',
+            gerente: 'Usuario',
+            'diseñador': 'Usuario',
+            practicante: 'Usuario',
+            manager: 'Usuario',
+            designer: 'Usuario',
             collaborator: 'Usuario'
           };
           return labels[role] || role;
         },
 
-        normalizeRole(role) {
+        normalizeAppRole(role) {
           const roleMap = {
-            manager: 'gerente',
-            designer: 'diseñador',
+            administrador: 'admin',
             collaborator: 'usuario',
-            gerente_comunicaciones: 'gerente',
-            disenador_grafico: 'diseñador'
+            manager: 'usuario',
+            designer: 'usuario',
+            gerente_comunicaciones: 'usuario',
+            disenador_grafico: 'usuario',
+            gerente: 'usuario',
+            'diseñador': 'usuario',
+            practicante: 'usuario'
           };
 
-          return roleMap[role] || role || 'usuario';
+          const normalizedRole = roleMap[role] || role || 'usuario';
+          return normalizedRole === 'admin' ? 'admin' : 'usuario';
         },
 
         normalizeDepartment(department) {
@@ -4098,23 +4260,36 @@
         getAdminRoleBadgeClass(role) {
           const badge = {
             admin: 'bg-purple-100 text-purple-700',
-            gerente: 'bg-blue-100 text-blue-700',
-            'diseñador': 'bg-teal-100 text-teal-700',
-            practicante: 'bg-green-100 text-green-700',
             usuario: 'bg-gray-100 text-gray-700'
           };
-          return badge[role] || 'bg-gray-100 text-gray-700';
+          return badge[this.normalizeAppRole(role)] || 'bg-gray-100 text-gray-700';
         },
 
-        getUserCargo(role) {
+        getUserCargo(user) {
+          const rawPosition = String(user?.position || '').trim();
+          if (rawPosition && !this.isInvalidCargo(rawPosition)) {
+            return rawPosition;
+          }
+
           const cargos = {
             admin: 'Administrador de Plataforma',
-            gerente: 'Gerente de Área',
-            'diseñador': 'Diseñador',
-            practicante: 'Practicante',
-            usuario: 'Solicitante'
+            gerente: 'Gerente',
+            manager: 'Gerente',
+            'diseñador': 'Diseñador gráfico',
+            designer: 'Diseñador gráfico',
+            practicante: 'Practicante'
           };
-          return cargos[role] || 'Colaborador';
+          return cargos[user?.role] || 'Sin definir';
+        },
+
+        isInvalidCargo(value) {
+          const normalized = String(value || '').trim().toLowerCase();
+          return ['usuario', 'user', 'colaborador', 'solicitante', ''].includes(normalized);
+        },
+
+        normalizeCargoValue(value) {
+          const trimmed = String(value || '').trim();
+          return this.isInvalidCargo(trimmed) ? '' : trimmed;
         },
 
         getRequestCategoryGroup(type) {
@@ -4547,6 +4722,8 @@
           if (this.user?.role !== 'admin') return;
 
           try {
+            await this.loadAdminCargoSuggestions();
+
             const response = await fetch(`${API_URL}/admin/users?page=1&limit=200`, {
               headers: {
                 'Authorization': `Bearer ${this.token}`
@@ -4556,11 +4733,72 @@
             const data = await response.json();
             if (data.success) {
               this.adminUsers = data.users || [];
+              this.$nextTick(() => {
+                this.$refs?.adminCargoFilter?.focus();
+              });
             }
           } catch (error) {
             console.error('Error al cargar usuarios:', error);
             alert('❌ Error al cargar usuarios');
           }
+        },
+
+        async loadAdminCargoSuggestions() {
+          try {
+            const response = await fetch(`${API_URL}/admin/catalogs/positions`, {
+              headers: {
+                'Authorization': `Bearer ${this.token}`
+              }
+            });
+
+            const data = await response.json();
+            if (response.ok && data.success && Array.isArray(data.positions) && data.positions.length > 0) {
+              this.cargoSuggestions = data.positions;
+            }
+          } catch (error) {
+            console.warn('No fue posible cargar catálogo de cargos desde API, se usa fallback local.');
+          }
+        },
+
+        clearAdminUserFilters() {
+          if (this.currentTab !== 'admin-users') return;
+          this.adminUserFilters.cargo = '';
+          this.adminUserFilters.role = '';
+          this.adminUserFilters.department = '';
+
+          this.$nextTick(() => {
+            this.$refs?.adminCargoFilter?.focus();
+          });
+        },
+
+        hasActiveAdminUserFilters() {
+          return Boolean(
+            this.adminUserFilters?.cargo ||
+            this.adminUserFilters?.role ||
+            this.adminUserFilters?.department
+          );
+        },
+
+        getFilteredAdminUsers() {
+          const cargoFilter = (this.adminUserFilters?.cargo || '').trim().toLowerCase();
+          const roleFilter = this.adminUserFilters?.role || '';
+          const departmentFilter = this.adminUserFilters?.department || '';
+
+          if (!cargoFilter && !roleFilter && !departmentFilter) {
+            return this.adminUsers;
+          }
+
+          return (this.adminUsers || []).filter((adminUser) => {
+            const cargo = String(adminUser.position || adminUser.cargo || '').toLowerCase();
+            const role = this.normalizeAppRole(adminUser.role);
+            const department = String(adminUser.department || adminUser.area || '');
+
+            const matchCargo = !cargoFilter || cargo.includes(cargoFilter);
+            const matchRole = !roleFilter || role === roleFilter;
+            const matchDepartment = !departmentFilter || department === departmentFilter;
+
+            return matchCargo && matchRole && matchDepartment;
+          });
         },
 
         openAdminUserModal(adminUser = null) {
@@ -4571,7 +4809,8 @@
               firstName: adminUser.firstName || '',
               lastName: adminUser.lastName || '',
               password: '',
-              role: this.normalizeRole(adminUser.role),
+              role: this.normalizeAppRole(adminUser.role),
+              position: this.normalizeCargoValue(adminUser.position || adminUser.cargo || ''),
               department: this.normalizeDepartment(adminUser.department || adminUser.area),
               phone: adminUser.phone || '',
               isActive: typeof adminUser.isActive === 'boolean' ? adminUser.isActive : true
@@ -4584,6 +4823,7 @@
               lastName: '',
               password: '',
               role: 'usuario',
+              position: '',
               department: 'Comunicaciones',
               phone: '',
               isActive: true
@@ -4606,17 +4846,24 @@
             const method = isEditing ? 'PATCH' : 'POST';
 
             const payload = {
+              email: (this.adminUserForm.email || '').trim().toLowerCase(),
               firstName: this.adminUserForm.firstName,
               lastName: this.adminUserForm.lastName,
-              role: this.normalizeRole(this.adminUserForm.role),
+              role: this.normalizeAppRole(this.adminUserForm.role),
+              position: this.normalizeCargoValue(this.adminUserForm.position),
+              cargo: this.normalizeCargoValue(this.adminUserForm.position),
               department: this.normalizeDepartment(this.adminUserForm.department),
               area: this.normalizeDepartment(this.adminUserForm.department),
               phone: this.adminUserForm.phone,
               isActive: this.adminUserForm.isActive
             };
 
+            if (!payload.position) {
+              await this.showAlert('Cargo inválido. Debe ser un cargo real (ej: Director Ejecutivo, Gerente, Diseñador gráfico).', 'Validación');
+              return;
+            }
+
             if (!isEditing) {
-              payload.email = this.adminUserForm.email;
               payload.password = this.adminUserForm.password;
             }
 
@@ -4681,7 +4928,9 @@
                 body: JSON.stringify({
                   firstName: adminUser.firstName,
                   lastName: adminUser.lastName,
-                  role: this.normalizeRole(adminUser.role),
+                  role: this.normalizeAppRole(adminUser.role),
+                  position: this.normalizeCargoValue(adminUser.position || adminUser.cargo),
+                  cargo: this.normalizeCargoValue(adminUser.position || adminUser.cargo),
                   department: this.normalizeDepartment(adminUser.department || adminUser.area),
                   area: this.normalizeDepartment(adminUser.area || adminUser.department),
                   phone: adminUser.phone || '',
@@ -4734,6 +4983,8 @@
         
         async loadExecutors() {
           try {
+            await this.loadAdminCargoSuggestions();
+
             const params = new URLSearchParams();
             if (this.executorFilters.role) params.append('role', this.executorFilters.role);
             if (this.executorFilters.available) params.append('available', this.executorFilters.available);
@@ -4777,7 +5028,8 @@
               firstName: executor.firstName,
               lastName: executor.lastName,
               cedula: executor.cedula || '',
-              role: executor.role,
+              executorType: this.getExecutorType(executor),
+              position: this.normalizeCargoValue(executor.position || ''),
               phone: executor.phone || '',
               capacity: executor.executorProfile.capacity,
               priority: executor.executorProfile.priority,
@@ -4790,7 +5042,8 @@
               firstName: '',
               lastName: '',
               cedula: '',
-              role: 'diseñador',
+              executorType: 'diseñador',
+              position: '',
               phone: '',
               capacity: 8,
               priority: 2,
@@ -4803,10 +5056,23 @@
         
         async saveExecutor() {
           try {
+            const normalizedCargo = this.normalizeCargoValue(this.executorForm.position);
+            if (!normalizedCargo) {
+              await this.showAlert('Cargo inválido. Debe ser un cargo real (ej: Diseñador gráfico, Coordinador, Gerente).', 'Validación');
+              return;
+            }
+
             const url = this.executorForm.id 
               ? `/api/admin/executors/${this.executorForm.id}`
               : '/api/admin/executors';
             const method = this.executorForm.id ? 'PUT' : 'POST';
+
+            const payload = {
+              ...this.executorForm,
+              executorType: this.executorForm.executorType,
+              role: this.executorForm.executorType,
+              position: normalizedCargo
+            };
             
             const response = await fetch(url, {
               method,
@@ -4814,7 +5080,7 @@
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${this.token}`
               },
-              body: JSON.stringify(this.executorForm)
+              body: JSON.stringify(payload)
             });
             
             const data = await response.json();
