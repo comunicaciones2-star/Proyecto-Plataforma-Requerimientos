@@ -231,8 +231,8 @@
           const areaPxBarOptions = {
             chart: { type: 'bar', fontFamily: 'Cerebri Sans', foreColor: '#94989a' },
             colors: ['#00CE7C', '#2CD5C4', '#009CDE', '#280071'],
-            series: [{ data: this.stats.byArea?.map(a => a.count) || [5, 8, 3, 6] }],
-            xaxis: { categories: this.stats.byArea?.map(a => a.area) || ['Diseño', 'Creatividad', 'Digital', 'Otros'] },
+            series: [{ data: this.stats.byArea?.map(a => a.count) || [0] }],
+            xaxis: { categories: this.stats.byArea?.map(a => a.area) || ['Sin datos'] },
             dataLabels: { enabled: false }
           };
           new ApexCharts(document.querySelector('#requestsByArea'), areaPxBarOptions).render();
@@ -241,7 +241,7 @@
           const statusDonutOptions = {
             chart: { type: 'donut', fontFamily: 'Cerebri Sans', foreColor: '#94989a' },
             colors: ['#00CE7C', '#FFB549', '#009CDE', '#FF8674'],
-            series: [this.stats.completed || 12, this.stats.pending || 8, this.stats.inProgress || 5, this.stats.rejected || 2],
+            series: [this.stats.completed || 0, this.stats.pending || 0, this.stats.inProgress || 0, this.stats.rejected || 0],
             labels: ['Completadas', 'Pendientes', 'En Progreso', 'Rechazadas'],
             legend: { position: 'bottom' }
           };
