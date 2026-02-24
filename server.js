@@ -5,7 +5,10 @@ const express = require('express');
 const http = require('http');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
 const path = require('path');
+const logger = require('./utils/logger');
 
 // ==================== CONFIGURACIÓN ====================
 const PORT = process.env.PORT || 5000;
@@ -14,9 +17,12 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : ['http://localhost:5000', 'http://localhost:8888'];
 
-console.log('\n╔══════════════════════════════════════════════════════╗');
-console.log('║    FENALCO - PLATAFORMA DE GESTIÓN DE DISEÑOS        ║');
-console.log('╚══════════════════════════════════════════════════════╝\n');
+global.logger = logger;
+
+logger.info('FENALCO - PLATAFORMA DE GESTIÓN DE DISEÑOS iniciando', {
+  environment: process.env.NODE_ENV || 'development',
+  port: PORT
+});
 
 // ==================== EXPRESS & HTTP ====================
 const app = express();
@@ -25,6 +31,14 @@ const server = http.createServer(app);
 // ==================== MIDDLEWARE ====================
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(mongoSanitize());
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
+  })
+);
 
 // CORS mejorado
 app.use(cors({
@@ -40,7 +54,11 @@ app.options('*', cors());
 // Logging de requests (solo en desarrollo)
 if (process.env.NODE_ENV !== 'production') {
   app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    logger.info('HTTP request', {
+      method: req.method,
+      path: req.path,
+      ip: req.ip
+    });
     next();
   });
 }
@@ -48,20 +66,20 @@ if (process.env.NODE_ENV !== 'production') {
 // ==================== MONGODB ====================
 mongoose.connect(MONGODB_URI)
 .then(() => {
-  console.log('✅ MongoDB conectado exitosamente');
+  logger.info('MongoDB conectado exitosamente');
 })
 .catch((err) => {
-  console.error('❌ Error conectando a MongoDB:', err.message);
+  logger.error('Error conectando a MongoDB', { error: err.message });
   process.exit(1);
 });
 
 // Manejo de eventos de MongoDB
 mongoose.connection.on('error', (err) => {
-  console.error('❌ Error de MongoDB:', err.message);
+  logger.error('Error de MongoDB', { error: err.message });
 });
 
 mongoose.connection.on('disconnected', () => {
-  console.warn('⚠️  MongoDB desconectado');
+  logger.warn('MongoDB desconectado');
 });
 
 // ==================== RUTAS ====================
@@ -116,7 +134,12 @@ initializeWebSocket(server);
 
 // ==================== ERROR HANDLER ====================
 app.use((err, req, res, next) => {
-  console.error('Error:', err.message);
+  logger.error('Error no controlado en request', {
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method
+  });
   res.status(err.statusCode || 500).json({
     success: false,
     message: err.message || 'Error interno del servidor'
@@ -125,36 +148,37 @@ app.use((err, req, res, next) => {
 
 // ==================== INICIAR SERVIDOR ====================
 server.listen(PORT, () => {
-  console.log('📋 CONFIGURACIÓN:');
-  console.log(`   Puerto: ${PORT}`);
-  console.log(`   Entorno: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`   CORS Origins: ${ALLOWED_ORIGINS.join(', ')}`);
-  console.log(`   MongoDB: ${MONGODB_URI.includes('mongodb+srv') ? 'MongoDB Atlas' : 'Local'}\n`);
-  
-  console.log('✅ SERVIDOR LISTO:');
-  console.log(`   URL: http://localhost:${PORT}`);
-  console.log(`   API: http://localhost:${PORT}/api`);
-  console.log(`   Health: http://localhost:${PORT}/api/health`);
-  console.log(`   WebSocket: ws://localhost:${PORT}\n`);
+  logger.info('Servidor listo', {
+    port: PORT,
+    environment: process.env.NODE_ENV || 'development',
+    corsOrigins: ALLOWED_ORIGINS,
+    mongo: MONGODB_URI.includes('mongodb+srv') ? 'MongoDB Atlas' : 'Local',
+    apiUrl: `http://localhost:${PORT}/api`,
+    healthUrl: `http://localhost:${PORT}/api/health`
+  });
 });
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`\n❌ Error: Puerto ${PORT} ya está en uso.`);
-    console.error('Intenta con otro puerto usando: $env:PORT="NUMERO"; node server.js\n');
+    logger.error('Puerto ya está en uso', {
+      port: PORT,
+      hint: 'Intenta con otro puerto usando: $env:PORT="NUMERO"; node server.js'
+    });
     process.exit(1);
   } else {
-    console.error('❌ Error del servidor:', err);
+    logger.error('Error del servidor', { error: err.message, stack: err.stack });
   }
 });
 
 // Manejo de excepciones no capturadas
 process.on('uncaughtException', (err) => {
-  console.error('❌ Excepción no capturada:', err);
+  logger.error('Excepción no capturada', { error: err.message, stack: err.stack });
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
-  console.error('❌ Rechazo no manejado:', reason);
+  logger.error('Rechazo no manejado', {
+    reason: reason instanceof Error ? reason.message : String(reason)
+  });
   process.exit(1);
 });

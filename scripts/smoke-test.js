@@ -3,8 +3,8 @@ require('dotenv').config();
 const http = require('http');
 
 const BASE_URL = process.env.TEST_BASE_URL || process.env.BASE_URL || 'http://localhost:5000';
-const TEST_LOGIN_EMAIL = process.env.TEST_LOGIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@fenalcosantander.com.co';
-const TEST_LOGIN_PASSWORD = process.env.TEST_LOGIN_PASSWORD || process.env.ADMIN_PASSWORD || 'admin123456';
+const TEST_LOGIN_EMAIL = process.env.TEST_LOGIN_EMAIL || process.env.ADMIN_EMAIL || 'comunicaciones2@fenalcosantander.com.co';
+const TEST_LOGIN_PASSWORD = process.env.TEST_LOGIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123';
 
 const colors = {
   reset: '\x1b[0m',

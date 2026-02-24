@@ -130,10 +130,13 @@ async function runQueueSmoke() {
     if (assertCheck(myQueueOk, 'queue/my OK', `queue/my falló (${myQueue.status})`)) passed++;
     else failed++;
 
-    if (sampleRequest && sampleRequest._id) {
+    const requesterTicket = (myQueue.data?.asRequester || [])[0] || null;
+    const ticketToValidate = requesterTicket || sampleRequest;
+
+    if (ticketToValidate && ticketToValidate._id) {
       logStep('5', 'Queue position por ticket');
-      const ticketQueue = await makeRequest('GET', `/api/queue/tickets/${sampleRequest._id}/position`, null, requesterToken);
-      const detail = await makeRequest('GET', `/api/requests/${sampleRequest._id}`, null, requesterToken);
+      const ticketQueue = await makeRequest('GET', `/api/queue/tickets/${ticketToValidate._id}/position`, null, requesterToken);
+      const detail = await makeRequest('GET', `/api/requests/${ticketToValidate._id}`, null, requesterToken);
 
       const positionOk = ticketQueue.status === 200 && ticketQueue.data && ticketQueue.data.success;
       if (assertCheck(positionOk, 'queue/tickets/:id/position OK', `queue/tickets/:id/position falló (${ticketQueue.status})`)) passed++;
