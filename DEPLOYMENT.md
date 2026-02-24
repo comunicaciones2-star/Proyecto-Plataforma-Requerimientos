@@ -1,7 +1,7 @@
 # 🚀 GUÍA DE DEPLOYMENT - FENALCO PLATAFORMA
 
-**Fecha:** 23 de Enero de 2026  
-**Versión:** 3.1.0  
+**Fecha:** 24 de febrero de 2026  
+**Versión:** Release final 2026-02-24  
 **Ambiente:** Producción
 
 ---
@@ -11,7 +11,7 @@
 Antes de deployar, verifica que TODO esté completo:
 
 ### ✅ Seguridad
-- [ ] Todas las credenciales rotadas (ver [ROTACION-CREDENCIALES.md](ROTACION-CREDENCIALES.md))
+- [ ] Todas las credenciales rotadas (ver [CHECKLIST-POST-PURGA-SECRETOS-2026-02-24.md](CHECKLIST-POST-PURGA-SECRETOS-2026-02-24.md))
 - [ ] Archivo .env NO está en Git (`git status` no debe mostrar .env)
 - [ ] JWT_SECRET tiene 64 bytes (128 caracteres hex)
 - [ ] Rate limiting configurado (login: 5/15min, register: 3/hora)
@@ -21,6 +21,7 @@ Antes de deployar, verifica que TODO esté completo:
 
 ### ✅ Testing
 - [ ] Smoke test pasa: `npm run smoke`
+- [ ] Smoke de cola pasa: `npm run smoke:queue`
 - [ ] Test de endpoints pasa: `node test-all-endpoints.js`
 - [ ] Build producción sin errores: `npm run build`
 
@@ -31,9 +32,9 @@ Antes de deployar, verifica que TODO esté completo:
 - [ ] Connection string con retryWrites=true
 
 ### ✅ Documentación
-- [ ] [SECURITY.md](SECURITY.md) revisado
+- [ ] [CHECKLIST-POST-PURGA-SECRETOS-2026-02-24.md](CHECKLIST-POST-PURGA-SECRETOS-2026-02-24.md) revisado
 - [ ] [MEJORAS-IMPLEMENTADAS.md](MEJORAS-IMPLEMENTADAS.md) actualizado
-- [ ] [README.md](README.md) actualizado con versión 3.1.0
+- [ ] [README.md](README.md) y [QUICK-START.md](QUICK-START.md) actualizados
 - [ ] Esta guía de deployment completada
 
 ---
@@ -628,4 +629,4 @@ pm2 start server.js --max-memory-restart 300M
 
 **Estado:** ⏳ PRE-DEPLOYMENT → 🚀 DEPLOYED → ✅ VERIFIED
 
-**Última actualización:** 23 de Enero de 2026
+**Última actualización:** 24 de febrero de 2026
