@@ -1077,6 +1077,11 @@
                   <i class="ri-calendar-today-line mr-2"></i>Hoy
                 </button>
                 <div class="flex space-x-2">
+                  <button @click="switchCalendarView('day')"
+                          :class="calendarView === 'day' ? 'bg-fenalco-green text-white' : 'bg-gray-200 text-gray-700'"
+                          class="px-4 py-2 rounded-lg font-medium transition">
+                    Día
+                  </button>
                   <button @click="switchCalendarView('week')"
                           :class="calendarView === 'week' ? 'bg-fenalco-green text-white' : 'bg-gray-200 text-gray-700'"
                           class="px-4 py-2 rounded-lg font-medium transition">
