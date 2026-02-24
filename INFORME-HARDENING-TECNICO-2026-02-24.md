@@ -1,3 +1,4 @@
+
 # Informe Técnico de Hardening y Puesta a Punto
 
 **Proyecto:** Plataforma de Gestión de Requerimientos de Diseño (Fenalco)  
