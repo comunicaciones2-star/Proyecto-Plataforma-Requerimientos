@@ -36,7 +36,7 @@ El servidor estará disponible en: **http://localhost:5000**
 
 | Rol | Email | Contraseña |
 |-----|-------|-----------|
-| **Admin** | asistentedireccion@fenalcosantander.com.co | password123 |
+| **Admin** | comunicaciones2@fenalcosantander.com.co | password123 |
 | **Diseñador** | comunicaciones@fenalcosantander.com.co | password123 |
 | **Colaborador** | coordinadoracomercial3@fenalcosantander.com.co | password123 |
 
@@ -115,9 +115,17 @@ PUT    /api/users/password      # Cambiar contraseña
 GET    /api/requests            # Listar solicitudes
 POST   /api/requests            # Crear solicitud
 GET    /api/requests/:id        # Ver detalles
-PUT    /api/requests/:id        # Actualizar solicitud
+PUT    /api/requests/:id/edit   # Editar solicitud (campos completos)
+PATCH  /api/requests/:id        # Actualizar estado/asignación
 DELETE /api/requests/:id        # Eliminar solicitud
 POST   /api/requests/:id/comment # Agregar comentario
+```
+
+### Cola de Tickets
+```
+GET    /api/queue/tickets/:id/position # Posición de un ticket en cola
+GET    /api/queue/my                   # Cola asociada al usuario autenticado
+GET    /api/queue/scope                # Cola por alcance (solo admin)
 ```
 
 ### Administración (Solo Admin)
@@ -151,7 +159,11 @@ GET    /api/reports/area        # Estadísticas por área
 
 - ✅ Contraseñas hasheadas con bcryptjs
 - ✅ Autenticación JWT (tokens de 7 días)
-- ✅ CORS configurado
+- ✅ Helmet + cabeceras seguras
+- ✅ Sanitización anti NoSQL injection (express-mongo-sanitize)
+- ✅ Rate limiting en endpoints sensibles
+- ✅ Logging estructurado con Winston
+- ✅ CORS configurado por variables de entorno
 - ✅ Variables sensibles en `.env`
 - ✅ Middleware de autenticación en rutas protegidas
 - ✅ Validación de inputs
@@ -164,6 +176,9 @@ node test-all-endpoints.js
 
 # Smoke test rápido post-deploy
 npm run smoke
+
+# Smoke test de cola
+npm run smoke:queue
 
 # Test rápido de API
 node test-api.js
@@ -179,12 +194,21 @@ npm run seed
   "start": "node server.js",              // Producción
   "dev": "nodemon server.js",             // Desarrollo con auto-reload
   "seed": "node scripts/seed.js",         // Poblar BD
+  "migrate:roles-cargo": "node scripts/migrate-roles-to-cargo.js", // Migración de perfiles
   "smoke": "node scripts/smoke-test.js",  // Smoke test post-deploy
+  "smoke:queue": "node scripts/smoke-queue.js", // Smoke de cola
+  "morning": "powershell -ExecutionPolicy Bypass -File scripts/morning-start.ps1", // Arranque diario
   "build": "vite build",                  // Build frontend
   "preview": "vite preview",              // Preview build
   "dev-frontend": "vite"                  // Dev frontend solo
 }
 ```
+
+## 🚢 Deployment
+
+- Configuración Railway lista en [railway.json](railway.json)
+- Configuración Render lista en [render.yaml](render.yaml)
+- Guía completa de despliegue en [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ## 🌐 Variables de Entorno
 
@@ -244,6 +268,9 @@ npm run seed
 
 - [Guía de Inicio Rápido](QUICK-START.md)
 - [Solución de Problemas](TROUBLESHOOTING.md)
+- [Deployment](DEPLOYMENT.md)
+- [Acta Go/No-Go](ACTA-SALIDA-GO-NO-GO-2026-02-24.md)
+- [Checklist post-purga de secretos](CHECKLIST-POST-PURGA-SECRETOS-2026-02-24.md)
 
 ## 👥 Equipo
 
@@ -255,6 +282,6 @@ ISC © 2026 Fenalco Santander
 
 ---
 
-**Versión:** 1.0.0  
-**Última actualización:** Enero 2026  
-**Estado:** ✅ Producción
+**Versión:** 1.1.0  
+**Última actualización:** 24 febrero 2026  
+**Estado:** ✅ Release final publicado
