@@ -182,6 +182,15 @@ router.post('/', upload.array('files'), async (req, res) => {
       queuePosition: request.queuePosition || null
     });
   } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Datos de solicitud inválidos',
+        error: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
+
     console.error('❌ ERROR al crear solicitud:', error.message);
     console.error('Stack:', error.stack);
     console.error('Body recibido:', req.body);
