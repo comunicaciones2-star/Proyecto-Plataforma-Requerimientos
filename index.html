@@ -1070,26 +1070,26 @@
 
           <div class="card mb-6">
             <div class="flex flex-wrap items-center gap-4 mb-6">
-              <div class="flex items-center gap-3">
+              <div class="flex flex-wrap items-center gap-3">
                 <button @click="goToCalendarToday()"
                         :class="calendarView === 'day' ? 'bg-fenalco-green text-white' : 'bg-gray-200 text-gray-700'"
                         class="px-4 py-2 rounded-lg font-medium transition">
                   <i class="ri-calendar-today-line mr-2"></i>Hoy
                 </button>
-                <div class="flex space-x-2">
+                <div class="flex items-center gap-1 p-1 bg-gray-100 rounded-lg">
                   <button @click="switchCalendarView('day')"
                           :class="calendarView === 'day' ? 'bg-fenalco-green text-white' : 'bg-gray-200 text-gray-700'"
-                          class="px-4 py-2 rounded-lg font-medium transition">
+                          class="px-3 py-2 rounded-lg font-medium transition whitespace-nowrap">
                     Día
                   </button>
                   <button @click="switchCalendarView('week')"
                           :class="calendarView === 'week' ? 'bg-fenalco-green text-white' : 'bg-gray-200 text-gray-700'"
-                          class="px-4 py-2 rounded-lg font-medium transition">
+                          class="px-3 py-2 rounded-lg font-medium transition whitespace-nowrap">
                     Semana
                   </button>
                   <button @click="switchCalendarView('month')"
                           :class="calendarView === 'month' ? 'bg-fenalco-green text-white' : 'bg-gray-200 text-gray-700'"
-                          class="px-4 py-2 rounded-lg font-medium transition">
+                          class="px-3 py-2 rounded-lg font-medium transition whitespace-nowrap">
                     Mes
                   </button>
                 </div>
