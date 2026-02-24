@@ -157,6 +157,17 @@ ALLOWED_ORIGINS=https://fenalcosantander.com.co,https://tu-dominio.railway.app
 
 ## 🎨 OPCIÓN 2: DEPLOYMENT EN RENDER
 
+> ⚠️ **MUY IMPORTANTE (MongoDB en Render):** `mongodb://localhost:27017` no funciona en Render.
+> Debes usar MongoDB Atlas con `MONGODB_URI=mongodb+srv://...`.
+
+### Paso 0 (obligatorio): preparar MongoDB Atlas
+
+1. Crear cluster (free tier).
+2. Crear usuario de base de datos.
+3. Configurar Network Access (IP Whitelist): `0.0.0.0/0`.
+4. Copiar connection string `mongodb+srv://...`.
+5. Usar ese valor en `MONGODB_URI` en Render.
+
 ### Paso 1: Crear `render.yaml`
 
 ```yaml
@@ -207,6 +218,9 @@ services:
 ### Paso 4: Agregar variables de entorno
 
 Environment → Add Environment Variable (agregar todas las del .env)
+
+**Clave crítica:**
+- `MONGODB_URI` debe ser de Atlas (`mongodb+srv://...`), no localhost.
 
 ### Paso 5: Deploy
 

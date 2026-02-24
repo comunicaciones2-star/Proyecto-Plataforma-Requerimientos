@@ -209,6 +209,7 @@ npm run seed
 - Configuración Railway lista en [railway.json](railway.json)
 - Configuración Render lista en [render.yaml](render.yaml)
 - Guía completa de despliegue en [DEPLOYMENT.md](DEPLOYMENT.md)
+- ⚠️ En Render/Railway **NO** funciona `mongodb://localhost:27017`; debes usar `MONGODB_URI` de MongoDB Atlas (`mongodb+srv://...`).
 
 ## 🌐 Variables de Entorno
 
@@ -219,6 +220,7 @@ NODE_ENV=development
 
 # Base de Datos
 MONGODB_URI=mongodb://localhost:27017/fenalco-disenos
+# En cloud (Render/Railway): usar MongoDB Atlas -> mongodb+srv://...
 
 # JWT
 JWT_SECRET=tu_secret_key_segura
