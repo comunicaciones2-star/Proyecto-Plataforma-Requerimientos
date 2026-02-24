@@ -3,8 +3,8 @@ require('dotenv').config();
 const http = require('http');
 
 const BASE_URL = process.env.TEST_BASE_URL || process.env.BASE_URL || 'http://localhost:5000';
-const TEST_LOGIN_EMAIL = process.env.TEST_LOGIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@fenalcosantander.com.co';
-const TEST_LOGIN_PASSWORD = process.env.TEST_LOGIN_PASSWORD || process.env.ADMIN_PASSWORD || 'admin123456';
+const TEST_LOGIN_EMAIL = process.env.TEST_LOGIN_EMAIL || process.env.ADMIN_EMAIL || 'comunicaciones2@fenalcosantander.com.co';
+const TEST_LOGIN_PASSWORD = process.env.TEST_LOGIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password123';
 const colors = {
   reset: '\x1b[0m',
   green: '\x1b[32m',
@@ -59,6 +59,7 @@ async function runCompleteTests() {
   let token = null;
   let userId = null;
   let requestId = null;
+  let createdRequestId = null;
   let testsPassed = 0;
   let testsFailed = 0;
 
@@ -211,6 +212,7 @@ async function runCompleteTests() {
       }
     }, token);
     if (res.status === 201 && res.data.success) {
+      createdRequestId = res.data.request._id;
       console.log(colors.green + '   ✅ Solicitud creada exitosamente' + colors.reset);
       console.log(`   → Número: ${res.data.request.requestNumber}`);
       console.log(`   → Título: ${res.data.request.title}`);
@@ -220,6 +222,19 @@ async function runCompleteTests() {
       testsFailed++;
     }
     console.log();
+
+    // 9. LIMPIEZA DE SOLICITUD CREADA EN TEST
+    if (createdRequestId) {
+      console.log(colors.blue + '🧹 9. LIMPIEZA (DELETE solicitud creada en test)' + colors.reset);
+      const cleanup = await makeRequest('DELETE', `/api/requests/${createdRequestId}`, null, token);
+      if (cleanup.status === 200 && cleanup.data && cleanup.data.success) {
+        console.log(colors.green + '   ✅ Limpieza exitosa' + colors.reset);
+        testsPassed++;
+      } else {
+        console.log(colors.yellow + `   ⚠️ No se pudo limpiar solicitud de prueba (${cleanup.status})` + colors.reset);
+      }
+      console.log();
+    }
 
     // RESUMEN
     console.log(colors.cyan + '═════════════════════════════════════════════════════════════' + colors.reset);
