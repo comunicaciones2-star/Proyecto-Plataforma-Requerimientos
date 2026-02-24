@@ -69,8 +69,7 @@ npm install
 ```
 
 ## 4️⃣ Configurar Variables de Entorno
-El archivo `.env` ya está configurado con tus credenciales reales.
-Si necesitas cambiar algo:
+Crear `.env` a partir de `.env.example` y completar credenciales seguras:
 ```bash
 # PowerShell
 Copy-Item .env.example .env
@@ -89,7 +88,7 @@ npm run seed
 **Usuarios de prueba creados (contraseña: password123):**
 - Diseñadores: `comunicaciones@fenalcosantander.com.co`
 - Gerentes: `ejecutivaformacion1@fenalcosantander.com.co`
-- Admins: `asistentedireccion@fenalcosantander.com.co`
+- Admins: `comunicaciones2@fenalcosantander.com.co`
 - Usuarios: `coordinadoracomercial3@fenalcosantander.com.co`
 
 ## 6️⃣ Iniciar el Servidor
@@ -124,7 +123,9 @@ npm start          # Iniciar servidor producción
 npm run dev        # Iniciar servidor desarrollo (nodemon)
 npm run seed       # Poblar BD con datos de prueba
 npm run smoke      # Smoke test post-deploy (health/login/stats/create/delete)
+npm run smoke:queue # Smoke test de cola dinámica
 npm run morning    # Arranque matutino automático (Mongo + servidor + smoke)
+npm run migrate:roles-cargo # Migración de perfiles/cargos
 npm run build      # Compilar frontend (Vite)
 npm run preview    # Vista previa build
 npm run dev-frontend  # Servidor desarrollo frontend (Vite)
@@ -159,10 +160,14 @@ Después de `npm run dev`, abre en el navegador:
 
 ## 🔐 Configuración en .env
 - **MongoDB**: Configurar MONGODB_URI
-- **Cloudinary**: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+- **Cloudinary**: CLOUDINARY_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
 - **Email**: EMAIL_USER, EMAIL_PASS
 - **JWT**: JWT_SECRET (clave secreta para tokens)
 - **Puerto**: PORT=5000 (por defecto)
+
+## 🔒 Recomendación de Seguridad
+- No guardes credenciales reales en documentación ni en commits.
+- Después de cualquier exposición de secretos, rota credenciales y valida con `npm run smoke`.
 
 ## ❌ Solución de Problemas
 
@@ -197,4 +202,4 @@ npm install
 
 ---
 **Estado**: ✅ Proyecto configurado y listo para desarrollo
-**Fecha**: 19 de febrero de 2026
+**Fecha**: 24 de febrero de 2026
