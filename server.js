@@ -76,6 +76,7 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/departments', require('./routes/departmentRoutes'));
+app.use('/api/queue', require('./routes/queueRoutes'));
 
 // API Welcome
 app.get('/api', (req, res) => {

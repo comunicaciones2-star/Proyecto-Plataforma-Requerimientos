@@ -98,6 +98,10 @@ const requestSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User'
     },
+
+    assignedAt: {
+      type: Date
+    },
     
     // Historial de cambios cuando se edita
     editHistory: [{

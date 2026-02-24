@@ -8,8 +8,15 @@ const Request = require('../models/Request');
 const { sendNewRequestEmail, sendStatusChangeEmail } = require('../config/email');
 const { notifyNewRequest, notifyStatusChange, notifyNewComment, notifyRequestUpdated } = require('../utils/websocket');
 const { autoAssignRequest } = require('../utils/autoAssign');
+const { ACTIVE_QUEUE_STATUSES, attachQueueInfoToRequests, getQueueInfoForRequest, isQueueActiveStatus } = require('../utils/queue');
 
 const router = express.Router();
+
+async function getActiveQueueRequests() {
+  return Request.find({ status: { $in: ACTIVE_QUEUE_STATUSES } })
+    .select('requestNumber title area preferredExecutorRole urgency status queuedAt assignedAt assignedTo requester createdAt updatedAt')
+    .lean();
+}
 
 // Configuración de Multer para almacenamiento local
 const storage = multer.diskStorage({
@@ -128,6 +135,7 @@ router.post('/', upload.array('files'), async (req, res) => {
     const assignedUser = await autoAssignRequest(request);
     if (assignedUser) {
       request.assignedTo = assignedUser._id;
+      request.assignedAt = new Date();
       request.status = 'in-process';
       await request.save();
       console.log(`✅ Solicitud ${request.requestNumber} asignada automáticamente a ${assignedUser.firstName} ${assignedUser.lastName}`);
@@ -215,9 +223,15 @@ router.get('/', async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    const activeQueueRequests = await getActiveQueueRequests();
+    const requestsWithQueueInfo = attachQueueInfoToRequests(
+      requests.map((request) => request.toObject()),
+      activeQueueRequests
+    );
+
     res.json({
       success: true,
-      requests,
+      requests: requestsWithQueueInfo,
       pagination: {
         page,
         limit,
@@ -268,21 +282,20 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    // Calcular posición en cola si está pendiente
-    let queuePosition = null;
-    if (request.status === 'pending' && request.queuedAt) {
-      const queueCount = await Request.countDocuments({
-        status: 'pending',
-        queuedAt: { $lt: request.queuedAt }
-      });
-      queuePosition = queueCount + 1;
+    const requestObject = request.toObject();
+    let queueInfo = null;
+
+    if (isQueueActiveStatus(requestObject.status)) {
+      const activeQueueRequests = await getActiveQueueRequests();
+      queueInfo = getQueueInfoForRequest(requestObject, activeQueueRequests);
     }
 
     res.json({
       success: true,
       request: {
-        ...request.toObject(),
-        queuePosition
+        ...requestObject,
+        queueInfo,
+        queuePosition: queueInfo?.position || null
       }
     });
   } catch (error) {
@@ -439,7 +452,11 @@ router.patch('/:id', async (req, res) => {
       if (!['designer', 'manager', 'admin'].includes(req.user.role)) {
         return res.status(403).json({ success: false, message: 'Acceso denegado: no puede asignar solicitudes' });
       }
+      const previousAssignedTo = request.assignedTo ? request.assignedTo.toString() : '';
       request.assignedTo = assignedTo;
+      if (assignedTo.toString() !== previousAssignedTo) {
+        request.assignedAt = new Date();
+      }
     }
 
     await request.save();
