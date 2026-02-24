@@ -8,6 +8,14 @@ const { POSITION_CATALOG } = require('../config/positionCatalog');
 
 const EXECUTOR_TYPES = ['gerente', 'diseñador', 'practicante'];
 
+const POSITION_ALIASES = {
+  'diseador grfico': 'Diseñador gráfico',
+  'disenador grafico': 'Diseñador gráfico',
+  'ejecutivo formacion empresarial': 'Ejecutivo Formación Empresarial',
+  'asistente de direccion': 'Asistente de Dirección',
+  'profesional juridico': 'Profesional Jurídico'
+};
+
 function normalizeAppRole(role) {
   return role === 'admin' ? 'admin' : 'usuario';
 }
@@ -38,9 +46,46 @@ function isInvalidCargo(value) {
   return ['usuario', 'user', 'colaborador', 'solicitante', ''].includes(normalized);
 }
 
+function normalizeTextForCompare(value) {
+  return (value || '')
+    .toString()
+    .replace(/\uFFFD/g, '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeCatalogCargo(value) {
+  const compareValue = normalizeTextForCompare(value);
+  if (!compareValue) return '';
+
+  const aliasMatch = POSITION_ALIASES[compareValue];
+  if (aliasMatch) return aliasMatch;
+
+  const exactCatalogMatch = POSITION_CATALOG.find(
+    (catalogPosition) => normalizeTextForCompare(catalogPosition) === compareValue
+  );
+
+  return exactCatalogMatch || '';
+}
+
 function normalizeCargo(position, role) {
   const rawPosition = (position || '').toString().trim();
-  if (rawPosition && !isInvalidCargo(rawPosition)) return rawPosition;
+  if (rawPosition && !isInvalidCargo(rawPosition)) {
+    const normalizedCatalogCargo = normalizeCatalogCargo(rawPosition);
+    if (normalizedCatalogCargo) {
+      return normalizedCatalogCargo;
+    }
+
+    if (rawPosition.includes('\uFFFD')) {
+      return '';
+    }
+
+    return rawPosition;
+  }
 
   const cargoByLegacyRole = {
     gerente: 'Gerente',
@@ -276,6 +321,70 @@ router.delete('/users/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al desactivar usuario'
+    });
+  }
+});
+
+/**
+ * DELETE /api/admin/users/:id/hard-delete
+ * Eliminar usuario definitivamente (uso excepcional)
+ */
+router.delete('/users/:id/hard-delete', async (req, res) => {
+  try {
+    const targetUser = await User.findById(req.params.id).select('_id role firstName lastName email');
+
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario no encontrado'
+      });
+    }
+
+    if (req.user && String(req.user._id || req.user.id) === String(targetUser._id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'No puedes eliminar tu propio usuario'
+      });
+    }
+
+    if (targetUser.role === 'admin') {
+      const totalAdmins = await User.countDocuments({ role: 'admin' });
+      if (totalAdmins <= 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'No se puede eliminar el último administrador de la plataforma'
+        });
+      }
+    }
+
+    const linkedRequestsCount = await Request.countDocuments({
+      $or: [
+        { requester: targetUser._id },
+        { assignedTo: targetUser._id },
+        { 'comments.author': targetUser._id },
+        { 'approvals.approver': targetUser._id },
+        { 'editHistory.editedBy': targetUser._id }
+      ]
+    });
+
+    if (linkedRequestsCount > 0) {
+      return res.status(409).json({
+        success: false,
+        message: `No se puede eliminar porque el usuario tiene ${linkedRequestsCount} solicitud(es) relacionada(s). Desactívalo en su lugar.`
+      });
+    }
+
+    await User.findByIdAndDelete(targetUser._id);
+
+    res.json({
+      success: true,
+      message: 'Usuario eliminado definitivamente'
+    });
+  } catch (error) {
+    console.error('Error al eliminar usuario definitivamente:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar usuario definitivamente'
     });
   }
 });

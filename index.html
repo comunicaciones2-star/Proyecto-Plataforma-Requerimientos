@@ -1564,6 +1564,9 @@
                           <button @click="toggleAdminUserStatus(adminUser)" :class="adminUser.isActive ? 'text-red-500 hover:text-red-700' : 'text-green-600 hover:text-green-800'" :title="adminUser.isActive ? 'Desactivar usuario' : 'Activar usuario'">
                             <i :class="adminUser.isActive ? 'ri-user-unfollow-line' : 'ri-user-follow-line'"></i>
                           </button>
+                          <button @click="hardDeleteAdminUser(adminUser)" class="text-red-600 hover:text-red-800" title="Eliminar definitivamente">
+                            <i class="ri-delete-bin-line"></i>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -4284,7 +4287,7 @@
         getUserCargo(user) {
           const rawPosition = String(user?.position || '').trim();
           if (rawPosition && !this.isInvalidCargo(rawPosition)) {
-            return rawPosition;
+            return this.normalizeCargoLabel(rawPosition);
           }
 
           const cargos = {
@@ -4303,9 +4306,37 @@
           return ['usuario', 'user', 'colaborador', 'solicitante', ''].includes(normalized);
         },
 
+        normalizeTextForCompare(value) {
+          return String(value || '')
+            .replace(/\uFFFD/g, '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        },
+
+        normalizeCargoLabel(value) {
+          const rawValue = String(value || '').trim();
+          if (!rawValue) return '';
+
+          const aliases = {
+            'diseador grfico': 'Diseñador gráfico',
+            'disenador grafico': 'Diseñador gráfico',
+            'ejecutivo formacion empresarial': 'Ejecutivo Formación Empresarial',
+            'asistente de direccion': 'Asistente de Dirección',
+            'profesional juridico': 'Profesional Jurídico'
+          };
+
+          const normalizedValue = this.normalizeTextForCompare(rawValue);
+          return aliases[normalizedValue] || rawValue;
+        },
+
         normalizeCargoValue(value) {
           const trimmed = String(value || '').trim();
-          return this.isInvalidCargo(trimmed) ? '' : trimmed;
+          if (this.isInvalidCargo(trimmed)) return '';
+          return this.normalizeCargoLabel(trimmed);
         },
 
         getRequestCategoryGroup(type) {
@@ -4965,6 +4996,51 @@
           } catch (error) {
             console.error('Error al cambiar estado del usuario:', error);
             await this.showAlert('Error al cambiar estado del usuario', 'Error');
+          }
+        },
+
+        async hardDeleteAdminUser(adminUser) {
+          const currentUserId = this.user?._id || this.user?.id;
+
+          if (currentUserId && adminUser._id === currentUserId) {
+            await this.showAlert('No puedes eliminar tu propio usuario', 'Aviso');
+            return;
+          }
+
+          const fullName = `${adminUser.firstName || ''} ${adminUser.lastName || ''}`.trim();
+          const label = fullName || adminUser.email || 'este usuario';
+
+          const confirmDelete = await this.showConfirm(
+            `Esta acción eliminará definitivamente a ${label}. ¿Deseas continuar?`,
+            'Eliminar definitivamente'
+          );
+          if (!confirmDelete) return;
+
+          const confirmFinal = await this.showConfirm(
+            'Esta acción NO se puede deshacer. ¿Confirmas eliminación permanente?',
+            'Confirmación final'
+          );
+          if (!confirmFinal) return;
+
+          try {
+            const response = await fetch(`${API_URL}/admin/users/${adminUser._id}/hard-delete`, {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${this.token}`
+              }
+            });
+
+            const data = await response.json();
+            if (!data.success) {
+              await this.showAlert('Error: ' + (data.message || 'No fue posible eliminar el usuario'), 'Error');
+              return;
+            }
+
+            await this.loadAdminUsers();
+            await this.showAlert('Usuario eliminado definitivamente', 'Éxito');
+          } catch (error) {
+            console.error('Error al eliminar usuario definitivamente:', error);
+            await this.showAlert('Error al eliminar usuario definitivamente', 'Error');
           }
         },
 

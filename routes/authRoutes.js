@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
+const { POSITION_CATALOG } = require('../config/positionCatalog');
 
 const router = express.Router();
 
@@ -42,9 +43,53 @@ function isInvalidCargo(value) {
   return ['usuario', 'user', 'colaborador', 'solicitante', ''].includes(normalized);
 }
 
+const POSITION_ALIASES = {
+  'diseador grfico': 'Diseñador gráfico',
+  'disenador grafico': 'Diseñador gráfico',
+  'ejecutivo formacion empresarial': 'Ejecutivo Formación Empresarial',
+  'asistente de direccion': 'Asistente de Dirección',
+  'profesional juridico': 'Profesional Jurídico'
+};
+
+function normalizeTextForCompare(value) {
+  return (value || '')
+    .toString()
+    .replace(/\uFFFD/g, '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeCatalogCargo(value) {
+  const compareValue = normalizeTextForCompare(value);
+  if (!compareValue) return '';
+
+  const aliasMatch = POSITION_ALIASES[compareValue];
+  if (aliasMatch) return aliasMatch;
+
+  const exactCatalogMatch = POSITION_CATALOG.find(
+    (catalogPosition) => normalizeTextForCompare(catalogPosition) === compareValue
+  );
+
+  return exactCatalogMatch || '';
+}
+
 function getCargoFromUser(user) {
   if (user.position && !isInvalidCargo(user.position)) {
-    return String(user.position).trim();
+    const rawPosition = String(user.position).trim();
+    const normalizedCatalogCargo = normalizeCatalogCargo(rawPosition);
+    if (normalizedCatalogCargo) {
+      return normalizedCatalogCargo;
+    }
+
+    if (rawPosition.includes('\uFFFD')) {
+      return '';
+    }
+
+    return rawPosition;
   }
 
   const cargoByLegacyRole = {
