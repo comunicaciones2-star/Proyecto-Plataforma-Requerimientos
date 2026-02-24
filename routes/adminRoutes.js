@@ -21,14 +21,22 @@ function normalizeAppRole(role) {
 }
 
 function normalizeExecutorType(value) {
+  const rawValue = String(value || '').trim().toLowerCase();
+
+  if (EXECUTOR_TYPES.includes(rawValue)) {
+    return rawValue;
+  }
+
+  const compareValue = normalizeTextForCompare(value);
   const typeMap = {
     manager: 'gerente',
+    gerente: 'gerente',
     designer: 'diseñador',
-    disenador: 'diseñador'
+    disenador: 'diseñador',
+    practicante: 'practicante'
   };
 
-  const rawValue = String(value || '').trim().toLowerCase();
-  const normalized = typeMap[rawValue] || rawValue;
+  const normalized = typeMap[compareValue] || '';
   return EXECUTOR_TYPES.includes(normalized) ? normalized : '';
 }
 
@@ -107,6 +115,18 @@ function normalizeUserForApp(userDoc) {
   return user;
 }
 
+function getExecutorProfileDefaults(executorType) {
+  if (executorType === 'gerente') {
+    return { capacity: 15, priority: 1 };
+  }
+
+  if (executorType === 'diseñador') {
+    return { capacity: 8, priority: 2 };
+  }
+
+  return { capacity: 5, priority: 3 };
+}
+
 // Todas las rutas de este archivo requieren ser ADMIN
 router.use(authenticate, authorize(['admin']));
 
@@ -168,7 +188,7 @@ router.get('/users', async (req, res) => {
  */
 router.post('/users', async (req, res) => {
   try {
-    const { email, firstName, lastName, password, role, area, phone, department, position, cargo } = req.body;
+    const { email, firstName, lastName, password, role, area, phone, department, position, cargo, executorType } = req.body;
 
     const exists = await User.findOne({ email });
     if (exists) {
@@ -178,7 +198,9 @@ router.post('/users', async (req, res) => {
       });
     }
 
-    const user = new User({
+    const normalizedExecutorType = normalizeExecutorType(executorType);
+
+    const userData = {
       email,
       firstName,
       lastName,
@@ -188,7 +210,19 @@ router.post('/users', async (req, res) => {
       area,
       phone,
       department
-    });
+    };
+
+    if (normalizedExecutorType) {
+      const defaults = getExecutorProfileDefaults(normalizedExecutorType);
+      userData.executorProfile = {
+        executorType: normalizedExecutorType,
+        available: true,
+        capacity: defaults.capacity,
+        priority: defaults.priority
+      };
+    }
+
+    const user = new User(userData);
 
     await user.save();
 
@@ -214,7 +248,7 @@ router.post('/users', async (req, res) => {
  */
 router.patch('/users/:id', async (req, res) => {
   try {
-    const { firstName, lastName, role, area, phone, department, isActive, position, cargo, email } = req.body;
+    const { firstName, lastName, role, area, phone, department, isActive, position, cargo, email, executorType } = req.body;
 
     const updateData = {
       firstName,
@@ -252,6 +286,20 @@ router.patch('/users/:id', async (req, res) => {
     if (typeof position !== 'undefined' || typeof cargo !== 'undefined') {
       const roleForCargo = typeof role !== 'undefined' ? role : undefined;
       updateData.position = normalizeCargo(position || cargo, roleForCargo);
+    }
+
+    if (typeof executorType !== 'undefined') {
+      const normalizedExecutorType = normalizeExecutorType(executorType);
+
+      if (normalizedExecutorType) {
+        const defaults = getExecutorProfileDefaults(normalizedExecutorType);
+        updateData['executorProfile.executorType'] = normalizedExecutorType;
+        updateData['executorProfile.available'] = true;
+        updateData['executorProfile.capacity'] = defaults.capacity;
+        updateData['executorProfile.priority'] = defaults.priority;
+      } else {
+        updateData['executorProfile.executorType'] = '';
+      }
     }
 
     const user = await User.findByIdAndUpdate(

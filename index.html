@@ -1496,6 +1496,15 @@
                   <option value="usuario">Usuario</option>
                 </select>
               </div>
+              <div class="w-full md:w-48">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Perfil ejecutor</label>
+                <select x-model="adminUserFilters.executorType" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                  <option value="">Todos</option>
+                  <option value="gerente">Gerente</option>
+                  <option value="diseñador">Diseñador</option>
+                  <option value="practicante">Practicante</option>
+                </select>
+              </div>
               <div class="w-full md:w-56">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
                 <select x-model="adminUserFilters.department" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
@@ -1534,6 +1543,7 @@
                     <th class="text-left p-3 font-semibold text-gray-700 sticky top-0 bg-white z-10">Email</th>
                     <th class="text-left p-3 font-semibold text-gray-700 sticky top-0 bg-white z-10">Nombre</th>
                     <th class="text-left p-3 font-semibold text-gray-700 sticky top-0 bg-white z-10">Rol</th>
+                    <th class="text-left p-3 font-semibold text-gray-700 sticky top-0 bg-white z-10">Perfil ejecutor</th>
                     <th class="text-left p-3 font-semibold text-gray-700 sticky top-0 bg-white z-10">Cargo</th>
                     <th class="text-left p-3 font-semibold text-gray-700 sticky top-0 bg-white z-10">Departamento</th>
                     <th class="text-left p-3 font-semibold text-gray-700 sticky top-0 bg-white z-10">Estado</th>
@@ -1548,6 +1558,7 @@
                       <td class="p-3">
                         <span class="px-2 py-1 text-xs rounded-full" :class="getAdminRoleBadgeClass(adminUser.role)" x-text="getAppRoleLabel(adminUser.role)"></span>
                       </td>
+                      <td class="p-3 text-sm" x-text="getExecutorTypeLabel(getAdminUserExecutorType(adminUser))"></td>
                       <td class="p-3 text-sm" x-text="adminUser.position || adminUser.cargo || 'Sin definir'"></td>
                       <td class="p-3 text-sm" x-text="adminUser.department || adminUser.area || 'Sin definir'"></td>
                       <td class="p-3">
@@ -1572,7 +1583,7 @@
                     </tr>
                   </template>
                   <tr x-show="getFilteredAdminUsers().length === 0">
-                    <td colspan="7" class="text-center py-8 text-gray-500">
+                    <td colspan="8" class="text-center py-8 text-gray-500">
                       <div class="flex flex-col items-center gap-3">
                         <i class="ri-search-eye-line text-2xl text-gray-400" x-show="hasActiveAdminUserFilters()"></i>
                         <p x-text="hasActiveAdminUserFilters() ? 'No hay coincidencias para los filtros actuales' : 'No hay usuarios registrados'"></p>
@@ -1629,6 +1640,15 @@
             <select x-model="adminUserForm.role" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
               <option value="admin">Administrador</option>
               <option value="usuario">Usuario</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Perfil ejecutor</label>
+            <select x-model="adminUserForm.executorType" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+              <option value="">Ninguno</option>
+              <option value="gerente">Gerente</option>
+              <option value="diseñador">Diseñador</option>
+              <option value="practicante">Practicante</option>
             </select>
           </div>
           <div>
@@ -2512,6 +2532,7 @@
         adminUserFilters: {
           cargo: '',
           role: '',
+          executorType: '',
           department: ''
         },
         cargoSuggestions: [
@@ -2534,6 +2555,7 @@
           lastName: '',
           password: '',
           role: 'usuario',
+          executorType: '',
           position: '',
           department: 'Comunicaciones',
           phone: '',
@@ -4188,6 +4210,32 @@
           return executor?.executorType || executor?.executorProfile?.executorType || executor?.role || '';
         },
 
+        normalizeExecutorTypeValue(value) {
+          const map = {
+            manager: 'gerente',
+            designer: 'diseñador',
+            disenador: 'diseñador'
+          };
+
+          const normalized = String(value || '').trim().toLowerCase();
+          const resolved = map[normalized] || normalized;
+          return ['gerente', 'diseñador', 'practicante'].includes(resolved) ? resolved : '';
+        },
+
+        getAdminUserExecutorType(adminUser) {
+          return this.normalizeExecutorTypeValue(adminUser?.executorProfile?.executorType || adminUser?.executorType || '');
+        },
+
+        getExecutorTypeLabel(executorType) {
+          const labels = {
+            gerente: 'Gerente',
+            'diseñador': 'Diseñador',
+            practicante: 'Practicante'
+          };
+
+          return labels[this.normalizeExecutorTypeValue(executorType)] || 'Sin perfil';
+        },
+
         getExecutorCargoLabel(executor) {
           const normalizedPosition = this.normalizeCargoValue(executor?.position || '');
           if (normalizedPosition) {
@@ -4811,6 +4859,7 @@
           if (this.currentTab !== 'admin-users') return;
           this.adminUserFilters.cargo = '';
           this.adminUserFilters.role = '';
+          this.adminUserFilters.executorType = '';
           this.adminUserFilters.department = '';
 
           this.$nextTick(() => {
@@ -4822,6 +4871,7 @@
           return Boolean(
             this.adminUserFilters?.cargo ||
             this.adminUserFilters?.role ||
+            this.adminUserFilters?.executorType ||
             this.adminUserFilters?.department
           );
         },
@@ -4829,22 +4879,25 @@
         getFilteredAdminUsers() {
           const cargoFilter = (this.adminUserFilters?.cargo || '').trim().toLowerCase();
           const roleFilter = this.adminUserFilters?.role || '';
+          const executorTypeFilter = this.normalizeExecutorTypeValue(this.adminUserFilters?.executorType || '');
           const departmentFilter = this.adminUserFilters?.department || '';
 
-          if (!cargoFilter && !roleFilter && !departmentFilter) {
+          if (!cargoFilter && !roleFilter && !executorTypeFilter && !departmentFilter) {
             return this.adminUsers;
           }
 
           return (this.adminUsers || []).filter((adminUser) => {
             const cargo = String(adminUser.position || adminUser.cargo || '').toLowerCase();
             const role = this.normalizeAppRole(adminUser.role);
+            const executorType = this.getAdminUserExecutorType(adminUser);
             const department = String(adminUser.department || adminUser.area || '');
 
             const matchCargo = !cargoFilter || cargo.includes(cargoFilter);
             const matchRole = !roleFilter || role === roleFilter;
+            const matchExecutorType = !executorTypeFilter || executorType === executorTypeFilter;
             const matchDepartment = !departmentFilter || department === departmentFilter;
 
-            return matchCargo && matchRole && matchDepartment;
+            return matchCargo && matchRole && matchExecutorType && matchDepartment;
           });
         },
 
@@ -4857,6 +4910,7 @@
               lastName: adminUser.lastName || '',
               password: '',
               role: this.normalizeAppRole(adminUser.role),
+              executorType: this.getAdminUserExecutorType(adminUser),
               position: this.normalizeCargoValue(adminUser.position || adminUser.cargo || ''),
               department: this.normalizeDepartment(adminUser.department || adminUser.area),
               phone: adminUser.phone || '',
@@ -4870,6 +4924,7 @@
               lastName: '',
               password: '',
               role: 'usuario',
+              executorType: '',
               position: '',
               department: 'Comunicaciones',
               phone: '',
@@ -4897,6 +4952,7 @@
               firstName: this.adminUserForm.firstName,
               lastName: this.adminUserForm.lastName,
               role: this.normalizeAppRole(this.adminUserForm.role),
+              executorType: this.normalizeExecutorTypeValue(this.adminUserForm.executorType),
               position: this.normalizeCargoValue(this.adminUserForm.position),
               cargo: this.normalizeCargoValue(this.adminUserForm.position),
               department: this.normalizeDepartment(this.adminUserForm.department),
@@ -4976,6 +5032,7 @@
                   firstName: adminUser.firstName,
                   lastName: adminUser.lastName,
                   role: this.normalizeAppRole(adminUser.role),
+                  executorType: this.getAdminUserExecutorType(adminUser),
                   position: this.normalizeCargoValue(adminUser.position || adminUser.cargo),
                   cargo: this.normalizeCargoValue(adminUser.position || adminUser.cargo),
                   department: this.normalizeDepartment(adminUser.department || adminUser.area),
