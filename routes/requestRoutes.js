@@ -562,24 +562,43 @@ router.put('/:id/edit', async (req, res) => {
       });
     }
 
-    const { title, description, urgency, deliveryDate, type, preferredExecutorRole } = req.body;
+    const {
+      title,
+      description,
+      urgency,
+      deliveryDate,
+      type,
+      preferredExecutorRole,
+      targetAudience,
+      referenceLinks,
+      categoryDetails
+    } = req.body;
     
     // Guardar cambios para historial
     const changes = [];
-    if (title && title !== request.title) changes.push(`Título: "${request.title}" → "${title}"`);
-    if (description && description !== request.description) changes.push('Descripción modificada');
-    if (urgency && urgency !== request.urgency) changes.push(`Urgencia: ${request.urgency} → ${urgency}`);
-    if (deliveryDate && deliveryDate !== request.deliveryDate) changes.push(`Fecha entrega modificada`);
-    if (type && type !== request.type) changes.push(`Tipo: ${request.type} → ${type}`);
-    if (preferredExecutorRole && preferredExecutorRole !== request.preferredExecutorRole) changes.push(`Perfil asignación: ${request.preferredExecutorRole || 'sin definir'} → ${preferredExecutorRole}`);
+    if (typeof title !== 'undefined' && title !== request.title) changes.push(`Título: "${request.title}" → "${title}"`);
+    if (typeof description !== 'undefined' && description !== request.description) changes.push('Descripción modificada');
+    if (typeof urgency !== 'undefined' && urgency !== request.urgency) changes.push(`Urgencia: ${request.urgency} → ${urgency}`);
+    if (typeof deliveryDate !== 'undefined' && deliveryDate !== request.deliveryDate) changes.push('Fecha entrega modificada');
+    if (typeof type !== 'undefined' && type !== request.type) changes.push(`Tipo: ${request.type} → ${type}`);
+    if (typeof preferredExecutorRole !== 'undefined' && preferredExecutorRole !== request.preferredExecutorRole) changes.push(`Perfil asignación: ${request.preferredExecutorRole || 'sin definir'} → ${preferredExecutorRole}`);
+    if (typeof targetAudience !== 'undefined' && targetAudience !== request.targetAudience) changes.push('Público objetivo modificado');
+    if (typeof referenceLinks !== 'undefined' && referenceLinks !== request.referenceLinks) changes.push('Enlaces de referencia modificados');
+    if (typeof categoryDetails !== 'undefined') changes.push('Campos esenciales por categoría actualizados');
 
     // Actualizar campos
-    if (title) request.title = title;
-    if (description) request.description = description;
-    if (urgency) request.urgency = urgency;
-    if (deliveryDate) request.deliveryDate = deliveryDate;
-    if (type) request.type = type;
-    if (preferredExecutorRole) request.preferredExecutorRole = preferredExecutorRole;
+    if (typeof title !== 'undefined') request.title = title;
+    if (typeof description !== 'undefined') request.description = description;
+    if (typeof urgency !== 'undefined') request.urgency = urgency;
+    if (typeof deliveryDate !== 'undefined') request.deliveryDate = deliveryDate;
+    if (typeof type !== 'undefined') request.type = type;
+    if (typeof preferredExecutorRole !== 'undefined') request.preferredExecutorRole = preferredExecutorRole;
+    if (typeof targetAudience !== 'undefined') request.targetAudience = targetAudience;
+    if (typeof referenceLinks !== 'undefined') request.referenceLinks = referenceLinks;
+    if (typeof categoryDetails !== 'undefined') {
+      request.categoryDetails = categoryDetails;
+      request.markModified('categoryDetails');
+    }
 
     // Agregar al historial
     request.editHistory.push({

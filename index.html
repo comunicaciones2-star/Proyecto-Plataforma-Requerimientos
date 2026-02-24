@@ -1239,7 +1239,7 @@
               <p class="text-gray-600 mt-1">Gerentes, diseñadores y practicantes</p>
             </div>
             <button @click="openExecutorModal()" class="px-4 py-2 bg-fenalco-green text-white rounded-lg font-medium flex items-center gap-2 hover:bg-opacity-90 transition">
-              <i class="ri-user-add-line"></i> Nueva Asignación
+              <i class="ri-user-add-line"></i> Nuevo Ejecutor
             </button>
           </div>
 
@@ -1712,7 +1712,7 @@
   <div x-show="showExecutorModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="showExecutorModal = false">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
       <div class="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-        <h3 class="text-2xl font-bold text-gray-800" x-text="executorForm.id ? 'Editar Asignación' : 'Nueva Asignación'"></h3>
+        <h3 class="text-2xl font-bold text-gray-800" x-text="executorForm.id ? 'Editar Ejecutor' : 'Nuevo Ejecutor'"></h3>
         <button @click="showExecutorModal = false" class="text-gray-400 hover:text-gray-600 text-2xl">
           <i class="ri-close-line"></i>
         </button>
@@ -4729,13 +4729,18 @@
 
         async updateRequest() {
           try {
+            this.syncDigitalChannelConfigs();
+
             const payload = {
               title: this.newRequest.title,
               description: this.newRequest.description,
               type: this.newRequest.type,
               urgency: this.newRequest.urgency,
               preferredExecutorRole: this.newRequest.preferredExecutorRole,
-              deliveryDate: this.newRequest.deliveryDate
+              deliveryDate: this.newRequest.deliveryDate,
+              targetAudience: this.newRequest.targetAudience,
+              referenceLinks: this.newRequest.referenceLinks,
+              categoryDetails: this.normalizeCategoryDetails(this.newRequest.categoryDetails)
             };
 
             const response = await fetch(`${API_URL}/requests/${this.editingRequestId}/edit`, {
