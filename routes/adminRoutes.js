@@ -458,11 +458,12 @@ router.delete('/users/:id/hard-delete', async (req, res) => {
 
 /**
  * PATCH /api/admin/users/:id/reset-password
- * Resetear contraseña a un valor por defecto
+ * Resetear contraseña a un valor temporal aleatorio
  */
 router.patch('/users/:id/reset-password', async (req, res) => {
   try {
-    const DEFAULT_PASSWORD = 'password123';
+    const { generateSecurePassword } = require('../utils/helpers');
+    const temporaryPassword = generateSecurePassword(12);
 
     const user = await User.findById(req.params.id);
     if (!user) {
@@ -472,12 +473,13 @@ router.patch('/users/:id/reset-password', async (req, res) => {
       });
     }
 
-    user.password = DEFAULT_PASSWORD;
+    user.password = temporaryPassword;
     await user.save();
 
     res.json({
       success: true,
-      message: 'Contraseña reseteada a password123'
+      message: 'Contraseña reseteada correctamente',
+      temporaryPassword
     });
   } catch (error) {
     console.error('Error al resetear contraseña:', error);

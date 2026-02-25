@@ -5358,7 +5358,7 @@
 
         async resetAdminUserPassword(adminUser) {
           const confirmReset = await this.showConfirm(
-            `¿Resetear contraseña de ${adminUser.firstName} ${adminUser.lastName} a password123?`,
+            `¿Resetear contraseña de ${adminUser.firstName} ${adminUser.lastName} y generar una temporal segura?`,
             'Resetear contraseña'
           );
           if (!confirmReset) return;
@@ -5373,7 +5373,7 @@
 
             const data = await response.json();
             if (data.success) {
-              await this.showAlert('Contraseña reseteada a: password123', 'Éxito');
+              await this.showAlert(`Contraseña temporal generada: ${data.temporaryPassword}`, 'Éxito');
             } else {
               await this.showAlert('Error: ' + (data.message || 'No fue posible resetear la contraseña'), 'Error');
             }
