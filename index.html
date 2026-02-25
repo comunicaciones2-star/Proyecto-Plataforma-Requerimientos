@@ -930,6 +930,11 @@
                       class="px-4 py-2 rounded-lg font-medium transition">
                 <i class="ri-calendar-line mr-2"></i>Mes
               </button>
+              <button @click="reportPeriod = 'year'; loadReportData()" 
+                      :class="reportPeriod === 'year' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
+                      class="px-4 py-2 rounded-lg font-medium transition">
+                <i class="ri-calendar-2-line mr-2"></i>Año
+              </button>
               </div>
               
               <!-- Month/Year selectors -->
@@ -949,9 +954,9 @@
                   <option value="12">Diciembre</option>
                 </select>
                 <select x-model.number="reportYear" @change="loadReportData()" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fenalco-blue">
-                  <option value="2026">2026</option>
-                  <option value="2025">2025</option>
-                  <option value="2024">2024</option>
+                  <template x-for="year in getReportYearOptions()" :key="year">
+                    <option :value="year" x-text="year"></option>
+                  </template>
                 </select>
               </div>
             </div>
@@ -1054,22 +1059,22 @@
             </div>
 
             <div class="card mt-6">
-              <h3 class="text-lg font-semibold text-gray-800 mb-4">Comparativo Mensual</h3>
+              <h3 class="text-lg font-semibold text-gray-800 mb-4" x-text="reportData.comparison.title || 'Comparativo Mensual'"></h3>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="p-4 rounded-lg bg-blue-50">
-                  <p class="text-sm text-gray-600">Mes actual</p>
+                  <p class="text-sm text-gray-600" x-text="reportData.comparison.currentLabelText || 'Mes actual'"></p>
                   <p class="text-2xl font-bold text-blue-700" x-text="reportData.comparison.currentLabel"></p>
                   <p class="text-xs text-gray-500 mt-1"><span x-text="reportData.comparison.currentTotal"></span> solicitudes</p>
                 </div>
                 <div class="p-4 rounded-lg bg-purple-50">
-                  <p class="text-sm text-gray-600">Mes anterior</p>
+                  <p class="text-sm text-gray-600" x-text="reportData.comparison.previousLabelText || 'Mes anterior'"></p>
                   <p class="text-2xl font-bold text-purple-700" x-text="reportData.comparison.previousLabel"></p>
                   <p class="text-xs text-gray-500 mt-1"><span x-text="reportData.comparison.previousTotal"></span> solicitudes</p>
                 </div>
                 <div class="p-4 rounded-lg bg-green-50">
                   <p class="text-sm text-gray-600">Variación</p>
                   <p class="text-2xl font-bold text-green-700" x-text="reportData.comparison.variation + '%'">0%</p>
-                  <p class="text-xs text-gray-500 mt-1">vs mes anterior</p>
+                  <p class="text-xs text-gray-500 mt-1" x-text="reportData.comparison.variationContext || 'vs mes anterior'"></p>
                 </div>
               </div>
             </div>
@@ -2543,6 +2548,10 @@
           },
           topDepartments: [],
           comparison: {
+            title: 'Comparativo Mensual',
+            currentLabelText: 'Mes actual',
+            previousLabelText: 'Mes anterior',
+            variationContext: 'vs mes anterior',
             currentLabel: '-',
             previousLabel: '-',
             currentTotal: 0,
@@ -2872,7 +2881,7 @@
             doc.setFontSize(10);
             doc.text(`Fecha de generación: ${new Date().toLocaleDateString('es-ES')}`, 20, 50);
             doc.text(`Período seleccionado: ${this.reportData.periodLabel}`, 20, 56);
-            doc.text(`Mes: ${this.reportMonth} / Año: ${this.reportYear}`, 20, 62);
+            doc.text(this.getReportExportPeriodLine(), 20, 62);
             
             // Main Metrics
             doc.setFontSize(16);
@@ -2961,7 +2970,7 @@
             doc.setTextColor(40, 0, 113);
             yPos += 15;
             doc.setFontSize(16);
-            doc.text('Tendencia Semanal', 20, yPos);
+            doc.text(this.reportPeriod === 'year' ? 'Tendencia Mensual' : 'Tendencia del Período', 20, yPos);
             
             doc.setFontSize(11);
             doc.setTextColor(0, 0, 0);
@@ -3217,6 +3226,26 @@
           return date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
         },
 
+        getReportYearOptions() {
+          const years = [];
+          for (let year = 2026; year <= 2035; year += 1) {
+            years.push(year);
+          }
+          return years;
+        },
+
+        getReportExportPeriodLine() {
+          if (this.reportPeriod === 'year') {
+            return `Año: ${this.reportYear}`;
+          }
+
+          if (this.reportPeriod === 'month') {
+            return `Mes: ${this.reportMonth} / Año: ${this.reportYear}`;
+          }
+
+          return `Referencia anual: ${this.reportYear}`;
+        },
+
         getReportPeriodRange() {
           const now = new Date();
           const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -3231,6 +3260,13 @@
             const start = new Date(startOfToday);
             start.setDate(start.getDate() - 6);
             return { start, end: endOfToday, label: 'Últimos 7 días' };
+          }
+
+          if (this.reportPeriod === 'year') {
+            const year = Number(this.reportYear) || now.getFullYear();
+            const start = new Date(year, 0, 1);
+            const end = new Date(year + 1, 0, 1);
+            return { start, end, label: `Año ${year}` };
           }
 
           const month = Number(this.reportMonth) || (now.getMonth() + 1);
@@ -3264,6 +3300,23 @@
         },
 
         buildDailyTrend(requests) {
+          if (this.reportPeriod === 'year') {
+            const selectedYear = Number(this.reportYear) || new Date().getFullYear();
+            const values = Array(12).fill(0);
+
+            requests.forEach((request) => {
+              const createdAt = new Date(request.createdAt);
+              if (createdAt.getFullYear() !== selectedYear) return;
+              values[createdAt.getMonth()] += 1;
+            });
+
+            const labels = Array.from({ length: 12 }, (_, monthIndex) =>
+              new Date(selectedYear, monthIndex, 1).toLocaleDateString('es-ES', { month: 'short' })
+            );
+
+            return { labels, values };
+          }
+
           const grouped = {};
           requests.forEach((request) => {
             const date = new Date(request.createdAt);
@@ -3311,7 +3364,40 @@
             .slice(0, 3);
         },
 
-        computeMonthlyComparison() {
+        computePeriodComparison() {
+          if (this.reportPeriod === 'year') {
+            const currentYear = Number(this.reportYear) || new Date().getFullYear();
+            const previousYear = currentYear - 1;
+
+            const currentRequests = this.requests.filter((request) => {
+              const date = new Date(request.createdAt);
+              return date.getFullYear() === currentYear;
+            });
+
+            const previousRequests = this.requests.filter((request) => {
+              const date = new Date(request.createdAt);
+              return date.getFullYear() === previousYear;
+            });
+
+            const currentTotal = currentRequests.length;
+            const previousTotal = previousRequests.length;
+            const variation = previousTotal === 0
+              ? (currentTotal > 0 ? 100 : 0)
+              : Math.round(((currentTotal - previousTotal) / previousTotal) * 100);
+
+            return {
+              title: 'Comparativo Anual',
+              currentLabelText: 'Año actual',
+              previousLabelText: 'Año anterior',
+              variationContext: 'vs año anterior',
+              currentLabel: String(currentYear),
+              previousLabel: String(previousYear),
+              currentTotal,
+              previousTotal,
+              variation
+            };
+          }
+
           const currentMonth = Number(this.reportMonth);
           const currentYear = Number(this.reportYear);
           const previousMonthDate = new Date(currentYear, currentMonth - 2, 1);
@@ -3335,6 +3421,10 @@
             : Math.round(((currentTotal - previousTotal) / previousTotal) * 100);
 
           return {
+            title: 'Comparativo Mensual',
+            currentLabelText: 'Mes actual',
+            previousLabelText: 'Mes anterior',
+            variationContext: 'vs mes anterior',
             currentLabel: this.getMonthLabel(currentMonth, currentYear),
             previousLabel: this.getMonthLabel(previousMonth, previousYear),
             currentTotal,
@@ -3369,7 +3459,7 @@
             },
             dailyTrend: this.buildDailyTrend(filteredRequests),
             topDepartments: this.buildTopDepartments(filteredRequests),
-            comparison: this.computeMonthlyComparison()
+            comparison: this.computePeriodComparison()
           };
 
           this.$nextTick(() => this.renderReportCharts());
