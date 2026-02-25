@@ -1,5 +1,6 @@
 // server.js - SERVIDOR EXPRESS CON MONGODB Y WEBSOCKETS
 require('dotenv').config();
+require('dotenv').config({ path: '.env.local', override: true });
 
 const express = require('express');
 const http = require('http');

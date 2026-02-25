@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('dotenv').config({ path: '.env.local', override: true });
 const mongoose = require('mongoose');
 const Request = require('./models/Request');
 

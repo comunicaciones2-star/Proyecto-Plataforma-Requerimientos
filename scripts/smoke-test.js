@@ -1,5 +1,6 @@
 // scripts/smoke-test.js
 require('dotenv').config();
+require('dotenv').config({ path: '.env.local', override: true });
 const http = require('http');
 
 const BASE_URL = process.env.TEST_BASE_URL || process.env.BASE_URL || 'http://localhost:5000';
