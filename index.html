@@ -344,7 +344,7 @@
       <!-- Top Bar -->
       <header class="bg-white border-b border-gray-200 px-6 py-4">
         <div class="flex items-center justify-between">
-          <button @click="toggleSidebar()" class="lg:hidden text-gray-600" aria-label="Abrir menú">
+          <button @click="toggleSidebar()" class="lg:hidden text-gray-600 mr-3" aria-label="Abrir menú">
             <i class="ri-menu-line text-2xl"></i>
           </button>
           
@@ -538,17 +538,17 @@
               <button @click="requestView = 'list'" 
                       :class="requestView === 'list' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
                 class="px-2 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition flex items-center justify-center whitespace-nowrap">
-              <i class="ri-list-check hidden sm:inline-block sm:mr-2"></i>Lista
+              <i class="ri-list-check mr-1.5 sm:mr-2"></i>Lista
               </button>
               <button @click="requestView = 'grid'" 
                       :class="requestView === 'grid' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
                 class="px-2 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition flex items-center justify-center whitespace-nowrap">
-              <i class="ri-layout-grid-line hidden sm:inline-block sm:mr-2"></i>Cuadrícula
+              <i class="ri-layout-grid-line mr-1.5 sm:mr-2"></i>Cuadrícula
               </button>
               <button @click="requestView = 'timeline'" 
                       :class="requestView === 'timeline' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
                 class="px-2 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition flex items-center justify-center whitespace-nowrap">
-              <i class="ri-time-line hidden sm:inline-block sm:mr-2"></i>Cronológica
+              <i class="ri-time-line mr-1.5 sm:mr-2"></i>Coronología
               </button>
             </div>
             
@@ -901,9 +901,9 @@
         <!-- Reportes Tab -->
         <div x-show="currentTab === 'reportes'">
           <div class="mb-6">
-            <div class="flex items-center justify-end mb-4 md:justify-between">
+            <div class="flex items-center justify-center mb-4 md:justify-between">
               <h2 class="hidden md:block text-2xl font-bold text-gray-800">Reportes y Análisis</h2>
-              <div class="flex items-center gap-2">
+              <div class="flex w-full items-center justify-center gap-2 md:w-auto">
                 <button @click="exportReportesCSV()" class="px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg text-sm sm:text-base flex items-center gap-2 hover:bg-green-700 transition">
                   <i class="ri-file-excel-2-line"></i>
                   Exportar CSV
