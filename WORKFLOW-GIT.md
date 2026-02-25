@@ -39,39 +39,31 @@ git push
 
 ---
 
-## 📝 Convenciones para Mensajes de Commit
+## 📝 Convención Oficial de Commits (Equipo)
 
-Usa prefijos para mantener un historial organizado:
+Desde ahora, todos los commits se escriben en **español** y con este formato:
 
-- **feat:** Nueva funcionalidad
-  ```bash
-  git commit -m "feat: Agregar módulo de calendario"
-  ```
+```text
+tipo(modulo): acción breve en español
+```
 
-- **fix:** Corrección de errores
-  ```bash
-  git commit -m "fix: Corregir error en autenticación"
-  ```
+### Reglas rápidas
 
-- **style:** Cambios visuales (CSS, diseño)
-  ```bash
-  git commit -m "style: Actualizar colores del dashboard"
-  ```
+1. **tipo** en minúscula: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `style`
+2. **modulo** corto y claro: `auth`, `responsive`, `reportes`, `seguridad`, `api`
+3. **acción** inicia con verbo en presente: `agrega`, `corrige`, `ajusta`, `documenta`
+4. Mensaje breve y específico (sin punto final)
 
-- **refactor:** Mejoras en el código sin cambiar funcionalidad
-  ```bash
-  git commit -m "refactor: Optimizar consultas a MongoDB"
-  ```
+### Ejemplos válidos
 
-- **docs:** Cambios en documentación
-  ```bash
-  git commit -m "docs: Actualizar README con nuevas instrucciones"
-  ```
-
-- **chore:** Tareas de mantenimiento
-  ```bash
-  git commit -m "chore: Actualizar dependencias"
-  ```
+```bash
+git commit -m "feat(reportes): agrega filtro por rango de fechas"
+git commit -m "fix(responsive): corrige superposición del menú en móvil"
+git commit -m "chore(seguridad): sanitiza variables de entorno"
+git commit -m "docs(git): documenta convención de commits en español"
+git commit -m "refactor(api): reorganiza validación de solicitudes"
+git commit -m "test(auth): añade casos de login inválido"
+```
 
 ---
 
@@ -200,4 +192,4 @@ git push
 
 ---
 
-**Última actualización:** 23 de enero de 2026
+**Última actualización:** 25 de febrero de 2026
