@@ -9,7 +9,11 @@ const Request = require('../models/Request');
  */
 async function findBestExecutor(request) {
   try {
-    const designType = request.designType || request.type;
+    const requestTypeRaw = request.designType || request.type;
+    const designType = String(requestTypeRaw || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)[0] || '';
     const urgency = request.urgency;
     const preferredRole = request.preferredExecutorRole;
 

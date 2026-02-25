@@ -1954,17 +1954,56 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
-            <select x-model="newRequest.type" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
-              <option value="">Seleccionar...</option>
-              <option value="redes">Redes Sociales</option>
-              <option value="emailing">Mailing</option>
-              <option value="pieza_impresa">Pieza Impresa</option>
-              <option value="presentacion">Presentación</option>
-              <option value="video">Video</option>
-              <option value="banner">Banner</option>
-              <option value="landing_page">Landing Page</option>
-              <option value="otro">Otro</option>
-            </select>
+            <div class="grid grid-cols-2 gap-2 border rounded-lg p-3 bg-white">
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" value="redes" x-model="newRequest.type" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                <span>Redes Sociales</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" value="whatsapp" x-model="newRequest.type" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                <span>WhatsApp</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" value="emailing" x-model="newRequest.type" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                <span>Mailing</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" value="pieza_impresa" x-model="newRequest.type" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                <span>Pieza Impresa</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" value="presentacion" x-model="newRequest.type" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                <span>Presentación</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" value="video" x-model="newRequest.type" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                <span>Video</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" value="banner" x-model="newRequest.type" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                <span>Banner</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" value="landing_page" x-model="newRequest.type" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                <span>Landing Page</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" value="pagina_web" x-model="newRequest.type" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                <span>Página Web</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" value="montaje" x-model="newRequest.type" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                <span>Montaje</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" value="otro" x-model="newRequest.type" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                <span>Otro</span>
+              </label>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Puedes seleccionar varios tipos.</p>
+            <p x-show="isRequestTypeSelected('whatsapp')" class="text-[10px] leading-tight text-gray-500/80 mt-0">
+              WhatsApp es un tipo independiente y no requiere selección de canales de redes sociales.
+            </p>
           </div>
           
           <div>
@@ -1989,8 +2028,8 @@
           </div>
         </div>
 
-        <div x-show="getRequestCategoryGroup(newRequest.type) === 'digital'" class="space-y-4 border rounded-lg p-4 bg-gray-50">
-          <h4 class="font-semibold text-gray-800">Campos esenciales: Redes / Mailing / WhatsApp</h4>
+        <div x-show="shouldShowDigitalFields(newRequest.type)" class="space-y-4 border rounded-lg p-4 bg-gray-50">
+          <h4 class="font-semibold text-gray-800">Campos esenciales: Redes Sociales / Banner Web</h4>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Canal específico *</label>
@@ -2004,23 +2043,27 @@
                   <span>Instagram</span>
                 </label>
                 <label class="flex items-center gap-2 text-sm text-gray-700">
-                  <input type="checkbox" value="WhatsApp" x-model="newRequest.categoryDetails.digital.channels" @change="syncDigitalChannelConfigs()" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
-                  <span>WhatsApp</span>
+                  <input type="checkbox" value="TikTok" x-model="newRequest.categoryDetails.digital.channels" @change="syncDigitalChannelConfigs()" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                  <span>TikTok</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" value="X" x-model="newRequest.categoryDetails.digital.channels" @change="syncDigitalChannelConfigs()" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                  <span>X (antiguo Twitter)</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" value="LinkedIn" x-model="newRequest.categoryDetails.digital.channels" @change="syncDigitalChannelConfigs()" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                  <span>LinkedIn</span>
                 </label>
                 <label class="flex items-center gap-2 text-sm text-gray-700">
                   <input type="checkbox" value="Banner Web" x-model="newRequest.categoryDetails.digital.channels" @change="syncDigitalChannelConfigs()" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
                   <span>Banner Web</span>
-                </label>
-                <label class="flex items-center gap-2 text-sm text-gray-700">
-                  <input type="checkbox" value="Mailing" x-model="newRequest.categoryDetails.digital.channels" @change="syncDigitalChannelConfigs()" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
-                  <span>Mailing</span>
                 </label>
               </div>
               <p class="text-xs text-gray-500 mt-1">Puedes seleccionar múltiples canales</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Objetivo *</label>
-              <select x-model="newRequest.categoryDetails.digital.objective" :required="getRequestCategoryGroup(newRequest.type) === 'digital'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+              <select x-model="newRequest.categoryDetails.digital.objective" :required="shouldShowDigitalFields(newRequest.type)" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
                 <option value="">Seleccionar...</option>
                 <option value="venta">Venta</option>
                 <option value="informativo">Informativo</option>
@@ -2067,12 +2110,12 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Texto (Copy) - Título *</label>
-            <input type="text" x-model="newRequest.categoryDetails.digital.copyTitle" :required="getRequestCategoryGroup(newRequest.type) === 'digital'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Título principal del mensaje">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Texto (Copy) - Título</label>
+            <input type="text" x-model="newRequest.categoryDetails.digital.copyTitle" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Título principal del mensaje">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Texto (Copy) - Cuerpo *</label>
-            <textarea x-model="newRequest.categoryDetails.digital.copyBody" :required="getRequestCategoryGroup(newRequest.type) === 'digital'" rows="2" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Cuerpo del mensaje"></textarea>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Texto (Copy) - Cuerpo</label>
+            <textarea x-model="newRequest.categoryDetails.digital.copyBody" rows="2" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Cuerpo del mensaje"></textarea>
           </div>
         </div>
 
@@ -2483,7 +2526,7 @@
         newRequest: {
           title: '',
           description: '',
-          type: '',
+          type: [],
           urgency: 'normal',
           preferredExecutorRole: 'diseñador',
           deliveryDate: '',
@@ -4611,11 +4654,49 @@
         },
 
         getRequestCategoryGroup(type) {
-          if (['redes', 'emailing', 'banner'].includes(type)) return 'digital';
-          if (type === 'pieza_impresa') return 'print';
-          if (type === 'video') return 'video';
-          if (type === 'landing_page') return 'landing';
+          const primaryType = this.getPrimaryRequestType(type);
+          if (['redes', 'banner'].includes(primaryType)) return 'digital';
+          if (primaryType === 'pieza_impresa') return 'print';
+          if (primaryType === 'video') return 'video';
+          if (primaryType === 'landing_page') return 'landing';
           return '';
+        },
+
+        isRequestTypeSelected(typeValue) {
+          return this.parseRequestTypes(this.newRequest?.type).includes(typeValue);
+        },
+
+        shouldShowDigitalFields(typeValue) {
+          const selectedTypes = this.parseRequestTypes(typeValue);
+          return selectedTypes.some((selectedType) => ['redes', 'banner'].includes(selectedType));
+        },
+
+        getAvailableDigitalChannels() {
+          return ['Facebook', 'Instagram', 'TikTok', 'X', 'LinkedIn', 'Banner Web'];
+        },
+
+        parseRequestTypes(typeValue) {
+          if (Array.isArray(typeValue)) {
+            return typeValue.map((value) => String(value || '').trim()).filter(Boolean);
+          }
+
+          const raw = String(typeValue || '').trim();
+          if (!raw) return [];
+
+          return raw
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean);
+        },
+
+        serializeRequestTypes(types) {
+          const normalized = this.parseRequestTypes(types);
+          return normalized.join(', ');
+        },
+
+        getPrimaryRequestType(typeValue) {
+          const types = this.parseRequestTypes(typeValue);
+          return types.length > 0 ? types[0] : '';
         },
 
         getEmptyCategoryDetails() {
@@ -4648,14 +4729,23 @@
           const base = this.getEmptyCategoryDetails();
           if (!details) return base;
 
+          const allowedChannels = this.getAvailableDigitalChannels();
+
           const normalizedChannels = Array.isArray(details?.digital?.channels)
             ? details.digital.channels
             : (details?.digital?.channel ? [details.digital.channel] : []);
+          const filteredChannels = normalizedChannels.filter((channel) => allowedChannels.includes(channel));
 
           const normalizedConfigs = { ...(details?.digital?.channelConfigs || {}) };
-          normalizedChannels.forEach((channel) => {
+          filteredChannels.forEach((channel) => {
             if (!normalizedConfigs[channel]) {
               normalizedConfigs[channel] = { format: '', publication: '', size: '' };
+            }
+          });
+
+          Object.keys(normalizedConfigs).forEach((channel) => {
+            if (!filteredChannels.includes(channel)) {
+              delete normalizedConfigs[channel];
             }
           });
 
@@ -4663,7 +4753,7 @@
             digital: {
               ...base.digital,
               ...(details.digital || {}),
-              channels: normalizedChannels,
+              channels: filteredChannels,
               channelConfigs: normalizedConfigs
             },
             print: {
@@ -4685,9 +4775,10 @@
           const options = {
             Facebook: ['Post', 'Carrusel', 'Reel', 'Video'],
             Instagram: ['Post', 'Carrusel', 'Reel', 'Video', 'Historia'],
-            WhatsApp: ['Estado', 'Historia', 'Video', 'Imagen'],
+            TikTok: ['Video corto', 'Video vertical', 'Historia'],
+            X: ['Post', 'Hilo', 'Video'],
+            LinkedIn: ['Post', 'Carrusel', 'Artículo', 'Video'],
             'Banner Web': ['Banner estático', 'Banner animado', 'Banner HTML5'],
-            Mailing: ['Header', 'Cuerpo HTML', 'Banner mailing']
           };
 
           return options[channel] || ['Post'];
@@ -4697,9 +4788,10 @@
           const options = {
             Facebook: ['Feed', 'Pauta', 'Historias'],
             Instagram: ['Feed', 'Pauta', 'Historias'],
-            WhatsApp: ['Estados', 'Difusión'],
+            TikTok: ['Feed', 'Pauta'],
+            X: ['Feed', 'Pauta'],
+            LinkedIn: ['Feed', 'Pauta'],
             'Banner Web': ['Sitio web', 'Display Ads'],
-            Mailing: ['Boletín', 'Campaña']
           };
 
           return options[channel] || ['Feed'];
@@ -4716,9 +4808,10 @@
           const options = {
             Facebook: socialSizes,
             Instagram: socialSizes,
-            WhatsApp: ['1080x1920 - 9:16', '1080x1080 - 1:1'],
+            TikTok: ['1080x1920 - 9:16'],
+            X: ['1200x675 - 16:9', '1080x1080 - 1:1'],
+            LinkedIn: ['1200x627 - 1.91:1', '1080x1080 - 1:1'],
             'Banner Web': ['1200x628 - 1.91:1', '1080x1080 - 1:1', '1080x1920 - 9:16'],
-            Mailing: ['600x200 - 3:1', '600x300 - 2:1', '600x600 - 1:1']
           };
 
           return options[channel] || socialSizes;
@@ -4732,7 +4825,10 @@
             digital.channelConfigs = {};
           }
 
-          const channels = Array.isArray(digital.channels) ? digital.channels : [];
+          const allowedChannels = this.getAvailableDigitalChannels();
+          const channels = (Array.isArray(digital.channels) ? digital.channels : [])
+            .filter((channel) => allowedChannels.includes(channel));
+          digital.channels = channels;
           channels.forEach((channel) => {
             if (!digital.channelConfigs[channel]) {
               digital.channelConfigs[channel] = { format: '', publication: '', size: '' };
@@ -4754,7 +4850,7 @@
           this.newRequest = {
             title: '',
             description: '',
-            type: '',
+            type: [],
             urgency: 'normal',
             preferredExecutorRole: 'diseñador',
             deliveryDate: '',
@@ -4776,7 +4872,7 @@
           this.newRequest = {
             title: request.title || '',
             description: request.description || '',
-            type: request.type || '',
+            type: this.parseRequestTypes(request.type),
             urgency: request.urgency || 'normal',
             preferredExecutorRole: request.preferredExecutorRole || 'diseñador',
             deliveryDate: request.deliveryDate ? new Date(request.deliveryDate).toISOString().split('T')[0] : '',
@@ -4792,12 +4888,19 @@
         async saveRequest() {
           this.syncDigitalChannelConfigs();
 
-          if (this.getRequestCategoryGroup(this.newRequest.type) === 'digital' && (!this.newRequest.categoryDetails.digital.channels || this.newRequest.categoryDetails.digital.channels.length === 0)) {
+          if (!Array.isArray(this.newRequest.type) || this.newRequest.type.length === 0) {
+            await this.showAlert('Debes seleccionar al menos un tipo de solicitud', 'Campo requerido');
+            return;
+          }
+
+          const requiresDigitalFields = this.shouldShowDigitalFields(this.newRequest.type);
+
+          if (requiresDigitalFields && (!this.newRequest.categoryDetails.digital.channels || this.newRequest.categoryDetails.digital.channels.length === 0)) {
             await this.showAlert('Debes seleccionar al menos un canal específico', 'Campo requerido');
             return;
           }
 
-          if (this.getRequestCategoryGroup(this.newRequest.type) === 'digital') {
+          if (requiresDigitalFields) {
             for (const channel of this.newRequest.categoryDetails.digital.channels) {
               const channelConfig = this.newRequest.categoryDetails.digital.channelConfigs?.[channel] || {};
               if (!channelConfig.format || !channelConfig.publication || !channelConfig.size) {
@@ -4835,11 +4938,12 @@
         async createRequest() {
           try {
             const formData = new FormData();
+            const serializedType = this.serializeRequestTypes(this.newRequest.type);
             
             // Agregar campos de texto
             formData.append('title', this.newRequest.title);
             formData.append('description', this.newRequest.description);
-            formData.append('type', this.newRequest.type);
+            formData.append('type', serializedType);
             formData.append('urgency', this.newRequest.urgency);
             formData.append('preferredExecutorRole', this.newRequest.preferredExecutorRole);
             formData.append('deliveryDate', this.newRequest.deliveryDate);
@@ -4905,11 +5009,12 @@
         async updateRequest() {
           try {
             this.syncDigitalChannelConfigs();
+            const serializedType = this.serializeRequestTypes(this.newRequest.type);
 
             const payload = {
               title: this.newRequest.title,
               description: this.newRequest.description,
-              type: this.newRequest.type,
+              type: serializedType,
               urgency: this.newRequest.urgency,
               preferredExecutorRole: this.newRequest.preferredExecutorRole,
               deliveryDate: this.newRequest.deliveryDate,

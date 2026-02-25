@@ -2,6 +2,23 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
+const ALLOWED_REQUEST_TYPES = [
+  'diseno_grafico',
+  'redes_sociales',
+  'redes',
+  'pieza_impresa',
+  'presentacion',
+  'video',
+  'banner',
+  'landing_page',
+  'pagina_web',
+  'whatsapp',
+  'montaje',
+  'merchandising',
+  'emailing',
+  'otro'
+];
+
 const commentSchema = new Schema(
   {
     author: {
@@ -147,19 +164,22 @@ const requestSchema = new Schema(
 
     type: {
       type: String,
-      enum: [
-        'diseno_grafico',
-        'redes_sociales',
-        'redes',
-        'pieza_impresa',
-        'presentacion',
-        'video',
-        'banner',
-        'landing_page',
-        'merchandising',
-        'emailing',
-        'otro'
-      ],
+      validate: {
+        validator(value) {
+          const raw = String(value || '').trim();
+          if (!raw) return false;
+
+          const selectedTypes = raw
+            .split(',')
+            .map((typeValue) => typeValue.trim())
+            .filter(Boolean);
+
+          if (selectedTypes.length === 0) return false;
+
+          return selectedTypes.every((selectedType) => ALLOWED_REQUEST_TYPES.includes(selectedType));
+        },
+        message: 'Tipo de solicitud inválido'
+      },
       required: true
     },
 
