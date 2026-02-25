@@ -587,6 +587,8 @@
                 <select x-model="requestSort" @change="onRequestFiltersChange()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
                   <option value="newest">Más recientes</option>
                   <option value="oldest">Más antiguas</option>
+                  <option value="queue-asc">Cola: primero en turno</option>
+                  <option value="queue-desc">Cola: último en turno</option>
                   <option value="title-asc">Título A-Z</option>
                   <option value="title-desc">Título Z-A</option>
                 </select>
@@ -605,7 +607,7 @@
                     <th class="text-left py-3 px-4 font-semibold text-gray-700">Tipo</th>
                     <th class="text-left py-3 px-4 font-semibold text-gray-700">Urgencia</th>
                     <th class="text-left py-3 px-4 font-semibold text-gray-700">Estado</th>
-                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Cola</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Turno en cola</th>
                     <th class="text-left py-3 px-4 font-semibold text-gray-700">Acción</th>
                   </tr>
                 </thead>
@@ -2197,7 +2199,7 @@
             <div>
               <p class="text-sm opacity-90 mb-1">Número de Solicitud</p>
               <h2 class="text-3xl font-bold" x-text="selectedRequest?.requestNumber"></h2>
-              <p class="text-sm opacity-90 mt-2" x-text="'Ticket en Cola: ' + getQueuePositionLabel(selectedRequest)"></p>
+              <p class="text-sm opacity-90 mt-2" x-text="'Turno en cola: ' + getQueuePositionLabel(selectedRequest)"></p>
             </div>
             <div class="text-right">
               <span class="px-4 py-2 rounded-full text-sm font-semibold" 
@@ -3825,6 +3827,24 @@
             result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
           } else if (this.requestSort === 'oldest') {
             result.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+          } else if (this.requestSort === 'queue-asc') {
+            result.sort((a, b) => {
+              const positionA = Number(a?.queueInfo?.position || Number.POSITIVE_INFINITY);
+              const positionB = Number(b?.queueInfo?.position || Number.POSITIVE_INFINITY);
+              if (positionA === positionB) {
+                return new Date(a.createdAt) - new Date(b.createdAt);
+              }
+              return positionA - positionB;
+            });
+          } else if (this.requestSort === 'queue-desc') {
+            result.sort((a, b) => {
+              const positionA = Number(a?.queueInfo?.position || Number.NEGATIVE_INFINITY);
+              const positionB = Number(b?.queueInfo?.position || Number.NEGATIVE_INFINITY);
+              if (positionA === positionB) {
+                return new Date(b.createdAt) - new Date(a.createdAt);
+              }
+              return positionB - positionA;
+            });
           } else if (this.requestSort === 'title-asc') {
             result.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'es'));
           } else if (this.requestSort === 'title-desc') {
@@ -3881,7 +3901,7 @@
             return 'Fuera de cola';
           }
 
-          return `#${queueInfo.position} de ${queueInfo.total}`;
+          return `Turno ${queueInfo.position} de ${queueInfo.total}`;
         },
 
         markNotificationsRead() {
