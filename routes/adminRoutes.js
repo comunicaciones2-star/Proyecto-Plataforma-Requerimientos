@@ -1,6 +1,7 @@
 // routes/adminRoutes.js
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const { authenticate, authorize } = require('../middleware/auth');
 const User = require('../models/User');
 const Request = require('../models/Request');
@@ -38,6 +39,10 @@ function normalizeExecutorType(value) {
 
   const normalized = typeMap[compareValue] || '';
   return EXECUTOR_TYPES.includes(normalized) ? normalized : '';
+}
+
+function isStrongPassword(password) {
+  return /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d\s]).{8,}$/.test(String(password || ''));
 }
 
 function resolveExecutorType(user) {
@@ -244,11 +249,11 @@ router.post('/users', async (req, res) => {
 
 /**
  * PATCH /api/admin/users/:id
- * Actualizar datos básicos de usuario (sin contraseña)
+ * Actualizar datos básicos de usuario (con cambio opcional de contraseña)
  */
 router.patch('/users/:id', async (req, res) => {
   try {
-    const { firstName, lastName, role, area, phone, department, isActive, position, cargo, email, executorType } = req.body;
+    const { firstName, lastName, role, area, phone, department, isActive, position, cargo, email, executorType, password } = req.body;
 
     const updateData = {
       firstName,
@@ -300,6 +305,20 @@ router.patch('/users/:id', async (req, res) => {
       } else {
         updateData['executorProfile.executorType'] = '';
       }
+    }
+
+    if (typeof password !== 'undefined') {
+      const rawPassword = String(password || '');
+
+      if (!isStrongPassword(rawPassword)) {
+        return res.status(400).json({
+          success: false,
+          message: 'La contraseña debe tener mínimo 8 caracteres e incluir al menos una letra, un número y un símbolo especial.'
+        });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      updateData.password = await bcrypt.hash(rawPassword, salt);
     }
 
     const user = await User.findByIdAndUpdate(
