@@ -91,12 +91,24 @@
     
     @media (max-width: 1024px) {
       .sidebar {
+        width: min(85vw, 320px);
         transform: translateX(-100%);
         position: fixed;
-        z-index: 50;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 60;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
       }
       .sidebar.open {
         transform: translateX(0);
+      }
+
+      .app-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(17, 24, 39, 0.45);
+        z-index: 55;
       }
     }
     
@@ -187,7 +199,7 @@
   </style>
 </head>
 
-<body class="bg-gray-50" x-data="app()" x-init="init()">
+<body class="bg-gray-50" x-data="app()" x-init="init()" @keydown.escape.window="closeSidebar()">
   
   <!-- Login Page -->
   <div x-show="!isAuthenticated" x-cloak class="min-h-screen bg-gradient-to-br from-fenalco-blue to-fenalco-blue-600 flex items-center justify-center p-4">
@@ -255,42 +267,42 @@
         
         <!-- Navigation -->
         <nav class="flex-1 overflow-y-auto p-4 space-y-1">
-          <a @click="currentTab = 'dashboard'; loadDashboard()" 
+           <a @click="currentTab = 'dashboard'; loadDashboard(); closeSidebarOnMobile()" 
              :class="currentTab === 'dashboard' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
              class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
             <i class="ri-dashboard-line text-xl mr-3"></i>
             <span class="font-medium">Dashboard</span>
           </a>
           
-          <a @click="currentTab = 'solicitudes'; loadRequests()" 
+           <a @click="currentTab = 'solicitudes'; loadRequests(); closeSidebarOnMobile()" 
              :class="currentTab === 'solicitudes' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
              class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
             <i class="ri-file-list-3-line text-xl mr-3"></i>
             <span class="font-medium">Solicitudes</span>
           </a>
           
-          <a @click="currentTab = 'reportes'" 
+           <a @click="currentTab = 'reportes'; closeSidebarOnMobile()" 
              :class="currentTab === 'reportes' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
              class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
             <i class="ri-bar-chart-box-line text-xl mr-3"></i>
             <span class="font-medium">Reportes</span>
           </a>
           
-          <a @click="currentTab = 'calendario'" 
+           <a @click="currentTab = 'calendario'; closeSidebarOnMobile()" 
              :class="currentTab === 'calendario' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
              class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
             <i class="ri-calendar-line text-xl mr-3"></i>
             <span class="font-medium">Calendario</span>
           </a>
           
-          <a x-show="user?.role === 'admin'" @click="currentTab = 'ejecutores'; loadExecutors()" 
+           <a x-show="user?.role === 'admin'" @click="currentTab = 'ejecutores'; loadExecutors(); closeSidebarOnMobile()" 
              :class="currentTab === 'ejecutores' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
              class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
             <i class="ri-team-line text-xl mr-3"></i>
             <span class="font-medium">Asignación</span>
           </a>
           
-          <a @click="currentTab = 'admin'; if (user?.role === 'admin') loadAdminUsers()" 
+           <a @click="currentTab = 'admin'; if (user?.role === 'admin') loadAdminUsers(); closeSidebarOnMobile()" 
              :class="currentTab === 'admin' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
              class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
             <i class="ri-user-settings-line text-xl mr-3"></i>
@@ -318,13 +330,21 @@
       </div>
     </aside>
 
+    <div
+      x-show="sidebarOpen && isMobileViewport()"
+      x-transition.opacity
+      @click="closeSidebar()"
+      class="app-backdrop lg:hidden"
+      x-cloak
+    ></div>
+
     <!-- Main Content -->
     <div class="flex-1 flex flex-col overflow-hidden">
       
       <!-- Top Bar -->
       <header class="bg-white border-b border-gray-200 px-6 py-4">
         <div class="flex items-center justify-between">
-          <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden text-gray-600">
+          <button @click="toggleSidebar()" class="lg:hidden text-gray-600" aria-label="Abrir menú">
             <i class="ri-menu-line text-2xl"></i>
           </button>
           
@@ -2596,8 +2616,44 @@
           allowedDesignTypes: [],
           specialties: []
         },
+
+        isMobileViewport() {
+          return window.innerWidth < 1024;
+        },
+
+        syncBodyScrollLock() {
+          document.body.classList.toggle('overflow-hidden', this.sidebarOpen && this.isMobileViewport());
+        },
+
+        toggleSidebar() {
+          this.sidebarOpen = !this.sidebarOpen;
+          this.syncBodyScrollLock();
+        },
+
+        closeSidebar() {
+          this.sidebarOpen = false;
+          this.syncBodyScrollLock();
+        },
+
+        closeSidebarOnMobile() {
+          if (this.isMobileViewport()) {
+            this.closeSidebar();
+          }
+        },
+
+        handleViewportChange() {
+          if (this.isMobileViewport()) {
+            this.sidebarOpen = false;
+          } else {
+            this.sidebarOpen = true;
+          }
+          this.syncBodyScrollLock();
+        },
         
         init() {
+          this.handleViewportChange();
+          window.addEventListener('resize', () => this.handleViewportChange());
+
           const token = localStorage.getItem('token');
           const user = localStorage.getItem('user');
           
