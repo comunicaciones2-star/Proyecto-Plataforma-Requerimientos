@@ -534,21 +534,21 @@
         <!-- Solicitudes Tab -->
         <div x-show="currentTab === 'solicitudes'">
           <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div class="flex flex-wrap gap-2">
+          <div class="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-2">
               <button @click="requestView = 'list'" 
                       :class="requestView === 'list' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
-                      class="px-4 py-2 rounded-lg font-medium transition">
-                <i class="ri-list-check mr-2"></i>Lista
+                class="px-2 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition flex items-center justify-center whitespace-nowrap">
+              <i class="ri-list-check hidden sm:inline-block sm:mr-2"></i>Lista
               </button>
               <button @click="requestView = 'grid'" 
                       :class="requestView === 'grid' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
-                      class="px-4 py-2 rounded-lg font-medium transition">
-                <i class="ri-layout-grid-line mr-2"></i>Cuadrícula
+                class="px-2 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition flex items-center justify-center whitespace-nowrap">
+              <i class="ri-layout-grid-line hidden sm:inline-block sm:mr-2"></i>Cuadrícula
               </button>
               <button @click="requestView = 'timeline'" 
                       :class="requestView === 'timeline' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
-                      class="px-4 py-2 rounded-lg font-medium transition">
-                <i class="ri-time-line mr-2"></i>Cronológica
+                class="px-2 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition flex items-center justify-center whitespace-nowrap">
+              <i class="ri-time-line hidden sm:inline-block sm:mr-2"></i>Cronológica
               </button>
             </div>
             
@@ -901,47 +901,47 @@
         <!-- Reportes Tab -->
         <div x-show="currentTab === 'reportes'">
           <div class="mb-6">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-2xl font-bold text-gray-800">Reportes y Análisis</h2>
+            <div class="flex items-center justify-end mb-4 md:justify-between">
+              <h2 class="hidden md:block text-2xl font-bold text-gray-800">Reportes y Análisis</h2>
               <div class="flex items-center gap-2">
-                <button @click="exportReportesCSV()" class="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center gap-2 hover:bg-green-700 transition">
+                <button @click="exportReportesCSV()" class="px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg text-sm sm:text-base flex items-center gap-2 hover:bg-green-700 transition">
                   <i class="ri-file-excel-2-line"></i>
                   Exportar CSV
                 </button>
-                <button @click="exportReportesPDF()" class="px-4 py-2 bg-fenalco-blue text-white rounded-lg flex items-center gap-2 hover:bg-fenalco-blue-600 transition">
+                <button @click="exportReportesPDF()" class="px-3 sm:px-4 py-2 bg-fenalco-blue text-white rounded-lg text-sm sm:text-base flex items-center gap-2 hover:bg-fenalco-blue-600 transition">
                   <i class="ri-download-line"></i>
                   Exportar PDF
                 </button>
               </div>
             </div>
-            <div class="flex flex-wrap items-center gap-4 mb-6">
+            <div class="flex flex-wrap items-center gap-3 mb-6">
               <!-- Period buttons -->
-              <div class="flex space-x-4">
+              <div class="grid w-full grid-cols-4 gap-2 sm:flex sm:w-auto sm:gap-3">
                 <button @click="reportPeriod = 'today'; loadReportData()" 
                         :class="reportPeriod === 'today' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
-                        class="px-4 py-2 rounded-lg font-medium transition">
-                  <i class="ri-calendar-today-line mr-2"></i>Hoy
+                        class="px-2 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition flex items-center justify-center whitespace-nowrap">
+                  <i class="ri-calendar-today-line hidden sm:inline-block sm:mr-2"></i>Hoy
                 </button>
                 <button @click="reportPeriod = 'week'; loadReportData()" 
                         :class="reportPeriod === 'week' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
-                        class="px-4 py-2 rounded-lg font-medium transition">
-                <i class="ri-calendar-week-line mr-2"></i>Semana
+                        class="px-2 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition flex items-center justify-center whitespace-nowrap">
+                <i class="ri-calendar-week-line hidden sm:inline-block sm:mr-2"></i>Semana
               </button>
               <button @click="reportPeriod = 'month'; loadReportData()" 
                       :class="reportPeriod === 'month' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
-                      class="px-4 py-2 rounded-lg font-medium transition">
-                <i class="ri-calendar-line mr-2"></i>Mes
+                      class="px-2 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition flex items-center justify-center whitespace-nowrap">
+                <i class="ri-calendar-line hidden sm:inline-block sm:mr-2"></i>Mes
               </button>
               <button @click="reportPeriod = 'year'; loadReportData()" 
                       :class="reportPeriod === 'year' ? 'bg-fenalco-blue text-white' : 'bg-white text-gray-700'"
-                      class="px-4 py-2 rounded-lg font-medium transition">
-                <i class="ri-calendar-2-line mr-2"></i>Año
+                      class="px-2 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition flex items-center justify-center whitespace-nowrap">
+                <i class="ri-calendar-2-line hidden sm:inline-block sm:mr-2"></i>Año
               </button>
               </div>
               
               <!-- Month/Year selectors -->
-              <div class="flex gap-4 ml-auto">
-                <select x-model.number="reportMonth" @change="loadReportData()" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fenalco-blue">
+              <div class="flex w-full gap-3 sm:w-auto sm:ml-auto">
+                <select x-model.number="reportMonth" @change="loadReportData()" class="flex-1 sm:flex-none px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fenalco-blue">
                   <option value="1">Enero</option>
                   <option value="2">Febrero</option>
                   <option value="3">Marzo</option>
@@ -955,7 +955,7 @@
                   <option value="11">Noviembre</option>
                   <option value="12">Diciembre</option>
                 </select>
-                <select x-model.number="reportYear" @change="loadReportData()" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fenalco-blue">
+                <select x-model.number="reportYear" @change="loadReportData()" class="flex-1 sm:flex-none px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fenalco-blue">
                   <template x-for="year in getReportYearOptions()" :key="year">
                     <option :value="year" x-text="year"></option>
                   </template>
@@ -1262,7 +1262,7 @@
           <!-- Header with filters -->
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-              <h2 class="text-2xl font-bold text-gray-800">Asignación</h2>
+              <h2 class="hidden md:block text-2xl font-bold text-gray-800">Asignación</h2>
               <p class="text-gray-600 mt-1">Gerentes, diseñadores y practicantes</p>
             </div>
             <button @click="openExecutorModal()" class="px-4 py-2 bg-fenalco-green text-white rounded-lg font-medium flex items-center gap-2 hover:bg-opacity-90 transition">
