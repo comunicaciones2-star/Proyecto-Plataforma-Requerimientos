@@ -607,7 +607,7 @@
                     <th class="text-left py-3 px-4 font-semibold text-gray-700">Tipo</th>
                     <th class="text-left py-3 px-4 font-semibold text-gray-700">Urgencia</th>
                     <th class="text-left py-3 px-4 font-semibold text-gray-700">Estado</th>
-                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Turno en cola</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700 whitespace-nowrap min-w-[140px]">Turno en cola</th>
                     <th class="text-left py-3 px-4 font-semibold text-gray-700">Acción</th>
                   </tr>
                 </thead>
@@ -636,8 +636,8 @@
                               }"
                               x-text="getStatusLabel(request.status)"></span>
                       </td>
-                      <td class="py-3 px-4">
-                        <span class="text-xs px-2 py-1 rounded-full font-medium"
+                      <td class="py-3 px-4 whitespace-nowrap min-w-[140px]">
+                        <span class="inline-flex items-center text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap"
                               :class="request.queueInfo ? 'bg-fenalco-blue bg-opacity-10 text-fenalco-blue' : 'bg-gray-100 text-gray-500'"
                               x-text="getQueuePositionLabel(request)"></span>
                       </td>
