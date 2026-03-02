@@ -281,7 +281,7 @@
             <span class="font-medium">Solicitudes</span>
           </a>
           
-           <a @click="currentTab = 'reportes'; closeSidebarOnMobile()" 
+           <a @click="currentTab = 'reportes'; loadReportData(); closeSidebarOnMobile()" 
              :class="currentTab === 'reportes' ? 'bg-fenalco-green text-white' : 'text-gray-700 hover:bg-gray-100'"
              class="flex items-center px-4 py-3 rounded-lg cursor-pointer transition">
             <i class="ri-bar-chart-box-line text-xl mr-3"></i>
@@ -3250,30 +3250,34 @@
         async loadDashboard() {
           try {
             const token = localStorage.getItem('token');
-            
-            // Cargar estadísticas generales
-            const statsResponse = await fetch(`${API_URL}/admin/requests/stats`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const statsData = await statsResponse.json();
-            
-            if (statsData.success) {
-              this.stats = statsData.stats;
-            }
-            
-            // Cargar estadísticas del dashboard
-            const dashboardResponse = await fetch(`${API_URL}/admin/stats/dashboard`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const dashboardData = await dashboardResponse.json();
-
+            const normalizedRole = String(this.user?.role || '').trim().toLowerCase();
+            const normalizedAccessLevel = String(this.user?.accessLevel || '').trim().toLowerCase();
+            const isAdminUser = normalizedRole === 'admin' || normalizedAccessLevel === 'admin';
             let normalizedDashboardData = null;
             
-            if (dashboardResponse.ok && dashboardData && typeof dashboardData === 'object') {
-              normalizedDashboardData = dashboardData;
-            } else {
-              console.warn('No fue posible cargar estadísticas del dashboard:', dashboardData?.message || 'respuesta inválida');
+            if (isAdminUser) {
+              const statsResponse = await fetch(`${API_URL}/admin/requests/stats`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              const statsData = await statsResponse.json();
 
+              if (statsData.success) {
+                this.stats = statsData.stats;
+              }
+
+              const dashboardResponse = await fetch(`${API_URL}/admin/stats/dashboard`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              const dashboardData = await dashboardResponse.json();
+
+              if (dashboardResponse.ok && dashboardData && typeof dashboardData === 'object') {
+                normalizedDashboardData = dashboardData;
+              } else {
+                console.warn('No fue posible cargar estadísticas del dashboard:', dashboardData?.message || 'respuesta inválida');
+              }
+            }
+
+            if (!normalizedDashboardData) {
               const reportDashboardResponse = await fetch(`${API_URL}/reports/dashboard-summary`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               });
