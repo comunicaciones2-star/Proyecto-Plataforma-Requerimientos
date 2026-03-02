@@ -5392,13 +5392,16 @@
               })
             });
 
-            const data = await response.json();
+            const data = await response.json().catch(() => ({
+              success: false,
+              message: 'No se recibió una respuesta válida del servidor.'
+            }));
 
-            if (data.success) {
+            if (response.ok && data.success) {
               await this.loadRequests();
               await this.showAlert('Solicitud cancelada', 'Éxito');
             } else {
-              await this.showAlert('No fue posible cancelar: ' + data.message, 'Error');
+              await this.showAlert('No fue posible cancelar: ' + (data.message || 'Error desconocido'), 'Error');
             }
           } catch (error) {
             console.error('Error al cancelar solicitud:', error);
@@ -5510,8 +5513,11 @@
               body: formData
             });
 
-            const data = await response.json();
-            if (!data.success) {
+            const data = await response.json().catch(() => ({
+              success: false,
+              message: 'No se recibió una respuesta válida del servidor.'
+            }));
+            if (!response.ok || !data.success) {
               await this.showAlert('No fue posible guardar avance: ' + (data.message || 'Error desconocido'), 'Error');
               return;
             }
