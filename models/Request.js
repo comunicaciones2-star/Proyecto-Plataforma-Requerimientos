@@ -96,6 +96,29 @@ const approvalSchema = new Schema(
   { timestamps: true }
 );
 
+const deliveryLinkSchema = new Schema(
+  {
+    url: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    addedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    addedByName: {
+      type: String,
+      trim: true
+    },
+    addedAt: {
+      type: Date,
+      default: Date.now
+    }
+  },
+  { _id: false }
+);
+
 const requestSchema = new Schema(
   {
     requestNumber: {
@@ -263,6 +286,8 @@ const requestSchema = new Schema(
     completedDate: {
       type: Date
     },
+
+    deliveryLinks: [deliveryLinkSchema],
 
     attachments: [attachmentSchema],
 

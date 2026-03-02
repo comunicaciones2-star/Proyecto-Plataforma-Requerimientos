@@ -362,7 +362,7 @@ router.patch('/:id', upload.array('files', 5), async (req, res) => {
   const logger = global.logger || console;
   
   try {
-    const { status, comment, assignedTo } = req.body;
+    const { status, comment, assignedTo, deliveryUrl } = req.body;
 
     const request = await Request.findById(req.params.id).populate(
       'requester',
@@ -404,6 +404,48 @@ router.patch('/:id', upload.array('files', 5), async (req, res) => {
       }));
 
       request.attachments = [...(request.attachments || []), ...newAttachments];
+    }
+
+    const normalizedDeliveryUrl = String(deliveryUrl || '').trim();
+    if (normalizedDeliveryUrl) {
+      if (!canManageAssignedRequest) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tiene permisos para agregar links de entregables en esta solicitud'
+        });
+      }
+
+      let parsedUrl;
+      try {
+        parsedUrl = new URL(normalizedDeliveryUrl);
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: 'El link de entregable no es una URL válida'
+        });
+      }
+
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        return res.status(400).json({
+          success: false,
+          message: 'El link debe iniciar con http:// o https://'
+        });
+      }
+
+      const alreadyExists = Array.isArray(request.deliveryLinks)
+        && request.deliveryLinks.some((link) => String(link?.url || '').trim() === normalizedDeliveryUrl);
+
+      if (!alreadyExists) {
+        request.deliveryLinks = [
+          ...(request.deliveryLinks || []),
+          {
+            url: normalizedDeliveryUrl,
+            addedBy: req.user.id,
+            addedByName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
+            addedAt: new Date()
+          }
+        ];
+      }
     }
 
     if (status) {

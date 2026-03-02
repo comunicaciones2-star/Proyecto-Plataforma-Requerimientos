@@ -2413,12 +2413,38 @@
                       class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green"></textarea>
           </div>
 
+          <div class="mt-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">URL de la pieza (Canva u otra plataforma)</label>
+            <input type="url" x-model="deliveryUpdate.deliveryUrl" placeholder="https://www.canva.com/design/..."
+                   class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+          </div>
+
           <div class="mt-4 flex justify-end">
             <button type="button" @click="saveAssignedRequestProgress()" :disabled="deliveryUpdate.isSaving"
                     class="px-5 py-2 rounded-lg bg-fenalco-green text-white hover:bg-green-600 disabled:opacity-50 transition">
               <i class="ri-save-line mr-1"></i>
               <span x-text="deliveryUpdate.isSaving ? 'Guardando...' : 'Guardar avance'"></span>
             </button>
+          </div>
+        </div>
+
+        <div x-show="selectedRequest?.deliveryLinks && selectedRequest?.deliveryLinks.length > 0" class="card mb-6">
+          <h4 class="font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="ri-links-line text-fenalco-blue mr-2"></i>
+            Links de entregables (<span x-text="selectedRequest?.deliveryLinks?.length"></span>)
+          </h4>
+          <div class="space-y-2">
+            <template x-for="(link, index) in selectedRequest?.deliveryLinks" :key="`delivery-link-${index}`">
+              <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg gap-3">
+                <div class="min-w-0">
+                  <a :href="link.url" target="_blank" rel="noopener noreferrer" class="text-fenalco-blue hover:underline break-all" x-text="link.url"></a>
+                  <p class="text-xs text-gray-500 mt-1" x-text="`${link.addedByName || 'Usuario'} · ${new Date(link.addedAt || Date.now()).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}`"></p>
+                </div>
+                <a :href="link.url" target="_blank" rel="noopener noreferrer" class="text-fenalco-blue hover:text-fenalco-blue-600 flex-shrink-0" title="Abrir link">
+                  <i class="ri-external-link-line text-lg"></i>
+                </a>
+              </div>
+            </template>
           </div>
         </div>
 
@@ -2567,6 +2593,7 @@
         deliveryUpdate: {
           status: '',
           comment: '',
+          deliveryUrl: '',
           selectedFiles: [],
           isSaving: false
         },
@@ -5379,11 +5406,12 @@
 
           const nextStatus = this.deliveryUpdate.status || this.selectedRequest.status;
           const hasComment = String(this.deliveryUpdate.comment || '').trim().length > 0;
+          const hasDeliveryUrl = String(this.deliveryUpdate.deliveryUrl || '').trim().length > 0;
           const hasFiles = Array.isArray(this.deliveryUpdate.selectedFiles) && this.deliveryUpdate.selectedFiles.length > 0;
           const hasStatusChange = nextStatus !== this.selectedRequest.status;
 
-          if (!hasComment && !hasFiles && !hasStatusChange) {
-            await this.showAlert('Agrega un cambio de estado, comentario o archivo para guardar avance.', 'Sin cambios');
+          if (!hasComment && !hasFiles && !hasStatusChange && !hasDeliveryUrl) {
+            await this.showAlert('Agrega un cambio de estado, comentario, archivo o URL para guardar avance.', 'Sin cambios');
             return;
           }
 
@@ -5393,6 +5421,9 @@
             formData.append('status', nextStatus);
             if (hasComment) {
               formData.append('comment', this.deliveryUpdate.comment.trim());
+            }
+            if (hasDeliveryUrl) {
+              formData.append('deliveryUrl', this.deliveryUpdate.deliveryUrl.trim());
             }
             if (hasFiles) {
               this.deliveryUpdate.selectedFiles.forEach((file) => {
@@ -5417,6 +5448,7 @@
             await this.loadRequests();
             await this.viewRequestDetails(this.selectedRequest._id);
             this.deliveryUpdate.comment = '';
+            this.deliveryUpdate.deliveryUrl = '';
             this.deliveryUpdate.selectedFiles = [];
             await this.showAlert('✅ Avance guardado correctamente.', 'Éxito');
           } catch (error) {
@@ -5447,6 +5479,7 @@
               this.selectedRequest = data.request;
               this.deliveryUpdate.status = data.request?.status || 'pending';
               this.deliveryUpdate.comment = '';
+              this.deliveryUpdate.deliveryUrl = '';
               this.deliveryUpdate.selectedFiles = [];
               this.showRequestDetails = true;
             } else {
