@@ -105,7 +105,7 @@ router.post('/', upload.array('files'), async (req, res) => {
           originalName: file.originalname,
           filename: file.filename,
           path: file.path,
-          url: `/uploads/${file.filename}`,
+          url: `/api/files/${encodeURIComponent(file.filename)}`,
           size: file.size,
           mimetype: file.mimetype
         });
@@ -398,7 +398,7 @@ router.patch('/:id', upload.array('files', 5), async (req, res) => {
         originalName: file.originalname,
         filename: file.filename,
         path: file.path,
-        url: `/uploads/${file.filename}`,
+        url: `/api/files/${encodeURIComponent(file.filename)}`,
         size: file.size,
         mimetype: file.mimetype
       }));

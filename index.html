@@ -205,7 +205,7 @@
   <div x-show="!isAuthenticated" x-cloak class="min-h-screen bg-gradient-to-br from-fenalco-blue to-fenalco-blue-600 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
       <div class="text-center mb-8">
-        <img src="FS-Logo-Horizontal CB.svg" alt="Fenalco" class="h-12 mx-auto mb-4">
+        <img src="/public/FS-Logo-Horizontal%20CB.svg" alt="Fenalco" class="h-12 mx-auto mb-4">
         <h1 class="text-3xl font-bold text-fenalco-blue mb-2">Bienvenido</h1>
         <p class="text-gray-600">Gestor de Requerimientos de Diseño</p>
       </div>
@@ -262,7 +262,7 @@
       <div class="h-full flex flex-col">
         <!-- Logo -->
         <div class="p-5 border-b border-gray-200">
-          <img src="FS-Logo-Horizontal CB.svg" alt="Fenalco" class="h-10">
+          <img src="/public/FS-Logo-Horizontal%20CB.svg" alt="Fenalco" class="h-10">
         </div>
         
         <!-- Navigation -->
@@ -2519,7 +2519,7 @@
                     <p class="text-xs text-gray-500" x-text="(attachment.size / 1024).toFixed(1) + ' KB'"></p>
                   </div>
                 </div>
-                <a :href="attachment.url" target="_blank" 
+                <a :href="getSecureAttachmentUrl(attachment)" target="_blank" 
                    class="text-fenalco-blue hover:text-fenalco-blue-600">
                   <i class="ri-download-line text-xl"></i>
                 </a>
@@ -2633,7 +2633,7 @@
         wsConnection: null,
         bellAnimating: false,
         hasUnreadNotifications: false,
-        customNotificationSoundUrl: '/Notification.mp3',
+        customNotificationSoundUrl: '/public/Notification.mp3',
         requestFilters: {
           search: '',
           status: '',
@@ -4420,6 +4420,25 @@
 
           const diffInDays = Math.floor(diffInHours / 24);
           return `Hace ${diffInDays} día${diffInDays === 1 ? '' : 's'}`;
+        },
+
+        getSecureAttachmentUrl(attachment) {
+          const rawUrl = String(attachment?.url || '').trim();
+          if (!rawUrl) {
+            const fallbackName = String(attachment?.filename || '').trim();
+            return fallbackName ? `/api/files/${encodeURIComponent(fallbackName)}` : '#';
+          }
+
+          if (/^https?:\/\//i.test(rawUrl)) {
+            return rawUrl;
+          }
+
+          if (rawUrl.startsWith('/api/files/')) {
+            return rawUrl;
+          }
+
+          const extractedName = String(attachment?.filename || rawUrl.split('/').pop() || '').trim();
+          return extractedName ? `/api/files/${encodeURIComponent(extractedName)}` : '#';
         },
 
         async openNotificationRequest(requestId) {
