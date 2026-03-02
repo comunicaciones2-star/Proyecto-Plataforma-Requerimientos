@@ -30,8 +30,8 @@ const app = express();
 const server = http.createServer(app);
 
 // ==================== MIDDLEWARE ====================
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(mongoSanitize());
 
 app.use(
@@ -84,10 +84,8 @@ mongoose.connection.on('disconnected', () => {
 });
 
 // ==================== RUTAS ====================
-// Servir archivos estáticos
-app.use(express.static(path.join(__dirname, '.')));
-// Servir archivos subidos (uploads)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Servir archivos estáticos solo desde carpeta segura
+app.use('/public', express.static(path.join(__dirname, 'public')));
 // API Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/requests', require('./routes/requestRoutes'));
@@ -96,6 +94,7 @@ app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/departments', require('./routes/departmentRoutes'));
 app.use('/api/queue', require('./routes/queueRoutes'));
+app.use('/api/files', require('./routes/fileRoutes'));
 
 // API Welcome
 app.get('/api', (req, res) => {
@@ -122,6 +121,11 @@ app.get('/api/health', (req, res) => {
     port: PORT,
     environment: process.env.NODE_ENV || 'development'
   });
+});
+
+// Health check requerido por plataformas de despliegue
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
 });
 
 // Servir la app principal en raíz
