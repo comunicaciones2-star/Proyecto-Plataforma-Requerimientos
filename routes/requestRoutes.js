@@ -13,6 +13,34 @@ const { ACTIVE_QUEUE_STATUSES, attachQueueInfoToRequests, getQueueInfoForRequest
 const router = express.Router();
 const MAX_FILES_PER_UPLOAD = 5;
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const REQUEST_ALLOWED_STATUSES = ['pending', 'in-process', 'review', 'completed', 'rejected'];
+const EXECUTOR_ROLES = ['diseñador', 'practicante', 'designer', 'disenador_grafico'];
+const MANAGER_ROLES = ['manager', 'gerente', 'gerente_comunicaciones'];
+const WORKFLOW_TRANSITIONS = {
+  pending: ['in-process'],
+  'in-process': ['review'],
+  review: ['completed', 'rejected']
+};
+
+function isValidHttpUrl(rawValue) {
+  const value = String(rawValue || '').trim();
+  if (!value) return false;
+  try {
+    const parsed = new URL(value);
+    return ['http:', 'https:'].includes(parsed.protocol);
+  } catch (error) {
+    return false;
+  }
+}
+
+function hasAtLeastOneFinalDeliverable(request) {
+  const deliveryLinks = Array.isArray(request?.deliveryLinks) ? request.deliveryLinks : [];
+  return deliveryLinks.some((deliverable) => {
+    const rawUrl = String(deliverable?.url || deliverable?.text || '').trim();
+    if (!rawUrl) return false;
+    return isValidHttpUrl(rawUrl) || rawUrl.length > 0;
+  });
+}
 
 async function getActiveQueueRequests() {
   return Request.find({ status: { $in: ACTIVE_QUEUE_STATUSES } })
@@ -368,6 +396,8 @@ router.patch('/:id', upload.array('files', MAX_FILES_PER_UPLOAD), async (req, re
   
   try {
     const { status, comment, assignedTo, deliveryUrl } = req.body;
+    const normalizedStatus = typeof status === 'string' ? status.trim() : '';
+    const hasStatusUpdate = normalizedStatus.length > 0;
 
     const request = await Request.findById(req.params.id).populate(
       'requester',
@@ -383,13 +413,14 @@ router.patch('/:id', upload.array('files', MAX_FILES_PER_UPLOAD), async (req, re
 
     const requesterId = request.requester?._id?.toString() || request.requester?.toString();
     const assignedUserId = request.assignedTo?._id?.toString() || request.assignedTo?.toString();
-    const isRequester = requesterId === req.user.id;
+  const isOwner = requesterId === req.user.id;
     const isAdmin = req.user.role === 'admin';
     const normalizedRole = String(req.user.role || '').trim().toLowerCase();
-    const isManagerRole = ['manager', 'gerente', 'gerente_comunicaciones'].includes(normalizedRole);
-    const isExecutorRole = ['diseñador', 'practicante', 'designer', 'disenador_grafico'].includes(normalizedRole);
+  const isManagerRole = MANAGER_ROLES.includes(normalizedRole);
+  const isExecutorRole = EXECUTOR_ROLES.includes(normalizedRole);
     const isAssignedExecutor = Boolean(assignedUserId) && assignedUserId === req.user.id && (isExecutorRole || isManagerRole);
     const canManageAssignedRequest = isAdmin || isManagerRole || isAssignedExecutor;
+  const currentStatus = String(request.status || '').trim();
 
     if (req.files && req.files.length > 0) {
       if (!canManageAssignedRequest) {
@@ -453,32 +484,71 @@ router.patch('/:id', upload.array('files', MAX_FILES_PER_UPLOAD), async (req, re
       }
     }
 
-    if (status) {
-      if (status === 'rejected') {
-        if (!isRequester && !isAdmin) {
-          return res.status(403).json({
-            success: false,
-            message: 'Solo el creador o el administrador pueden cancelar esta solicitud'
+    if (hasStatusUpdate) {
+      if (!REQUEST_ALLOWED_STATUSES.includes(normalizedStatus)) {
+        return res.status(400).json({
+          success: false,
+          message: `Estado inválido. Estados permitidos: ${REQUEST_ALLOWED_STATUSES.join(', ')}`
+        });
+      }
+
+      if (normalizedStatus !== currentStatus) {
+        const isWorkflowTransition = Array.isArray(WORKFLOW_TRANSITIONS[currentStatus])
+          && WORKFLOW_TRANSITIONS[currentStatus].includes(normalizedStatus);
+
+        if (!isAdmin) {
+          if (!isWorkflowTransition) {
+            return res.status(400).json({
+              success: false,
+              message: `Transición no permitida: ${currentStatus} -> ${normalizedStatus}.`
+            });
+          }
+
+          if (currentStatus === 'review' && ['completed', 'rejected'].includes(normalizedStatus)) {
+            if (!isOwner) {
+              return res.status(403).json({
+                success: false,
+                message: 'Solo el solicitante o el administrador pueden cerrar o rechazar una solicitud en revisión.'
+              });
+            }
+          } else {
+            if (!canManageAssignedRequest) {
+              logger.warn(`⚠️ Usuario ${req.user.email} intentó cambiar estado sin permisos`);
+              return res.status(403).json({
+                success: false,
+                message: 'Acceso denegado: no puede cambiar el estado'
+              });
+            }
+          }
+        } else if (!isWorkflowTransition) {
+          logger.warn('⚠️ Admin aplicó transición fuera del workflow estándar', {
+            requestId: request._id?.toString(),
+            from: currentStatus,
+            to: normalizedStatus,
+            actor: req.user.email || req.user.id
           });
         }
-      } else {
-        if (!canManageAssignedRequest) {
-          logger.warn(`⚠️ Usuario ${req.user.email} intentó cambiar estado sin permisos`);
-          return res.status(403).json({ 
-            success: false, 
-            message: 'Acceso denegado: no puede cambiar el estado' 
-          });
+
+        if (currentStatus === 'in-process' && normalizedStatus === 'review') {
+          const hasDeliverable = hasAtLeastOneFinalDeliverable(request);
+          if (!hasDeliverable) {
+            return res.status(400).json({
+              success: false,
+              message: 'Debes registrar al menos 1 entregable antes de pasar a revisión.'
+            });
+          }
         }
       }
 
-      request.status = status;
+      request.status = normalizedStatus;
 
-      if (status === 'completed') {
+      if (normalizedStatus === 'completed') {
         request.completedDate = new Date();
       }
 
       // Comentario opcional al cambiar estado
       if (comment) {
+        request.comments = Array.isArray(request.comments) ? request.comments : [];
         request.comments.push({
           author: req.user.id,
           authorName: `${req.user.firstName} ${req.user.lastName}`,
@@ -492,7 +562,7 @@ router.patch('/:id', upload.array('files', MAX_FILES_PER_UPLOAD), async (req, re
           await sendStatusChangeEmail(
             request.requester.email,
             request,
-            status
+            normalizedStatus
           );
         }
       } catch (e) {
