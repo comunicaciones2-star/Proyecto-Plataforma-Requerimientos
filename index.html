@@ -2374,6 +2374,54 @@
           </div>
         </div>
 
+        <div x-show="canManageSelectedRequest()" class="card mb-6">
+          <h4 class="font-semibold text-gray-800 mb-4 flex items-center">
+            <i class="ri-tools-line text-fenalco-blue mr-2"></i>
+            Gestión de solicitud asignada
+          </h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Nuevo estado</label>
+              <select x-model="deliveryUpdate.status" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                <option value="pending">Pendiente</option>
+                <option value="in-process">En proceso</option>
+                <option value="review">En revisión</option>
+                <option value="completed">Completada</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Adjuntar entregables</label>
+              <input type="file" @change="handleDeliverableFileUpload($event)" multiple
+                     accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+                     class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-fenalco-green file:text-white hover:file:bg-green-600">
+              <p class="text-xs text-gray-500 mt-1">Puedes subir evidencias y pieza final (máx. 5 archivos).</p>
+            </div>
+          </div>
+
+          <div x-show="deliveryUpdate.selectedFiles.length > 0" class="mt-3 space-y-1">
+            <template x-for="(file, index) in deliveryUpdate.selectedFiles" :key="`delivery-${index}`">
+              <div class="text-xs text-gray-600 flex items-center justify-between bg-gray-50 rounded px-2 py-1">
+                <span x-text="file.name"></span>
+                <span x-text="(file.size / 1024).toFixed(1) + ' KB'"></span>
+              </div>
+            </template>
+          </div>
+
+          <div class="mt-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Comentario de avance/entrega</label>
+            <textarea x-model="deliveryUpdate.comment" rows="3" placeholder="Ej: Pieza final cargada y enviada para revisión..."
+                      class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green"></textarea>
+          </div>
+
+          <div class="mt-4 flex justify-end">
+            <button type="button" @click="saveAssignedRequestProgress()" :disabled="deliveryUpdate.isSaving"
+                    class="px-5 py-2 rounded-lg bg-fenalco-green text-white hover:bg-green-600 disabled:opacity-50 transition">
+              <i class="ri-save-line mr-1"></i>
+              <span x-text="deliveryUpdate.isSaving ? 'Guardando...' : 'Guardar avance'"></span>
+            </button>
+          </div>
+        </div>
+
         <!-- Detalles del Proyecto -->
         <div class="card mb-6">
           <h4 class="font-semibold text-gray-800 mb-4 flex items-center">
@@ -2516,6 +2564,12 @@
         editingRequestId: null,
         showRequestDetails: false,
         selectedRequest: null,
+        deliveryUpdate: {
+          status: '',
+          comment: '',
+          selectedFiles: [],
+          isSaving: false
+        },
         dialog: {
           open: false,
           title: '',
@@ -5089,6 +5143,32 @@
           return this.user?.role === 'admin' || this.isRequestOwner(request);
         },
 
+        getCurrentUserId() {
+          return this.user?._id || this.user?.id || null;
+        },
+
+        isAssignedToCurrentUser(request) {
+          const assignedId = request?.assignedTo?._id || request?.assignedTo;
+          const currentUserId = this.getCurrentUserId();
+          if (!assignedId || !currentUserId) return false;
+          return assignedId.toString() === currentUserId.toString();
+        },
+
+        canManageAssignedRequest(request) {
+          if (!request || !this.user) return false;
+          const role = String(this.user.role || '').trim().toLowerCase();
+          const isAdmin = role === 'admin';
+          const isManager = ['manager', 'gerente', 'gerente_comunicaciones'].includes(role);
+          const isExecutor = ['diseñador', 'practicante', 'designer', 'disenador_grafico'].includes(role);
+
+          if (isAdmin || isManager) return true;
+          return isExecutor && this.isAssignedToCurrentUser(request);
+        },
+
+        canManageSelectedRequest() {
+          return this.canManageAssignedRequest(this.selectedRequest);
+        },
+
         canDeleteRequest(request) {
           return this.user?.role === 'admin' || this.isRequestOwner(request);
         },
@@ -5279,6 +5359,73 @@
           }
           this.newRequest.selectedFiles = files;
         },
+
+        handleDeliverableFileUpload(event) {
+          const files = Array.from(event.target.files || []);
+          if (files.length > 5) {
+            alert('⚠️ Máximo 5 archivos permitidos por actualización');
+            event.target.value = '';
+            return;
+          }
+          this.deliveryUpdate.selectedFiles = files;
+        },
+
+        async saveAssignedRequestProgress() {
+          if (!this.selectedRequest?._id) return;
+          if (!this.canManageSelectedRequest()) {
+            await this.showAlert('No tienes permisos para gestionar esta solicitud.', 'Permisos');
+            return;
+          }
+
+          const nextStatus = this.deliveryUpdate.status || this.selectedRequest.status;
+          const hasComment = String(this.deliveryUpdate.comment || '').trim().length > 0;
+          const hasFiles = Array.isArray(this.deliveryUpdate.selectedFiles) && this.deliveryUpdate.selectedFiles.length > 0;
+          const hasStatusChange = nextStatus !== this.selectedRequest.status;
+
+          if (!hasComment && !hasFiles && !hasStatusChange) {
+            await this.showAlert('Agrega un cambio de estado, comentario o archivo para guardar avance.', 'Sin cambios');
+            return;
+          }
+
+          this.deliveryUpdate.isSaving = true;
+          try {
+            const formData = new FormData();
+            formData.append('status', nextStatus);
+            if (hasComment) {
+              formData.append('comment', this.deliveryUpdate.comment.trim());
+            }
+            if (hasFiles) {
+              this.deliveryUpdate.selectedFiles.forEach((file) => {
+                formData.append('files', file);
+              });
+            }
+
+            const response = await fetch(`${API_URL}/requests/${this.selectedRequest._id}`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${this.token}`
+              },
+              body: formData
+            });
+
+            const data = await response.json();
+            if (!data.success) {
+              await this.showAlert('No fue posible guardar avance: ' + (data.message || 'Error desconocido'), 'Error');
+              return;
+            }
+
+            await this.loadRequests();
+            await this.viewRequestDetails(this.selectedRequest._id);
+            this.deliveryUpdate.comment = '';
+            this.deliveryUpdate.selectedFiles = [];
+            await this.showAlert('✅ Avance guardado correctamente.', 'Éxito');
+          } catch (error) {
+            console.error('Error guardando avance de solicitud:', error);
+            await this.showAlert('Error de conexión al guardar avance.', 'Error');
+          } finally {
+            this.deliveryUpdate.isSaving = false;
+          }
+        },
         
         async viewRequestDetails(requestId) {
           try {
@@ -5298,6 +5445,9 @@
             
             if (data.success) {
               this.selectedRequest = data.request;
+              this.deliveryUpdate.status = data.request?.status || 'pending';
+              this.deliveryUpdate.comment = '';
+              this.deliveryUpdate.selectedFiles = [];
               this.showRequestDetails = true;
             } else {
               alert('❌ Error al cargar los detalles: ' + data.message);

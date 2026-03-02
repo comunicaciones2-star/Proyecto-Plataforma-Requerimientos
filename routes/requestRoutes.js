@@ -358,7 +358,7 @@ router.get('/queue/list', async (req, res) => {
  * PATCH /api/requests/:id
  * Actualizar estado y/o asignación (principalmente para diseñadores/managers)
  */
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', upload.array('files', 5), async (req, res) => {
   const logger = global.logger || console;
   
   try {
@@ -377,8 +377,34 @@ router.patch('/:id', async (req, res) => {
     }
 
     const requesterId = request.requester?._id?.toString() || request.requester?.toString();
+    const assignedUserId = request.assignedTo?._id?.toString() || request.assignedTo?.toString();
     const isRequester = requesterId === req.user.id;
     const isAdmin = req.user.role === 'admin';
+    const normalizedRole = String(req.user.role || '').trim().toLowerCase();
+    const isManagerRole = ['manager', 'gerente', 'gerente_comunicaciones'].includes(normalizedRole);
+    const isExecutorRole = ['diseñador', 'practicante', 'designer', 'disenador_grafico'].includes(normalizedRole);
+    const isAssignedExecutor = Boolean(assignedUserId) && assignedUserId === req.user.id && (isExecutorRole || isManagerRole);
+    const canManageAssignedRequest = isAdmin || isManagerRole || isAssignedExecutor;
+
+    if (req.files && req.files.length > 0) {
+      if (!canManageAssignedRequest) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tiene permisos para adjuntar entregables en esta solicitud'
+        });
+      }
+
+      const newAttachments = req.files.map((file) => ({
+        originalName: file.originalname,
+        filename: file.filename,
+        path: file.path,
+        url: `/uploads/${file.filename}`,
+        size: file.size,
+        mimetype: file.mimetype
+      }));
+
+      request.attachments = [...(request.attachments || []), ...newAttachments];
+    }
 
     if (status) {
       if (status === 'rejected') {
@@ -389,22 +415,11 @@ router.patch('/:id', async (req, res) => {
           });
         }
       } else {
-        // Validación de roles para cambio de estado general
-        const allowedRoles = ['designer', 'manager', 'admin', 'gerente_comunicaciones', 'disenador_grafico'];
-        if (!allowedRoles.includes(req.user.role)) {
+        if (!canManageAssignedRequest) {
           logger.warn(`⚠️ Usuario ${req.user.email} intentó cambiar estado sin permisos`);
           return res.status(403).json({ 
             success: false, 
             message: 'Acceso denegado: no puede cambiar el estado' 
-          });
-        }
-
-        // Solo admin y manager pueden marcar como completado
-        if (status === 'completed' && !['admin', 'manager', 'gerente_comunicaciones'].includes(req.user.role)) {
-          logger.warn(`⚠️ Usuario ${req.user.email} intentó completar solicitud sin permisos`);
-          return res.status(403).json({
-            success: false,
-            message: 'Solo administradores y gerentes pueden marcar solicitudes como completadas'
           });
         }
       }
@@ -446,7 +461,8 @@ router.patch('/:id', async (req, res) => {
 
     if (assignedTo) {
       // Solo roles autorizados pueden asignar
-      if (!['designer', 'manager', 'admin'].includes(req.user.role)) {
+      const canAssign = ['designer', 'diseñador', 'manager', 'gerente', 'admin', 'gerente_comunicaciones', 'disenador_grafico'].includes(normalizedRole);
+      if (!canAssign) {
         return res.status(403).json({ success: false, message: 'Acceso denegado: no puede asignar solicitudes' });
       }
       const previousAssignedTo = request.assignedTo ? request.assignedTo.toString() : '';
