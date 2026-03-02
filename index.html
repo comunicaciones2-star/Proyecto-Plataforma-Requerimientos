@@ -2046,9 +2046,9 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Urgencia *</label>
             <select x-model="newRequest.urgency" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
-              <option value="normal">Normal (3 días)</option>
-              <option value="urgent">Urgente (2 días)</option>
-              <option value="express">Express (1 día)</option>
+              <template x-for="option in getUrgencyOptions()" :key="option.value">
+                <option :value="option.value" x-text="option.label"></option>
+              </template>
             </select>
           </div>
         </div>
@@ -2662,7 +2662,7 @@
           title: '',
           description: '',
           type: [],
-          urgency: 'normal',
+          urgency: 'estandar',
           preferredExecutorRole: 'diseñador',
           deliveryDate: '',
           targetAudience: '',
@@ -4162,12 +4162,63 @@
         },
 
         getUrgencyLabel(urgency) {
+          const normalizedUrgency = this.normalizeUrgencyForUI(urgency);
           const labels = {
-            normal: 'normal',
-            urgent: 'urgente',
+            programada: 'programada',
+            prioritaria: 'prioritaria',
+            estandar: 'estándar',
+            urgente: 'urgente',
             express: 'express'
           };
-          return labels[urgency] || urgency;
+          return labels[normalizedUrgency] || normalizedUrgency;
+        },
+
+        normalizeUrgencyForUI(urgency) {
+          const value = String(urgency || '').trim().toLowerCase();
+          if (value === 'normal') return 'estandar';
+          if (value === 'urgent' || value === 'urgente') return 'urgente';
+          if (value === 'express') return 'express';
+          if (['programada', 'prioritaria', 'estandar'].includes(value)) return value;
+          return 'estandar';
+        },
+
+        mapUrgencyForApi(urgency) {
+          const normalized = this.normalizeUrgencyForUI(urgency);
+          if (normalized === 'urgente') return 'urgent';
+          if (normalized === 'express') return 'express';
+          return 'normal';
+        },
+
+        isLargeRequestTypeSelected() {
+          const selectedTypes = this.parseRequestTypes(this.newRequest?.type);
+          const largeTypes = ['presentacion', 'pieza_impresa', 'pagina_web', 'landing_page', 'montaje', 'video'];
+          return selectedTypes.some((type) => largeTypes.includes(type));
+        },
+
+        getUrgencyOptions() {
+          const isLarge = this.isLargeRequestTypeSelected();
+          return [
+            {
+              value: 'programada',
+              label: isLarge ? 'Programada (15 días hábiles)' : 'Programada (7 días hábiles)'
+            },
+            {
+              value: 'prioritaria',
+              label: isLarge ? 'Prioritaria (10 días hábiles)' : 'Prioritaria (5 días hábiles)'
+            },
+            {
+              value: 'estandar',
+              label: isLarge ? 'Estándar (7 días hábiles)' : 'Estándar (3 días hábiles)'
+            },
+            {
+              value: 'urgente',
+              label: isLarge ? 'Urgente (5 días hábiles)' : 'Urgente (2 días hábiles)'
+            },
+            {
+              value: 'express',
+              label: isLarge ? 'Express (3 días hábiles)' : 'Express (1 día hábil)'
+            }
+          ];
         },
 
         getQueuePositionLabel(request) {
@@ -4180,7 +4231,7 @@
         },
 
         getAttentionPriorityLevel(request) {
-          const urgency = String(request?.urgency || 'normal').toLowerCase();
+          const urgency = this.mapUrgencyForApi(request?.urgency);
           const now = new Date();
           const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
@@ -5120,7 +5171,7 @@
             title: '',
             description: '',
             type: [],
-            urgency: 'normal',
+            urgency: 'estandar',
             preferredExecutorRole: 'diseñador',
             deliveryDate: '',
             targetAudience: '',
@@ -5145,7 +5196,7 @@
             title: request.title || '',
             description: request.description || '',
             type: this.parseRequestTypes(request.type),
-            urgency: request.urgency || 'normal',
+            urgency: this.normalizeUrgencyForUI(request.urgency),
             preferredExecutorRole: request.preferredExecutorRole || 'diseñador',
             deliveryDate: request.deliveryDate ? new Date(request.deliveryDate).toISOString().split('T')[0] : '',
             targetAudience: request.targetAudience || '',
@@ -5242,7 +5293,7 @@
             formData.append('title', this.newRequest.title);
             formData.append('description', this.newRequest.description);
             formData.append('type', serializedType);
-            formData.append('urgency', this.newRequest.urgency);
+            formData.append('urgency', this.mapUrgencyForApi(this.newRequest.urgency));
             formData.append('preferredExecutorRole', this.newRequest.preferredExecutorRole);
             formData.append('deliveryDate', this.newRequest.deliveryDate);
             formData.append('area', this.user.department);
@@ -5313,7 +5364,7 @@
               title: this.newRequest.title,
               description: this.newRequest.description,
               type: serializedType,
-              urgency: this.newRequest.urgency,
+              urgency: this.mapUrgencyForApi(this.newRequest.urgency),
               preferredExecutorRole: this.newRequest.preferredExecutorRole,
               deliveryDate: this.newRequest.deliveryDate,
               targetAudience: this.newRequest.targetAudience,
