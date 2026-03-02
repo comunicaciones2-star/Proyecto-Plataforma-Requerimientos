@@ -23,6 +23,7 @@ const cspDirectives = {
   scriptSrc: [
     "'self'",
     "'unsafe-inline'",
+    "'unsafe-eval'",
     'https://cdn.tailwindcss.com',
     'https://cdn.jsdelivr.net',
     'https://cdnjs.cloudflare.com'
