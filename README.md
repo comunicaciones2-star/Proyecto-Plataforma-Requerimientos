@@ -187,6 +187,16 @@ node test-api.js
 npm run seed
 ```
 
+### Verificación manual JWT y consistencia de roles
+
+1. Inicia sesión con usuario admin y copia el `token` de `POST /api/auth/login`.
+2. Decodifica el JWT y valida:
+  - `role` conserva el rol real (`admin`, `gerente`, `diseñador`, `practicante`, etc.).
+  - `accessLevel` existe con `admin` o `usuario`.
+3. Repite login con un usuario `diseñador` o `practicante` y valida que `role` no sea `usuario` salvo que realmente lo sea.
+4. Con token de ejecutor, prueba un endpoint de gestión de solicitudes (por ejemplo `PATCH /api/requests/:id`) y valida acceso permitido según asignación/rol.
+5. Con token de usuario no ejecutor, valida rechazo `403` en acciones exclusivas de ejecutores.
+
 ## 📝 Scripts Disponibles
 
 ```json

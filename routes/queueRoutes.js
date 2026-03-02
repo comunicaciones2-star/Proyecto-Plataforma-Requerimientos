@@ -37,7 +37,7 @@ router.get('/tickets/:id/position', async (req, res) => {
     const currentUserId = req.user.id?.toString?.() || req.user.id;
     const requesterId = request.requester?._id?.toString?.() || request.requester?.toString?.() || request.requester;
     const assignedId = request.assignedTo?._id?.toString?.() || request.assignedTo?.toString?.() || request.assignedTo;
-    const isAdmin = req.user.role === 'admin';
+    const isAdmin = req.user.role === 'admin' || req.user.accessLevel === 'admin';
 
     if (!isAdmin && currentUserId !== requesterId && currentUserId !== assignedId) {
       return res.status(403).json({
@@ -109,7 +109,7 @@ router.get('/my', async (req, res) => {
 
 router.get('/scope', async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'admin' && req.user.accessLevel !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Solo administradores pueden consultar la cola por alcance'

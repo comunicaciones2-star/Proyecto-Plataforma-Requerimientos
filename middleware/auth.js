@@ -16,8 +16,15 @@ function authenticate(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const normalizedRole = (decoded.role || '').toString().trim().toLowerCase();
+    const accessLevel = decoded.accessLevel || (normalizedRole === 'admin' ? 'admin' : 'usuario');
+
     // Guardamos los datos del usuario en la request
-    req.user = decoded;
+    req.user = {
+      ...decoded,
+      role: normalizedRole,
+      accessLevel
+    };
     next();
   } catch (err) {
     console.error('Error verificando token:', err.message);
@@ -59,7 +66,7 @@ function authorize(allowedRoles = []) {
 
 // Middleware específico para ejecutores
 function isExecutor(req, res, next) {
-  const executorRoles = ['gerente', 'diseñador', 'practicante'];
+  const executorRoles = ['gerente', 'diseñador', 'practicante', 'manager', 'designer', 'disenador_grafico'];
   
   if (!executorRoles.includes(req.user.role)) {
     return res.status(403).json({

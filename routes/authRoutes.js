@@ -38,6 +38,10 @@ function normalizeAppRole(role) {
   return role === 'admin' ? 'admin' : 'usuario';
 }
 
+function normalizeRealRole(role) {
+  return (role || '').toString().trim().toLowerCase();
+}
+
 function isInvalidCargo(value) {
   const normalized = (value || '').toString().trim().toLowerCase();
   return ['usuario', 'user', 'colaborador', 'solicitante', ''].includes(normalized);
@@ -108,7 +112,8 @@ function sanitizeUserForApp(userDoc) {
   const userSafe = userDoc.toObject ? userDoc.toObject() : { ...userDoc };
   delete userSafe.password;
 
-  userSafe.role = normalizeAppRole(userSafe.role);
+  userSafe.role = normalizeRealRole(userSafe.role);
+  userSafe.accessLevel = normalizeAppRole(userSafe.role);
   userSafe.position = userSafe.position || getCargoFromUser(userSafe);
 
   return userSafe;
@@ -116,11 +121,14 @@ function sanitizeUserForApp(userDoc) {
 
 // Función para generar tokens JWT
 function generateToken(user) {
+  const realRole = normalizeRealRole(user.role);
+
   return jwt.sign(
     {
       id: user._id,
       email: user.email,
-      role: normalizeAppRole(user.role),
+      role: realRole,
+      accessLevel: normalizeAppRole(realRole),
       firstName: user.firstName,
       lastName: user.lastName,
       position: getCargoFromUser(user)

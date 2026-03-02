@@ -379,7 +379,7 @@ router.patch('/:id', upload.array('files', 5), async (req, res) => {
     const requesterId = request.requester?._id?.toString() || request.requester?.toString();
     const assignedUserId = request.assignedTo?._id?.toString() || request.assignedTo?.toString();
     const isRequester = requesterId === req.user.id;
-    const isAdmin = req.user.role === 'admin';
+    const isAdmin = req.user.role === 'admin' || req.user.accessLevel === 'admin';
     const normalizedRole = String(req.user.role || '').trim().toLowerCase();
     const isManagerRole = ['manager', 'gerente', 'gerente_comunicaciones'].includes(normalizedRole);
     const isExecutorRole = ['diseñador', 'practicante', 'designer', 'disenador_grafico'].includes(normalizedRole);
@@ -598,7 +598,7 @@ router.put('/:id/edit', async (req, res) => {
     }
 
     const isRequester = request.requester.toString() === req.user.id;
-    const isAdmin = req.user.role === 'admin';
+    const isAdmin = req.user.role === 'admin' || req.user.accessLevel === 'admin';
 
     // Solo el creador o admin pueden editar
     if (!isRequester && !isAdmin) {
@@ -708,7 +708,7 @@ router.delete('/:id', async (req, res) => {
     }
 
     // Validar permisos: solo puede eliminar el creador o admin
-    if (request.requester.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (request.requester.toString() !== req.user.id && req.user.role !== 'admin' && req.user.accessLevel !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'No tiene permisos para eliminar esta solicitud'
