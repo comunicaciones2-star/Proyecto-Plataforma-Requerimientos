@@ -2695,6 +2695,7 @@
           urgency: null,
           areas: null
         },
+        dashboardChartsRenderTimer: null,
         dashboardChartStatus: {
           performance: {
             noData: false,
@@ -3300,7 +3301,7 @@
               };
             }
             
-            this.initCharts();
+            this.scheduleDashboardChartsRender();
           } catch (error) {
             console.error('Error loading dashboard:', error);
           }
@@ -3328,11 +3329,23 @@
               if (this.requestPagination.page > totalPages) {
                 this.requestPagination.page = Math.max(totalPages, 1);
               }
-              this.initCharts();
+              this.scheduleDashboardChartsRender();
             }
           } catch (error) {
             console.error('Error loading requests:', error);
           }
+        },
+
+        scheduleDashboardChartsRender() {
+          if (this.dashboardChartsRenderTimer) {
+            clearTimeout(this.dashboardChartsRenderTimer);
+          }
+
+          this.dashboardChartsRenderTimer = setTimeout(() => {
+            this.initCharts().catch((error) => {
+              console.error('Error renderizando dashboard:', error);
+            });
+          }, 120);
         },
 
         getDashboardAreaData() {
@@ -3728,7 +3741,7 @@
 
         getChartContext(canvasId) {
           const canvas = document.getElementById(canvasId);
-          if (!canvas || typeof canvas.getContext !== 'function') return null;
+          if (!canvas || typeof canvas.getContext !== 'function' || !canvas.isConnected) return null;
           return canvas.getContext('2d');
         },
 
@@ -4470,6 +4483,7 @@
                 options: {
                   responsive: true,
                   maintainAspectRatio: false,
+                  animation: false,
                   plugins: {
                     legend: {
                       display: true,
@@ -4515,6 +4529,7 @@
                 options: {
                   responsive: true,
                   maintainAspectRatio: false,
+                  animation: false,
                   plugins: { legend: { display: true, position: 'top' } },
                   scales: { y: { beginAtZero: true } }
                 }
@@ -4551,6 +4566,7 @@
                 options: {
                   responsive: true,
                   maintainAspectRatio: false,
+                  animation: false,
                   plugins: {
                     legend: {
                       position: 'bottom',
@@ -4586,6 +4602,7 @@
                 options: {
                   responsive: true,
                   maintainAspectRatio: false,
+                  animation: false,
                   plugins: { legend: { position: 'bottom' } },
                   cutout: '60%'
                 }
@@ -4623,6 +4640,7 @@
             options: {
               responsive: true,
               maintainAspectRatio: false,
+              animation: false,
               plugins: {
                 legend: { display: false }
               },
