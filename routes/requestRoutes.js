@@ -11,6 +11,8 @@ const { autoAssignRequest } = require('../utils/autoAssign');
 const { ACTIVE_QUEUE_STATUSES, attachQueueInfoToRequests, getQueueInfoForRequest, isQueueActiveStatus } = require('../utils/queue');
 
 const router = express.Router();
+const MAX_FILES_PER_UPLOAD = 5;
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 async function getActiveQueueRequests() {
   return Request.find({ status: { $in: ACTIVE_QUEUE_STATUSES } })
@@ -38,7 +40,10 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  limits: {
+    fileSize: MAX_FILE_SIZE_BYTES,
+    files: MAX_FILES_PER_UPLOAD
+  },
   fileFilter: (req, file, cb) => {
     // Tipos de archivo permitidos
     const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|ppt|pptx|xls|xlsx/;
@@ -60,7 +65,7 @@ router.use(authenticate);
  * POST /api/requests
  * Crear nueva solicitud (con archivos opcionales)
  */
-router.post('/', upload.array('files'), async (req, res) => {
+router.post('/', upload.array('files', MAX_FILES_PER_UPLOAD), async (req, res) => {
   try {
     const {
       area,
@@ -358,7 +363,7 @@ router.get('/queue/list', async (req, res) => {
  * PATCH /api/requests/:id
  * Actualizar estado y/o asignación (principalmente para diseñadores/managers)
  */
-router.patch('/:id', upload.array('files', 5), async (req, res) => {
+router.patch('/:id', upload.array('files', MAX_FILES_PER_UPLOAD), async (req, res) => {
   const logger = global.logger || console;
   
   try {

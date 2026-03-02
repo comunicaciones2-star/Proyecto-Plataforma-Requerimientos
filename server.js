@@ -183,15 +183,30 @@ startDeadlineAlertsMonitor();
 
 // ==================== ERROR HANDLER ====================
 app.use((err, req, res, next) => {
+  let statusCode = err.statusCode || 500;
+  let message = err.message || 'Error interno del servidor';
+
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    statusCode = 400;
+    message = 'Cada archivo puede pesar máximo 10 MB.';
+  }
+
+  if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE') {
+    statusCode = 400;
+    message = 'Máximo 5 archivos por solicitud.';
+  }
+
   logger.error('Error no controlado en request', {
-    message: err.message,
+    message,
+    originalMessage: err.message,
+    code: err.code,
     stack: err.stack,
     path: req.path,
     method: req.method
   });
-  res.status(err.statusCode || 500).json({
+  res.status(statusCode).json({
     success: false,
-    message: err.message || 'Error interno del servidor'
+    message
   });
 });
 
