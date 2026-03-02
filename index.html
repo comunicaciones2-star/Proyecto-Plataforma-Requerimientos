@@ -3328,8 +3328,7 @@
               if (this.requestPagination.page > totalPages) {
                 this.requestPagination.page = Math.max(totalPages, 1);
               }
-              this.renderDashboardAreasChart();
-              this.loadReportData();
+              this.initCharts();
             }
           } catch (error) {
             console.error('Error loading requests:', error);
@@ -4425,39 +4424,30 @@
             return;
           }
 
+          const monthLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+          const monthlyData = new Array(12).fill(0);
+          const urgencyTotals = { normal: 0, urgent: 0, express: 0 };
+          const currentYear = new Date().getFullYear();
+
+          (this.requests || []).forEach((request) => {
+            const normalizedUrgency = request?.urgency === 'urgente' ? 'urgent' : String(request?.urgency || 'normal').toLowerCase();
+            if (Object.prototype.hasOwnProperty.call(urgencyTotals, normalizedUrgency)) {
+              urgencyTotals[normalizedUrgency] += 1;
+            }
+
+            if (request?.status === 'completed') {
+              const sourceDate = request.completedDate || request.updatedAt || request.createdAt;
+              const completionDate = new Date(sourceDate);
+              if (!Number.isNaN(completionDate.getTime()) && completionDate.getFullYear() === currentYear) {
+                monthlyData[completionDate.getMonth()] += 1;
+              }
+            }
+          });
+
           // Gráfico de Performance Mensual
           const ctxPerformance = this.getChartContext('chartPerformance');
           if (ctxPerformance) {
             try {
-              const token = localStorage.getItem('token');
-              let response = await fetch('/api/admin/stats/monthly-performance', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-              });
-              let result = await response.json();
-
-              if (!response.ok) {
-                response = await fetch('/api/reports/monthly-performance', {
-                  headers: { 'Authorization': `Bearer ${token}` }
-                });
-                result = await response.json();
-              }
-
-              let monthlyData = [];
-
-              if (Array.isArray(result?.data)) {
-                monthlyData = result.data;
-              } else if (Array.isArray(result)) {
-                monthlyData = result;
-              }
-
-              if (!Array.isArray(monthlyData) || monthlyData.length !== 12) {
-                const normalized = new Array(12).fill(0);
-                (monthlyData || []).slice(0, 12).forEach((value, index) => {
-                  normalized[index] = Number(value) || 0;
-                });
-                monthlyData = normalized;
-              }
-
               this.dashboardChartStatus.performance.noData = !monthlyData.some((value) => Number(value) > 0);
 
               if (this.dashboardCharts.performance) {
@@ -4467,7 +4457,7 @@
               this.dashboardCharts.performance = new Chart(ctxPerformance, {
                 type: 'line',
                 data: {
-                  labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                  labels: monthLabels,
                   datasets: [{
                     label: 'Completadas',
                     data: monthlyData,
@@ -4502,8 +4492,8 @@
                 }
               });
             } catch (error) {
-              console.error('Error cargando datos de performance mensual:', error);
-              this.dashboardChartStatus.performance.error = 'No fue posible cargar la gráfica de performance';
+              console.error('Error renderizando gráfica de performance mensual:', error);
+              this.dashboardChartStatus.performance.error = 'No fue posible renderizar la gráfica de performance';
 
               if (this.dashboardCharts.performance) {
                 this.dashboardCharts.performance.destroy();
@@ -4512,7 +4502,7 @@
               this.dashboardCharts.performance = new Chart(ctxPerformance, {
                 type: 'line',
                 data: {
-                  labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                  labels: monthLabels,
                   datasets: [{
                     label: 'Completadas',
                     data: new Array(12).fill(0),
@@ -4536,25 +4526,10 @@
           const ctxUrgencia = this.getChartContext('chartUrgencia');
           if (ctxUrgencia) {
             try {
-              const token = localStorage.getItem('token');
-              let response = await fetch('/api/admin/stats/urgency-distribution', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-              });
-              let result = await response.json();
-
-              if (!response.ok) {
-                response = await fetch('/api/reports/urgency-distribution', {
-                  headers: { 'Authorization': `Bearer ${token}` }
-                });
-                result = await response.json();
-              }
-
-              const urgencyData = result?.data || result || { normal: 0, urgent: 0, express: 0 };
-
               const urgencyValues = [
-                Number(urgencyData.normal) || 0,
-                Number(urgencyData.urgent) || 0,
-                Number(urgencyData.express) || 0
+                Number(urgencyTotals.normal) || 0,
+                Number(urgencyTotals.urgent) || 0,
+                Number(urgencyTotals.express) || 0
               ];
 
               this.dashboardChartStatus.urgency.noData = !urgencyValues.some((value) => Number(value) > 0);
@@ -4591,8 +4566,8 @@
                 }
               });
             } catch (error) {
-              console.error('Error cargando datos de urgencia:', error);
-              this.dashboardChartStatus.urgency.error = 'No fue posible cargar la gráfica de urgencia';
+              console.error('Error renderizando gráfica de urgencia:', error);
+              this.dashboardChartStatus.urgency.error = 'No fue posible renderizar la gráfica de urgencia';
 
               if (this.dashboardCharts.urgency) {
                 this.dashboardCharts.urgency.destroy();
