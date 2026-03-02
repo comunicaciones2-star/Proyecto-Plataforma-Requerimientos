@@ -131,7 +131,9 @@ app.get('/', (req, res) => {
 
 // ==================== WEBSOCKET ====================
 const { initializeWebSocket } = require('./utils/websocket');
+const { startDeadlineAlertsMonitor, stopDeadlineAlertsMonitor } = require('./utils/deadlineAlerts');
 initializeWebSocket(server);
+startDeadlineAlertsMonitor();
 
 // ==================== ERROR HANDLER ====================
 app.use((err, req, res, next) => {
@@ -182,4 +184,14 @@ process.on('unhandledRejection', (reason) => {
     reason: reason instanceof Error ? reason.message : String(reason)
   });
   process.exit(1);
+});
+
+process.on('SIGINT', () => {
+  stopDeadlineAlertsMonitor();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  stopDeadlineAlertsMonitor();
+  process.exit(0);
 });

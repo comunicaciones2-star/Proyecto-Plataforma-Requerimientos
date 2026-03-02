@@ -4201,6 +4201,23 @@
             };
           }
 
+          if (message.type === 'DEADLINE_ALERT') {
+            const threshold = message.thresholdLabel ? `LÍMITE ${message.thresholdLabel.toUpperCase()}` : 'PRÓXIMA A VENCER';
+            const remaining = Number.isFinite(Number(message.remainingHours))
+              ? `${Math.max(1, Math.round(Number(message.remainingHours)))}h restantes`
+              : 'Revisar fecha de entrega';
+
+            return {
+              id: `rt-${Date.now()}-${message.requestId || Math.random()}`,
+              requestId: message.requestId,
+              title: requestTitle,
+              subtitle: `${threshold} · ${remaining}`,
+              time: 'Hace unos segundos',
+              iconClass: 'ri-alarm-warning-line text-orange-600',
+              bgClass: 'bg-orange-100'
+            };
+          }
+
           return null;
         },
 
@@ -4224,7 +4241,7 @@
               try {
                 const message = JSON.parse(event.data);
 
-                if (['NEW_REQUEST', 'STATUS_CHANGE', 'REQUEST_UPDATED'].includes(message.type)) {
+                if (['NEW_REQUEST', 'STATUS_CHANGE', 'REQUEST_UPDATED', 'DEADLINE_ALERT'].includes(message.type)) {
                   const notification = this.formatIncomingNotification(message);
                   if (notification) {
                     this.notifications = [notification, ...this.notifications].slice(0, 50);

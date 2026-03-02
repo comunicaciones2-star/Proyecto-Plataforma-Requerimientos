@@ -268,7 +268,12 @@ const requestSchema = new Schema(
 
     comments: [commentSchema],
 
-    approvals: [approvalSchema]
+    approvals: [approvalSchema],
+
+    deadlineAlertsSent: [{
+      type: String,
+      enum: ['normal_24h', 'urgent_12h', 'express_3h']
+    }]
   },
   {
     timestamps: true
