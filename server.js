@@ -18,6 +18,42 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : ['http://localhost:5000', 'http://localhost:8888'];
 
+const cspDirectives = {
+  defaultSrc: ["'self'"],
+  scriptSrc: [
+    "'self'",
+    "'unsafe-inline'",
+    'https://cdn.tailwindcss.com',
+    'https://cdn.jsdelivr.net',
+    'https://cdnjs.cloudflare.com'
+  ],
+  styleSrc: [
+    "'self'",
+    "'unsafe-inline'",
+    'https://cdn.jsdelivr.net'
+  ],
+  fontSrc: [
+    "'self'",
+    'data:',
+    'https://cdn.jsdelivr.net'
+  ],
+  imgSrc: [
+    "'self'",
+    'data:',
+    'https://res.cloudinary.com',
+    'https://*.cloudinary.com'
+  ],
+  connectSrc: [
+    "'self'",
+    'ws:',
+    'wss:'
+  ],
+  objectSrc: ["'none'"],
+  baseUri: ["'self'"],
+  frameAncestors: ["'self'"],
+  formAction: ["'self'"]
+};
+
 global.logger = logger;
 
 logger.info('FENALCO - PLATAFORMA DE GESTIÓN DE DISEÑOS iniciando', {
@@ -36,7 +72,10 @@ app.use(mongoSanitize());
 
 app.use(
   helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: cspDirectives
+    },
     crossOriginEmbedderPolicy: false
   })
 );
