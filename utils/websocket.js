@@ -7,16 +7,90 @@ let pingInterval = null;
 let fallbackTimeout = null;
 const clients = new Map(); // userId -> ws
 
+const DEFAULT_AUTH_TIMEOUT_MS = 5000;
+const DEFAULT_MAX_PAYLOAD_KB = 32;
+const DEFAULT_RATE_LIMIT_MESSAGES = 10;
+const DEFAULT_RATE_LIMIT_WINDOW_MS = 1000;
+
+function getLogger() {
+  return global.logger || console;
+}
+
+function parsePositiveInt(rawValue, fallbackValue) {
+  const parsed = Number.parseInt(rawValue, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallbackValue;
+}
+
+function getAllowedOrigins() {
+  const configured = String(process.env.ALLOWED_ORIGINS || '').trim();
+  if (!configured) {
+    return null;
+  }
+
+  const origins = configured
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return origins.length > 0 ? origins : null;
+}
+
 function initializeWebSocket(server) {
   if (wss) return wss;
 
+  const logger = getLogger();
+  const authTimeoutMs = parsePositiveInt(process.env.WS_AUTH_TIMEOUT_MS, DEFAULT_AUTH_TIMEOUT_MS);
+  const maxPayloadKb = parsePositiveInt(process.env.WS_MAX_PAYLOAD_KB, DEFAULT_MAX_PAYLOAD_KB);
+  const maxPayloadBytes = maxPayloadKb * 1024;
+  const maxMessagesPerWindow = parsePositiveInt(process.env.WS_MAX_MESSAGES_PER_SECOND, DEFAULT_RATE_LIMIT_MESSAGES);
+  const rateLimitWindowMs = parsePositiveInt(process.env.WS_RATE_LIMIT_WINDOW_MS, DEFAULT_RATE_LIMIT_WINDOW_MS);
+  const allowedOrigins = getAllowedOrigins();
+
+  if (!allowedOrigins && process.env.NODE_ENV === 'production') {
+    logger.warn('WS sin ALLOWED_ORIGINS definido en producción; no se validará origin', {
+      component: 'websocket'
+    });
+  }
+
   wss = new WebSocket.Server({ server });
 
-  wss.on('connection', (ws) => {
-    console.log('📡 Cliente WebSocket conectado');
+  wss.on('connection', (ws, req) => {
+    const origin = req?.headers?.origin || null;
+    const clientIp = req?.socket?.remoteAddress || null;
+
+    if (allowedOrigins && (!origin || !allowedOrigins.includes(origin))) {
+      logger.warn('WS origin rechazado', {
+        component: 'websocket',
+        origin,
+        clientIp
+      });
+      ws.close(1008, 'Origin not allowed');
+      return;
+    }
+
+    logger.info('Cliente WebSocket conectado', {
+      component: 'websocket',
+      origin,
+      clientIp
+    });
 
     ws.isAlive = true;
     ws.userId = null;
+    ws.isAuthenticated = false;
+    ws.rateLimitWindowStart = Date.now();
+    ws.rateLimitMessageCount = 0;
+    ws.rateLimitWarned = false;
+
+    ws.authTimeout = setTimeout(() => {
+      if (!ws.isAuthenticated && ws.readyState === WebSocket.OPEN) {
+        logger.warn('WS cerrado por timeout de autenticación', {
+          component: 'websocket',
+          origin,
+          clientIp
+        });
+        ws.close(1008, 'Authentication timeout');
+      }
+    }, authTimeoutMs);
 
     ws.on('pong', () => {
       ws.isAlive = true;
@@ -24,6 +98,53 @@ function initializeWebSocket(server) {
 
     ws.on('message', (data) => {
       try {
+        const payloadBytes = Buffer.isBuffer(data)
+          ? data.length
+          : Buffer.byteLength(String(data || ''), 'utf8');
+
+        if (payloadBytes > maxPayloadBytes) {
+          logger.warn('WS payload excede tamaño máximo', {
+            component: 'websocket',
+            payloadBytes,
+            maxPayloadBytes,
+            userId: ws.userId || null
+          });
+          ws.close(1009, 'Payload too large');
+          return;
+        }
+
+        const now = Date.now();
+        if (now - ws.rateLimitWindowStart >= rateLimitWindowMs) {
+          ws.rateLimitWindowStart = now;
+          ws.rateLimitMessageCount = 0;
+          ws.rateLimitWarned = false;
+        }
+
+        ws.rateLimitMessageCount += 1;
+        if (ws.rateLimitMessageCount > maxMessagesPerWindow) {
+          if (!ws.rateLimitWarned && ws.readyState === WebSocket.OPEN) {
+            ws.rateLimitWarned = true;
+            try {
+              ws.send(JSON.stringify({
+                type: 'RATE_LIMIT_WARNING',
+                message: 'Demasiados mensajes por segundo. Se cerrará la conexión.'
+              }));
+            } catch (e) {
+              // ignore send warning errors
+            }
+          }
+
+          logger.warn('WS rate limit excedido; cerrando conexión', {
+            component: 'websocket',
+            userId: ws.userId || null,
+            messageCount: ws.rateLimitMessageCount,
+            windowMs: rateLimitWindowMs,
+            maxMessagesPerWindow
+          });
+          ws.close(1008, 'Rate limit exceeded');
+          return;
+        }
+
         const message = JSON.parse(data.toString());
 
         if (message.type === 'AUTH') {
@@ -32,28 +153,53 @@ function initializeWebSocket(server) {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             ws.userId = decoded.id;
             ws.userEmail = decoded.email;
+            ws.isAuthenticated = true;
+            if (ws.authTimeout) {
+              clearTimeout(ws.authTimeout);
+              ws.authTimeout = null;
+            }
             clients.set(decoded.id.toString(), ws);
-            console.log(`✅ Usuario autenticado WS: ${decoded.email}`);
+            logger.info('Usuario autenticado WS', {
+              component: 'websocket',
+              userEmail: decoded.email,
+              userId: decoded.id
+            });
             ws.send(JSON.stringify({ type: 'AUTH_SUCCESS' }));
           } catch (err) {
-            console.warn('WebSocket AUTH token inválido:', err.message);
+            logger.warn('WebSocket AUTH token inválido', {
+              component: 'websocket',
+              error: err.message
+            });
             ws.send(JSON.stringify({ type: 'AUTH_FAILED' }));
           }
         }
       } catch (err) {
-        console.error('Error procesando mensaje WebSocket:', err.message);
+        logger.error('Error procesando mensaje WebSocket', {
+          component: 'websocket',
+          error: err.message
+        });
       }
     });
 
     ws.on('close', () => {
+      if (ws.authTimeout) {
+        try { clearTimeout(ws.authTimeout); } catch (e) {}
+        ws.authTimeout = null;
+      }
       if (ws.userId) {
         clients.delete(ws.userId.toString());
-        console.log(`❌ Cliente WS desconectado: ${ws.userEmail || ws.userId}`);
+        logger.info('Cliente WS desconectado', {
+          component: 'websocket',
+          user: ws.userEmail || ws.userId
+        });
       }
     });
 
     ws.on('error', (err) => {
-      console.error('WebSocket error:', err.message || err);
+      logger.error('WebSocket error', {
+        component: 'websocket',
+        error: err.message || String(err)
+      });
     });
   });
 
@@ -83,11 +229,19 @@ function initializeWebSocket(server) {
     }
   });
 
-  console.log('🔌 WebSocket inicializado');
+  logger.info('WebSocket inicializado', {
+    component: 'websocket',
+    authTimeoutMs,
+    maxPayloadKb,
+    maxMessagesPerWindow,
+    rateLimitWindowMs,
+    originValidation: Boolean(allowedOrigins)
+  });
   return wss;
 }
 
 function closeWebSocket() {
+  const logger = getLogger();
   if (!wss) return Promise.resolve();
 
   return new Promise((resolve) => {
@@ -132,7 +286,9 @@ function closeWebSocket() {
           fallbackTimeout = null;
         }
         wss = null;
-        console.log('🔌 WebSocket cerrado correctamente');
+        logger.info('WebSocket cerrado correctamente', {
+          component: 'websocket'
+        });
         resolve();
       });
     } catch (err) {
