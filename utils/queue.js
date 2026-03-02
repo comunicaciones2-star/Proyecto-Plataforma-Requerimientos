@@ -54,17 +54,24 @@ function getQueueScope(request) {
 }
 
 function getQueueGroupKey(request) {
-  const scope = getQueueScope(request);
-  return `${getQueueStage(request)}|${scope.department}|${scope.executorType}`;
+  return 'global-active-queue';
 }
 
 function queueComparator(left, right) {
   const urgencyDiff = getUrgencyWeight(right?.urgency) - getUrgencyWeight(left?.urgency);
   if (urgencyDiff !== 0) return urgencyDiff;
 
+  const leftDeliveryDate = new Date(left?.deliveryDate || 0).getTime();
+  const rightDeliveryDate = new Date(right?.deliveryDate || 0).getTime();
+  if (leftDeliveryDate !== rightDeliveryDate) return leftDeliveryDate - rightDeliveryDate;
+
   const leftTimestamp = new Date(getQueueTimestamp(left) || 0).getTime();
   const rightTimestamp = new Date(getQueueTimestamp(right) || 0).getTime();
   if (leftTimestamp !== rightTimestamp) return leftTimestamp - rightTimestamp;
+
+  const leftRequestDate = new Date(left?.requestDate || 0).getTime();
+  const rightRequestDate = new Date(right?.requestDate || 0).getTime();
+  if (leftRequestDate !== rightRequestDate) return leftRequestDate - rightRequestDate;
 
   const leftCreatedAt = new Date(left?.createdAt || 0).getTime();
   const rightCreatedAt = new Date(right?.createdAt || 0).getTime();

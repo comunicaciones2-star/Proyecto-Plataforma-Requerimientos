@@ -16,7 +16,7 @@ router.use(authenticate);
 
 async function getActiveQueueRequests() {
   return Request.find({ status: { $in: ACTIVE_QUEUE_STATUSES } })
-    .select('requestNumber title area preferredExecutorRole urgency status queuedAt assignedAt assignedTo requester createdAt updatedAt')
+    .select('requestNumber title area preferredExecutorRole urgency status deliveryDate requestDate queuedAt assignedAt assignedTo requester createdAt updatedAt')
     .lean();
 }
 

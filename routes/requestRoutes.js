@@ -14,7 +14,7 @@ const router = express.Router();
 
 async function getActiveQueueRequests() {
   return Request.find({ status: { $in: ACTIVE_QUEUE_STATUSES } })
-    .select('requestNumber title area preferredExecutorRole urgency status queuedAt assignedAt assignedTo requester createdAt updatedAt')
+    .select('requestNumber title area preferredExecutorRole urgency status deliveryDate requestDate queuedAt assignedAt assignedTo requester createdAt updatedAt')
     .lean();
 }
 
@@ -276,18 +276,6 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Solicitud no encontrada'
-      });
-    }
-
-    // Validar acceso: solo el solicitante, diseñador asignado, o admin pueden ver
-    const isRequester = request.requester._id.toString() === req.user.id;
-    const isAssigned = request.assignedTo && request.assignedTo._id.toString() === req.user.id;
-    const isAdmin = req.user.role === 'admin';
-
-    if (!isRequester && !isAssigned && !isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permisos para ver esta solicitud'
       });
     }
 
