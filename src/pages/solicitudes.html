@@ -22,6 +22,28 @@
           </button>
         </div>
 
+        <!-- Tab Selector for Sections -->
+        <div class="flex gap-2 flex-wrap border-b border-gray-200">
+          <button 
+            @click="currentTab = 'general'"
+            :class="currentTab === 'general' ? 'px-4 py-2 border-b-2 border-fenalco-green text-fenalco-green font-semibold' : 'px-4 py-2 text-gray-600 hover:text-gray-800'"
+          >
+            <i class="ri-global-line mr-2"></i> Solicitudes Generales
+          </button>
+          <button 
+            @click="currentTab = 'department'"
+            :class="currentTab === 'department' ? 'px-4 py-2 border-b-2 border-fenalco-green text-fenalco-green font-semibold' : 'px-4 py-2 text-gray-600 hover:text-gray-800'"
+          >
+            <i class="ri-building-line mr-2"></i> Por Departamento
+          </button>
+          <button 
+            @click="currentTab = 'mine'"
+            :class="currentTab === 'mine' ? 'px-4 py-2 border-b-2 border-fenalco-green text-fenalco-green font-semibold' : 'px-4 py-2 text-gray-600 hover:text-gray-800'"
+          >
+            <i class="ri-user-line mr-2"></i> Mis Solicitudes
+          </button>
+        </div>
+
         <!-- View Selector -->
         <div class="flex gap-2 flex-wrap">
           <button 
@@ -43,6 +65,21 @@
             <i class="ri-time-line"></i> Cronología
           </button>
         </div>
+        
+        <!-- Department Selector (visible only on department tab) -->
+        <div x-show="currentTab === 'department'" class="flex gap-2 flex-wrap">
+          <select x-model="selectedDepartment" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-fenalco-green">
+            <option value="">Todos los departamentos</option>
+            <option value="comunicaciones">Comunicaciones</option>
+            <option value="direccion">Dirección</option>
+            <option value="comercial">Comercial</option>
+            <option value="formacion">Formación</option>
+            <option value="juridica">Jurídica</option>
+            <option value="tecnologia">Tecnología</option>
+            <option value="administrativa">Administrativa</option>
+            <option value="otra">Otra</option>
+          </select>
+        </div>
 
         <!-- Kanban View -->
         <template x-if="currentView === 'kanban'">
@@ -52,20 +89,20 @@
                 <h3 class="font-semibold text-gray-700 flex items-center gap-2">
                   <span class="w-3 h-3 rounded-full" :style="{ backgroundColor: getStatusColor(status) }"></span>
                   <span x-text="getStatusLabel(status)"></span>
-                  <span class="text-xs bg-gray-200 px-2 py-1 rounded-full" x-text="`(${getRequestsByStatus(status).length})`"></span>
+                  <span class="text-xs bg-gray-200 px-2 py-1 rounded-full" x-text="`(${getFilteredRequests().filter(r => r.status === status).length})`"></span>
                 </h3>
                 <div class="space-y-2">
-                  <template x-for="request in getRequestsByStatus(status)" :key="request.id">
+                  <template x-for="request in getFilteredRequests().filter(r => r.status === status)" :key="request.id">
                     <div class="card hover:shadow-lg transition-shadow cursor-pointer border-l-4" :style="{ borderColor: getStatusColor(status) }">
                       <p class="font-medium text-sm text-gray-800" x-text="request.title"></p>
                       <p class="text-xs text-gray-600 mt-1" x-text="request.area"></p>
                       <div class="flex items-center justify-between mt-3">
-                        <span class="text-xs bg-fenalco-blue/10 text-fenalco-blue px-2 py-1 rounded" x-text="request.priority"></span>
+                        <span class="text-xs bg-fenalco-blue/10 text-fenalco-blue px-2 py-1 rounded" x-text="request.urgency || 'normal'"></span>
                         <span class="text-xs text-gray-500" x-text="formatDate(request.createdAt)"></span>
                       </div>
                     </div>
                   </template>
-                  <template x-if="getRequestsByStatus(status).length === 0">
+                  <template x-if="getFilteredRequests().filter(r => r.status === status).length === 0">
                     <div class="text-center py-6 text-gray-400">
                       <i class="ri-inbox-line text-2xl mb-2 block"></i>
                       <p class="text-sm">Sin solicitudes</p>
@@ -84,24 +121,24 @@
               <thead>
                 <tr>
                   <th class="text-left">Título</th>
-                  <th class="text-left">Área</th>
-                  <th class="text-left">Prioridad</th>
+                  <th class="text-left">Departamento</th>
+                  <th class="text-left">Urgencia</th>
                   <th class="text-left">Estado</th>
                   <th class="text-left">Creado</th>
                   <th class="text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                <template x-for="request in requests" :key="request.id">
+                <template x-for="request in getFilteredRequests()" :key="request.id">
                   <tr>
                     <td class="font-medium text-gray-800" x-text="request.title"></td>
                     <td class="text-gray-600" x-text="request.area"></td>
                     <td>
                       <span class="text-xs font-semibold px-2 py-1 rounded" :class="{
-                        'bg-fenalco-coral text-white': request.priority === 'Alta',
-                        'bg-fenalco-yellow text-black': request.priority === 'Media',
-                        'bg-fenalco-green text-white': request.priority === 'Baja'
-                      }" x-text="request.priority"></span>
+                        'bg-fenalco-coral text-white': request.urgency === 'express',
+                        'bg-fenalco-yellow text-black': request.urgency === 'urgent',
+                        'bg-fenalco-green text-white': request.urgency === 'normal'
+                      }" x-text="request.urgency || 'normal'"></span>
                     </td>
                     <td>
                       <span class="text-xs font-semibold px-2 py-1 rounded" :class="{
@@ -127,6 +164,10 @@
                 </template>
               </tbody>
             </table>
+            <div x-show="getFilteredRequests().length === 0" class="text-center py-12 text-gray-500">
+              <i class="ri-inbox-line text-6xl mb-4"></i>
+              <p>No hay solicitudes en esta vista.</p>
+            </div>
           </div>
         </template>
 
@@ -136,7 +177,7 @@
             <div class="relative">
               <div class="absolute left-5 top-0 bottom-0 w-1 bg-gradient-to-b from-fenalco-green to-fenalco-turquoise"></div>
               <div class="space-y-6 pl-16">
-                <template x-for="request in timelineRequests" :key="request.id">
+                <template x-for="request in getTimelineRequests()" :key="request.id">
                   <div class="relative">
                     <div class="absolute -left-11 top-1 w-8 h-8 rounded-full bg-white border-4 border-fenalco-green flex items-center justify-center">
                       <i class="ri-check-line text-fenalco-green"></i>
@@ -158,6 +199,10 @@
                 </template>
               </div>
             </div>
+            <div x-show="getTimelineRequests().length === 0" class="text-center py-12 text-gray-500">
+              <i class="ri-inbox-line text-6xl mb-4"></i>
+              <p>No hay solicitudes en esta vista.</p>
+            </div>
           </div>
         </template>
 
@@ -171,7 +216,10 @@
     function solicitudes() {
       return {
         currentView: localStorage.getItem('solicitudesView') || 'kanban',
+        currentTab: localStorage.getItem('solicitudesTab') || 'general',
+        selectedDepartment: '',
         requests: [],
+        currentUser: null,
         statuses: ['pending', 'in_progress', 'completed', 'rejected'],
         showNewRequestModal: false,
         showEditRequestModal: false,
@@ -179,10 +227,28 @@
         newRequest: { title: '', description: '', area: 'comunicaciones', type: 'redes', urgency: 'normal', deliveryDate: '', targetAudience: '' },
 
         async init() {
+          await this.loadCurrentUser();
           await this.loadRequests();
           this.$watch('currentView', (value) => {
             localStorage.setItem('solicitudesView', value);
           });
+          this.$watch('currentTab', (value) => {
+            localStorage.setItem('solicitudesTab', value);
+          });
+        },
+
+        async loadCurrentUser() {
+          try {
+            const response = await fetch('http://localhost:5000/api/users/profile', {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
+            });
+            const data = await response.json();
+            this.currentUser = data.user || data;
+          } catch (error) {
+            console.error('Error loading current user:', error);
+          }
         },
 
         async loadRequests() {
@@ -199,12 +265,45 @@
           }
         },
 
-        getRequestsByStatus(status) {
-          return this.requests.filter(r => r.status === status);
+        getGeneralRequests() {
+          if (!this.currentUser) return [];
+          return this.requests.filter(r => r.requester !== this.currentUser._id && r.requester?.toString() !== this.currentUser._id);
         },
 
-        get timelineRequests() {
-          return [...this.requests].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        getDepartmentRequests() {
+          const dept = this.selectedDepartment;
+          if (!dept) {
+            return this.requests.filter(r => r.requester !== this.currentUser._id && r.requester?.toString() !== this.currentUser._id);
+          }
+          return this.requests.filter(r => 
+            r.area === dept && 
+            r.requester !== this.currentUser._id && 
+            r.requester?.toString() !== this.currentUser._id
+          );
+        },
+
+        getMyRequests() {
+          if (!this.currentUser) return [];
+          return this.requests.filter(r => r.requester === this.currentUser._id || r.requester?.toString() === this.currentUser._id);
+        },
+
+        getFilteredRequests() {
+          if (this.currentTab === 'general') {
+            return this.getGeneralRequests();
+          } else if (this.currentTab === 'department') {
+            return this.getDepartmentRequests();
+          } else if (this.currentTab === 'mine') {
+            return this.getMyRequests();
+          }
+          return this.requests;
+        },
+
+        getTimelineRequests() {
+          return [...this.getFilteredRequests()].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        },
+
+        getRequestsByStatus(status) {
+          return this.getFilteredRequests().filter(r => r.status === status);
         },
 
         getStatusLabel(status) {
