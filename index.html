@@ -459,6 +459,14 @@
 
       <!-- Content Area -->
       <main class="flex-1 overflow-y-auto p-6">
+        <div class="mb-6 rounded-xl border border-fenalco-blue/20 bg-fenalco-blue/5 px-4 py-3">
+          <p class="text-sm sm:text-base font-semibold text-fenalco-blue">
+            <span x-text="colombiaDateLabel"></span>
+            <span class="mx-2 text-fenalco-blue/60">•</span>
+            <span class="text-fenalco-green" x-text="colombiaTimeLabel"></span>
+          </p>
+          <p class="text-xs text-gray-500 mt-1">Guía: Zona horaria de Colombia (GMT-5)</p>
+        </div>
         
         <!-- Dashboard Tab -->
         <div x-show="currentTab === 'dashboard'">
@@ -2449,7 +2457,7 @@
               </div>
               <div class="flex justify-between py-2 border-b border-gray-100">
                 <span class="text-sm text-gray-600">Fecha Estimada de Entrega:</span>
-                <span class="text-sm font-medium text-fenalco-green" x-text="new Date(selectedRequest?.deliveryDate).toLocaleDateString('es-ES', { dateStyle: 'long' })"></span>
+                <span class="text-sm font-medium text-fenalco-green" x-text="formatDeliveryDate(selectedRequest?.deliveryDate)"></span>
               </div>
               <div class="flex justify-between py-2">
                 <span class="text-sm text-gray-600">Última Actualización:</span>
@@ -2762,6 +2770,9 @@
         hasUnreadNotifications: false,
         unreadNotificationCount: 0,
         customNotificationSoundUrl: '/public/Notification.mp3',
+        colombiaDateLabel: '',
+        colombiaTimeLabel: '',
+        colombiaClockTimer: null,
         maxUploadFiles: 5,
         maxUploadFileSizeBytes: 10 * 1024 * 1024,
         requestFilters: {
@@ -2976,6 +2987,7 @@
         },
         
         init() {
+          this.startColombiaRealtimeClock();
           this.handleViewportChange();
           window.addEventListener('resize', () => this.handleViewportChange());
 
@@ -3053,6 +3065,7 @@
               this.token = data.token;
               this.user = data.user;
               this.isAuthenticated = true;
+              this.startColombiaRealtimeClock();
               this.loadDashboard();
               this.loadRequests();
               this.initWebSocket();
@@ -3066,6 +3079,7 @@
         },
         
         logout() {
+          this.stopColombiaRealtimeClock();
           if (this.wsConnection) {
             try {
               this.wsConnection.close();
@@ -3078,6 +3092,52 @@
           localStorage.removeItem('user');
           this.isAuthenticated = false;
           this.user = null;
+        },
+
+        formatColombiaDateTimeParts(dateValue = new Date()) {
+          const weekdayDateText = new Intl.DateTimeFormat('es-CO', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            timeZone: 'America/Bogota'
+          }).format(dateValue);
+
+          const normalizedDateText = weekdayDateText.charAt(0).toUpperCase() + weekdayDateText.slice(1);
+
+          const timeText = new Intl.DateTimeFormat('es-CO', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+            timeZone: 'America/Bogota'
+          }).format(dateValue);
+
+          return {
+            dateText: normalizedDateText,
+            timeText
+          };
+        },
+
+        startColombiaRealtimeClock() {
+          if (this.colombiaClockTimer) {
+            clearInterval(this.colombiaClockTimer);
+          }
+
+          const initialDateTimeParts = this.formatColombiaDateTimeParts();
+          this.colombiaDateLabel = initialDateTimeParts.dateText;
+          this.colombiaTimeLabel = initialDateTimeParts.timeText;
+
+          this.colombiaClockTimer = setInterval(() => {
+            const dateTimeParts = this.formatColombiaDateTimeParts();
+            this.colombiaDateLabel = dateTimeParts.dateText;
+            this.colombiaTimeLabel = dateTimeParts.timeText;
+          }, 1000);
+        },
+
+        stopColombiaRealtimeClock() {
+          if (!this.colombiaClockTimer) return;
+          clearInterval(this.colombiaClockTimer);
+          this.colombiaClockTimer = null;
         },
         
         exportDashboardPDF() {
@@ -4528,9 +4588,9 @@
 
           let daysToDelivery = Number.POSITIVE_INFINITY;
           if (request?.deliveryDate) {
-            const deliveryDate = new Date(request.deliveryDate);
+            const deliveryDate = this.parseCalendarDate(request.deliveryDate);
             if (!Number.isNaN(deliveryDate.getTime())) {
-              const deliveryStart = new Date(deliveryDate.getFullYear(), deliveryDate.getMonth(), deliveryDate.getDate()).getTime();
+              const deliveryStart = deliveryDate.getTime();
               daysToDelivery = Math.ceil((deliveryStart - todayStart) / (1000 * 60 * 60 * 24));
             }
           }
@@ -4558,6 +4618,15 @@
           if (level === 'high') return 'bg-red-100 text-red-700';
           if (level === 'medium') return 'bg-yellow-100 text-yellow-700';
           return 'bg-green-100 text-green-700';
+        },
+
+        formatDeliveryDate(dateValue) {
+          const parsedDate = this.parseCalendarDate(dateValue);
+          if (!parsedDate || Number.isNaN(parsedDate.getTime())) {
+            return 'N/A';
+          }
+
+          return parsedDate.toLocaleDateString('es-ES', { dateStyle: 'long' });
         },
 
         refreshUnreadNotificationState() {
@@ -5530,7 +5599,7 @@
             type: this.parseRequestTypes(request.type),
             urgency: this.normalizeUrgencyForUI(request.urgency),
             preferredExecutorRole: request.preferredExecutorRole || 'diseñador',
-            deliveryDate: request.deliveryDate ? new Date(request.deliveryDate).toISOString().split('T')[0] : '',
+            deliveryDate: request.deliveryDate ? this.toISODate(request.deliveryDate) : '',
             targetAudience: request.targetAudience || '',
             referenceLinks: request.referenceLinks || '',
             categoryDetails: this.normalizeCategoryDetails(request.categoryDetails),
