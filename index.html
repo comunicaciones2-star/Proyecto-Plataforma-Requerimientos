@@ -211,6 +211,24 @@
     .animate-unread-dot {
       animation: unread-dot-pulse 1.8s ease-in-out infinite;
     }
+
+    .request-title-responsive {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      line-clamp: 2;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+      word-break: break-word;
+    }
+
+    @media (min-width: 640px) {
+      .request-title-responsive {
+        display: block;
+        line-clamp: 1;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+    }
   </style>
 </head>
 
@@ -2381,9 +2399,10 @@
         <!-- Número y Estado -->
         <div class="bg-gradient-to-r from-fenalco-blue to-fenalco-green rounded-lg p-6 mb-6 text-white">
           <div class="flex justify-between items-start">
-            <div>
+            <div class="min-w-0 flex-1 pr-3">
               <p class="text-sm opacity-90 mb-1">Número de Solicitud</p>
               <h2 class="text-3xl font-bold" x-text="selectedRequest?.requestNumber"></h2>
+              <p class="text-sm opacity-95 mt-1 request-title-responsive" :title="selectedRequest?.title || 'Sin título'" x-text="'Título: ' + (selectedRequest?.title || 'Sin título')"></p>
               <p class="text-sm opacity-90 mt-2" x-text="'Turno en cola: ' + getQueuePositionLabel(selectedRequest)"></p>
               <div class="mt-2">
                 <span class="inline-flex items-center text-xs px-2 py-1 rounded-full font-semibold"
@@ -2391,7 +2410,7 @@
                       x-text="'Prioridad atención: ' + getAttentionPriorityLabel(selectedRequest)"></span>
               </div>
             </div>
-            <div class="text-right">
+            <div class="text-right flex-shrink-0">
               <span class="px-4 py-2 rounded-full text-sm font-semibold" 
                     :class="{
                       'bg-yellow-400 text-yellow-900': selectedRequest?.status === 'pending',
