@@ -3414,6 +3414,13 @@
               const statsResponse = await fetch(`${API_URL}/admin/requests/stats`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               });
+
+              if (statsResponse.status === 401 || statsResponse.status === 403) {
+                alert('⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+                this.logout();
+                return;
+              }
+
               const statsData = await statsResponse.json();
 
               if (statsData.success) {
@@ -3423,6 +3430,13 @@
               const dashboardResponse = await fetch(`${API_URL}/admin/stats/dashboard`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               });
+
+              if (dashboardResponse.status === 401 || dashboardResponse.status === 403) {
+                alert('⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+                this.logout();
+                return;
+              }
+
               const dashboardData = await dashboardResponse.json();
 
               if (dashboardResponse.ok && dashboardData && typeof dashboardData === 'object') {
@@ -3436,6 +3450,13 @@
               const reportDashboardResponse = await fetch(`${API_URL}/reports/dashboard-summary`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               });
+
+              if (reportDashboardResponse.status === 401 || reportDashboardResponse.status === 403) {
+                alert('⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+                this.logout();
+                return;
+              }
+
               const reportDashboardData = await reportDashboardResponse.json();
 
               if (reportDashboardResponse.ok && reportDashboardData && typeof reportDashboardData === 'object') {
@@ -3472,7 +3493,18 @@
             const response = await fetch(`${API_URL}/requests?page=1&limit=5000`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
+
+            if (response.status === 401 || response.status === 403) {
+              alert('⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+              this.logout();
+              return;
+            }
+
             const data = await response.json();
+
+            if (!response.ok || !data.success) {
+              throw new Error(data?.message || `Error ${response.status} al cargar solicitudes`);
+            }
             
             if (data.success) {
               this.requests = (data.requests || []).map((request) => ({
@@ -5938,7 +5970,17 @@
               }
             });
 
+            if (response.status === 401 || response.status === 403) {
+              alert('⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+              this.logout();
+              return;
+            }
+
             const data = await response.json();
+            if (!response.ok || !data.success) {
+              throw new Error(data?.message || `Error ${response.status} al cargar usuarios`);
+            }
+
             if (data.success) {
               this.adminUsers = data.users || [];
               this.$nextTick(() => {
