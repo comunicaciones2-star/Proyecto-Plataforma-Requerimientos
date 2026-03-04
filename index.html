@@ -1121,7 +1121,7 @@
               </div>
               
               <div class="card">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Tendencia Diaria</h3>
+                <h3 class="text-lg font-semibold text-gray-800 mb-4" x-text="getTrendTitle()">Tendencia del Período</h3>
                 <div class="h-64">
                   <canvas id="chartDaily"></canvas>
                 </div>
@@ -2990,6 +2990,20 @@
             localStorage.setItem('requestSort', value);
           });
 
+          this.$watch('currentTab', (value) => {
+            if (value === 'reportes') {
+              this.loadRequests()
+                .then(() => this.loadReportData())
+                .catch((error) => {
+                  console.warn('No se pudo refrescar solicitudes para reportes:', error);
+                  this.loadReportData();
+                });
+              return;
+            }
+
+            this.destroyReportCharts();
+          });
+
           const token = localStorage.getItem('token');
           const user = localStorage.getItem('user');
           
@@ -3601,8 +3615,14 @@
 
           if (this.reportPeriod === 'week') {
             const start = new Date(startOfToday);
-            start.setDate(start.getDate() - 6);
-            return { start, end: endOfToday, label: 'Últimos 7 días' };
+            const dayOfWeek = start.getDay();
+            const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            start.setDate(start.getDate() - daysSinceMonday);
+
+            const end = new Date(start);
+            end.setDate(start.getDate() + 7);
+
+            return { start, end, label: 'Semana actual (Lun-Dom)' };
           }
 
           if (this.reportPeriod === 'year') {
@@ -3643,6 +3663,63 @@
         },
 
         buildDailyTrend(requests) {
+          if (this.reportPeriod === 'today') {
+            const values = Array(24).fill(0);
+
+            requests.forEach((request) => {
+              const date = new Date(request.createdAt);
+              const hour = Number.isNaN(date.getTime()) ? null : date.getHours();
+              if (hour === null) return;
+              values[hour] += 1;
+            });
+
+            const labels = Array.from({ length: 24 }, (_, hour) => {
+              const hour12 = hour % 12 || 12;
+              const period = hour < 12 ? 'A. M.' : 'P. M.';
+              return `${hour12} ${period}`;
+            });
+
+            return { labels, values };
+          }
+
+          if (this.reportPeriod === 'week') {
+            const labels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+            const values = Array(7).fill(0);
+
+            requests.forEach((request) => {
+              const date = new Date(request.createdAt);
+              if (Number.isNaN(date.getTime())) return;
+
+              const jsDay = date.getDay();
+              const mondayBasedIndex = jsDay === 0 ? 6 : jsDay - 1;
+              values[mondayBasedIndex] += 1;
+            });
+
+            return { labels, values };
+          }
+
+          if (this.reportPeriod === 'month') {
+            const weekGroups = {
+              'Semana 1': 0,
+              'Semana 2': 0,
+              'Semana 3': 0,
+              'Semana 4': 0,
+              'Semana 5': 0
+            };
+
+            requests.forEach((request) => {
+              const date = new Date(request.createdAt);
+              if (Number.isNaN(date.getTime())) return;
+              const weekOfMonth = Math.min(5, Math.ceil(date.getDate() / 7));
+              const key = `Semana ${weekOfMonth}`;
+              weekGroups[key] += 1;
+            });
+
+            const labels = Object.keys(weekGroups);
+            const values = labels.map((label) => weekGroups[label]);
+            return { labels, values };
+          }
+
           if (this.reportPeriod === 'year') {
             const selectedYear = Number(this.reportYear) || new Date().getFullYear();
             const values = Array(12).fill(0);
@@ -3681,6 +3758,22 @@
             }),
             values
           };
+        },
+
+        getTrendTitle() {
+          if (this.reportPeriod === 'today') return 'Tendencia Horaria';
+          if (this.reportPeriod === 'week') return 'Tendencia Diaria';
+          if (this.reportPeriod === 'month') return 'Tendencia Semanal del Mes';
+          if (this.reportPeriod === 'year') return 'Tendencia Mensual';
+          return 'Tendencia del Período';
+        },
+
+        getTrendSeriesLabel() {
+          if (this.reportPeriod === 'today') return 'Solicitudes por hora';
+          if (this.reportPeriod === 'week') return 'Solicitudes por día';
+          if (this.reportPeriod === 'month') return 'Solicitudes por semana';
+          if (this.reportPeriod === 'year') return 'Solicitudes por mes';
+          return 'Solicitudes';
         },
 
         buildTopDepartments(requests) {
@@ -3808,7 +3901,33 @@
           this.$nextTick(() => this.renderReportCharts());
         },
 
+        destroyReportCharts() {
+          try {
+            if (this.reportCharts.status) {
+              this.reportCharts.status.destroy();
+            }
+          } catch (error) {
+            console.warn('No se pudo destruir chartStatus:', error?.message || error);
+          }
+
+          try {
+            if (this.reportCharts.daily) {
+              this.reportCharts.daily.destroy();
+            }
+          } catch (error) {
+            console.warn('No se pudo destruir chartDaily:', error?.message || error);
+          }
+
+          this.reportCharts.status = null;
+          this.reportCharts.daily = null;
+        },
+
         renderReportCharts() {
+          if (typeof Chart === 'undefined') {
+            console.warn('Chart.js no está disponible para renderizar reportes');
+            return;
+          }
+
           const ctxStatus = this.getChartContext('chartStatus');
           if (ctxStatus) {
             if (this.reportCharts.status) {
@@ -3833,6 +3952,7 @@
               options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: false,
                 plugins: {
                   legend: {
                     position: 'bottom',
@@ -3858,7 +3978,7 @@
               data: {
                 labels: this.reportData.dailyTrend.labels,
                 datasets: [{
-                  label: 'Solicitudes',
+                  label: this.getTrendSeriesLabel(),
                   data: this.reportData.dailyTrend.values,
                   borderColor: '#280071',
                   backgroundColor: 'rgba(40, 0, 113, 0.1)',
@@ -3869,6 +3989,7 @@
               options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: false,
                 scales: {
                   y: { beginAtZero: true }
                 },
