@@ -459,13 +459,12 @@
 
       <!-- Content Area -->
       <main class="flex-1 overflow-y-auto p-6">
-        <div class="mb-6 rounded-xl border border-fenalco-blue/20 bg-fenalco-blue/5 px-4 py-3">
-          <p class="text-sm sm:text-base font-semibold text-fenalco-blue">
-            <span x-text="colombiaDateLabel"></span>
-            <span class="mx-2 text-fenalco-blue/60">•</span>
-            <span class="text-fenalco-green" x-text="colombiaTimeLabel"></span>
-          </p>
-          <p class="text-xs text-gray-500 mt-1">Guía: Zona horaria de Colombia (GMT-5)</p>
+        <div class="mb-6">
+          <div class="inline-flex items-center gap-2 px-4 py-2 bg-fenalco-blue text-white rounded-lg font-semibold text-sm sm:text-base">
+            <i class="ri-time-line"></i>
+            <span x-text="colombiaTimeLabel"></span>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Guía: Zona horaria de Colombia (GMT-5)</p>
         </div>
         
         <!-- Dashboard Tab -->
@@ -2770,7 +2769,6 @@
         hasUnreadNotifications: false,
         unreadNotificationCount: 0,
         customNotificationSoundUrl: '/public/Notification.mp3',
-        colombiaDateLabel: '',
         colombiaTimeLabel: '',
         colombiaClockTimer: null,
         maxUploadFiles: 5,
@@ -3095,16 +3093,6 @@
         },
 
         formatColombiaDateTimeParts(dateValue = new Date()) {
-          const weekdayDateText = new Intl.DateTimeFormat('es-CO', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-            timeZone: 'America/Bogota'
-          }).format(dateValue);
-
-          const normalizedDateText = weekdayDateText.charAt(0).toUpperCase() + weekdayDateText.slice(1);
-
           const timeText = new Intl.DateTimeFormat('es-CO', {
             hour: 'numeric',
             minute: '2-digit',
@@ -3113,7 +3101,6 @@
           }).format(dateValue);
 
           return {
-            dateText: normalizedDateText,
             timeText
           };
         },
@@ -3124,12 +3111,10 @@
           }
 
           const initialDateTimeParts = this.formatColombiaDateTimeParts();
-          this.colombiaDateLabel = initialDateTimeParts.dateText;
           this.colombiaTimeLabel = initialDateTimeParts.timeText;
 
           this.colombiaClockTimer = setInterval(() => {
             const dateTimeParts = this.formatColombiaDateTimeParts();
-            this.colombiaDateLabel = dateTimeParts.dateText;
             this.colombiaTimeLabel = dateTimeParts.timeText;
           }, 1000);
         },
