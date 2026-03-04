@@ -3001,6 +3001,11 @@
               return;
             }
 
+            if (value === 'dashboard') {
+              this.$nextTick(() => this.scheduleDashboardChartsRender());
+              return;
+            }
+
             this.destroyReportCharts();
           });
 
@@ -3492,6 +3497,10 @@
         },
 
         scheduleDashboardChartsRender() {
+          if (this.currentTab !== 'dashboard') {
+            return;
+          }
+
           if (this.dashboardChartsRenderTimer) {
             clearTimeout(this.dashboardChartsRenderTimer);
           }
@@ -4004,6 +4013,8 @@
         getChartContext(canvasId) {
           const canvas = document.getElementById(canvasId);
           if (!canvas || typeof canvas.getContext !== 'function' || !canvas.isConnected) return null;
+          const wrapper = canvas.parentElement;
+          if (wrapper && (wrapper.offsetWidth === 0 || wrapper.offsetHeight === 0)) return null;
           return canvas.getContext('2d');
         },
 
