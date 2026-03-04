@@ -2408,8 +2408,8 @@
           <div class="flex justify-between items-start">
             <div class="min-w-0 flex-1 pr-3">
               <p class="text-sm opacity-90 mb-1">Número de Solicitud</p>
-              <h2 class="text-3xl font-bold" x-text="selectedRequest?.requestNumber"></h2>
-              <p class="text-sm opacity-95 mt-1 request-title-responsive" :title="selectedRequest?.title || 'Sin título'" x-text="'Título: ' + (selectedRequest?.title || 'Sin título')"></p>
+              <h2 class="text-xl sm:text-2xl font-bold" x-text="selectedRequest?.requestNumber"></h2>
+              <p class="text-xl sm:text-2xl font-bold opacity-95 mt-1 request-title-responsive" :title="selectedRequest?.title || 'Sin título'" x-text="selectedRequest?.title || 'Sin título'"></p>
               <p class="text-sm opacity-90 mt-2" x-text="'Turno en cola: ' + getQueuePositionLabel(selectedRequest)"></p>
               <div class="mt-2">
                 <span class="inline-flex items-center text-xs px-2 py-1 rounded-full font-semibold"
@@ -5741,18 +5741,23 @@
               return;
             }
 
-            await this.loadRequests();
+            this.loadRequests().catch((refreshError) => {
+              console.warn('No se pudo refrescar listado tras guardar avance:', refreshError);
+            });
             await this.viewRequestDetails(this.selectedRequest._id);
             this.deliveryUpdate.comment = '';
             this.deliveryUpdate.deliveryUrl = '';
             this.deliveryUpdate.selectedFiles = [];
             this.syncFileInputWithSelection('deliveryFilesInput', this.deliveryUpdate.selectedFiles);
+            this.deliveryUpdate.isSaving = false;
             await this.showAlert('✅ Avance guardado correctamente.', 'Éxito');
           } catch (error) {
             console.error('Error guardando avance de solicitud:', error);
             await this.showAlert('Error de conexión al guardar avance.', 'Error');
           } finally {
-            this.deliveryUpdate.isSaving = false;
+            if (this.deliveryUpdate.isSaving) {
+              this.deliveryUpdate.isSaving = false;
+            }
           }
         },
         

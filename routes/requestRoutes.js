@@ -556,18 +556,6 @@ router.patch('/:id', upload.array('files', MAX_FILES_PER_UPLOAD), async (req, re
         });
       }
 
-      // Notificación por email (opcional)
-      try {
-        if (request.requester && request.requester.email) {
-          await sendStatusChangeEmail(
-            request.requester.email,
-            request,
-            normalizedStatus
-          );
-        }
-      } catch (e) {
-        console.warn('No se pudo enviar email de cambio de estado:', e.message);
-      }
       // Notificar por WebSocket
       try {
         notifyStatusChange(request);
@@ -590,6 +578,16 @@ router.patch('/:id', upload.array('files', MAX_FILES_PER_UPLOAD), async (req, re
     }
 
     await request.save();
+
+    if (hasStatusUpdate && request.requester && request.requester.email) {
+      sendStatusChangeEmail(
+        request.requester.email,
+        request,
+        normalizedStatus
+      ).catch((e) => {
+        console.warn('No se pudo enviar email de cambio de estado:', e.message);
+      });
+    }
 
     res.json({
       success: true,
