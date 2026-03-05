@@ -677,6 +677,7 @@
               <div x-show="solicitudesSection !== 'department'" x-cloak>
                 <select x-model="requestSort" @change="onRequestFiltersChange()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
                   <option value="queue-asc">Prioridad de atención (cola)</option>
+                  <option value="arrival">Orden de llegada</option>
                   <option value="newest">Antigüedad (más recientes)</option>
                   <option value="oldest">Antigüedad (más antiguas)</option>
                   <option value="queue-desc">Menor prioridad (cola)</option>
@@ -4482,6 +4483,15 @@
 
           if (this.requestSort === 'newest') {
             result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          } else if (this.requestSort === 'arrival') {
+            result.sort((a, b) => {
+              const arrivalA = new Date(a?.queuedAt || a?.requestDate || a?.createdAt || 0).getTime();
+              const arrivalB = new Date(b?.queuedAt || b?.requestDate || b?.createdAt || 0).getTime();
+              if (arrivalA === arrivalB) {
+                return new Date(a.createdAt) - new Date(b.createdAt);
+              }
+              return arrivalA - arrivalB;
+            });
           } else if (this.requestSort === 'oldest') {
             result.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
           } else if (this.requestSort === 'queue-asc') {
