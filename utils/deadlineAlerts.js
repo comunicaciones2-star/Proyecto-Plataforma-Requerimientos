@@ -208,5 +208,10 @@ function stopDeadlineAlertsMonitor() {
 module.exports = {
   processDeadlineAlerts,
   startDeadlineAlertsMonitor,
-  stopDeadlineAlertsMonitor
+  stopDeadlineAlertsMonitor,
+  _test: {
+    normalizeProfileValue,
+    buildTargetUserIdsByProfile,
+    getRecipientsForRequest
+  }
 };

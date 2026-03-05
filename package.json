@@ -10,6 +10,7 @@
     "migrate:roles-cargo": "node scripts/migrate-roles-to-cargo.js",
     "smoke": "node scripts/smoke-test.js",
     "smoke:queue": "node scripts/smoke-queue.js",
+    "smoke:deadline": "node scripts/validate-deadline-routing.js",
     "morning": "powershell -ExecutionPolicy Bypass -File scripts/morning-start.ps1",
     "build": "vite build",
     "preview": "vite preview",
