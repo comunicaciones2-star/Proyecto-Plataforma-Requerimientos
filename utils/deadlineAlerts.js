@@ -23,21 +23,84 @@ const ALERT_RULES = {
   }
 };
 
+const PROFILE_ALIASES = {
+  gerente: ['gerente', 'manager'],
+  'diseñador': ['diseñador', 'designer'],
+  practicante: ['practicante']
+};
+
 let deadlineAlertInterval = null;
 
 function getAlertRule(urgency) {
   return ALERT_RULES[String(urgency || '').trim().toLowerCase()] || ALERT_RULES.normal;
 }
 
-function getTargetProfilesFilter() {
+function normalizeProfileValue(rawValue) {
+  const value = String(rawValue || '').trim().toLowerCase();
+  if (!value) return '';
+  if (value === 'manager') return 'gerente';
+  if (value === 'designer') return 'diseñador';
+  return value;
+}
+
+function getTargetUsersBaseFilter() {
   return {
     isActive: true,
-    'notificationPreferences.web': { $ne: false },
-    $or: [
-      { role: { $in: ['gerente', 'diseñador', 'practicante', 'manager', 'designer'] } },
-      { 'executorProfile.executorType': { $in: ['gerente', 'diseñador', 'practicante'] } }
-    ]
+    'notificationPreferences.web': { $ne: false }
   };
+}
+
+function buildTargetUserIdsByProfile(users) {
+  const usersByProfile = {
+    gerente: new Set(),
+    'diseñador': new Set(),
+    practicante: new Set(),
+    all: new Set()
+  };
+
+  (users || []).forEach((user) => {
+    const userId = user?._id?.toString();
+    if (!userId) return;
+
+    const normalizedRole = normalizeProfileValue(user.role);
+    const normalizedExecutorType = normalizeProfileValue(user?.executorProfile?.executorType);
+
+    usersByProfile.all.add(userId);
+
+    const profileMatches = new Set([normalizedRole, normalizedExecutorType]);
+    profileMatches.forEach((profileValue) => {
+      if (!profileValue) return;
+
+      if (profileValue === 'gerente') usersByProfile.gerente.add(userId);
+      if (profileValue === 'diseñador') usersByProfile['diseñador'].add(userId);
+      if (profileValue === 'practicante') usersByProfile.practicante.add(userId);
+    });
+  });
+
+  return usersByProfile;
+}
+
+function getRecipientsForRequest(usersByProfile, preferredExecutorRole) {
+  const normalizedProfile = normalizeProfileValue(preferredExecutorRole);
+  const aliases = PROFILE_ALIASES[normalizedProfile] || [];
+
+  if (aliases.length === 0) {
+    return Array.from(usersByProfile.all || []);
+  }
+
+  const recipients = new Set();
+  aliases.forEach((alias) => {
+    const normalizedAlias = normalizeProfileValue(alias);
+    const profileSet = usersByProfile[normalizedAlias];
+    if (!profileSet) return;
+    profileSet.forEach((userId) => recipients.add(userId));
+  });
+
+  if (recipients.size === 0) {
+    return Array.from(usersByProfile.all || []);
+  }
+
+  return Array.from(recipients);
 }
 
 function buildDeadlineAlertPayload(request, rule, remainingMs) {
@@ -70,19 +133,19 @@ async function processDeadlineAlerts() {
       $lte: new Date(now + maxWindowMs)
     }
   })
-    .select('_id requestNumber title urgency area status deliveryDate deadlineAlertsSent')
+    .select('_id requestNumber title urgency area status deliveryDate deadlineAlertsSent preferredExecutorRole')
     .lean();
 
   if (candidates.length === 0) return;
 
-  const targetUsers = await User.find(getTargetProfilesFilter())
-    .select('_id')
+  const targetUsers = await User.find(getTargetUsersBaseFilter())
+    .select('_id role executorProfile.executorType')
     .lean();
 
   if (targetUsers.length === 0) return;
 
-  const targetUserIds = targetUsers.map((user) => user._id?.toString()).filter(Boolean);
-  if (targetUserIds.length === 0) return;
+  const usersByProfile = buildTargetUserIdsByProfile(targetUsers);
+  if ((usersByProfile.all || new Set()).size === 0) return;
 
   for (const request of candidates) {
     const rule = getAlertRule(request.urgency);
@@ -103,15 +166,19 @@ async function processDeadlineAlerts() {
 
     if (!updated) continue;
 
+    const recipients = getRecipientsForRequest(usersByProfile, request.preferredExecutorRole);
+    if (recipients.length === 0) continue;
+
     const payload = buildDeadlineAlertPayload(request, rule, remainingMs);
-    targetUserIds.forEach((userId) => notifyUser(userId, payload));
+    recipients.forEach((userId) => notifyUser(userId, payload));
 
     logger.info('Alerta de entrega enviada', {
       requestId: String(request._id),
       requestNumber: request.requestNumber,
       urgency: request.urgency,
+      preferredExecutorRole: request.preferredExecutorRole || null,
       alertKey: rule.key,
-      recipients: targetUserIds.length
+      recipients: recipients.length
     });
   }
 }
