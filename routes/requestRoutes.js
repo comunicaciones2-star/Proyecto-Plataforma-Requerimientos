@@ -22,26 +22,6 @@ const WORKFLOW_TRANSITIONS = {
   review: ['completed', 'rejected']
 };
 
-function isValidHttpUrl(rawValue) {
-  const value = String(rawValue || '').trim();
-  if (!value) return false;
-  try {
-    const parsed = new URL(value);
-    return ['http:', 'https:'].includes(parsed.protocol);
-  } catch (error) {
-    return false;
-  }
-}
-
-function hasAtLeastOneFinalDeliverable(request) {
-  const deliveryLinks = Array.isArray(request?.deliveryLinks) ? request.deliveryLinks : [];
-  return deliveryLinks.some((deliverable) => {
-    const rawUrl = String(deliverable?.url || deliverable?.text || '').trim();
-    if (!rawUrl) return false;
-    return isValidHttpUrl(rawUrl) || rawUrl.length > 0;
-  });
-}
-
 async function getActiveQueueRequests() {
   return Request.find({ status: { $in: ACTIVE_QUEUE_STATUSES } })
     .select('requestNumber title area preferredExecutorRole urgency status deliveryDate requestDate queuedAt assignedAt assignedTo requester createdAt updatedAt')
@@ -529,15 +509,7 @@ router.patch('/:id', upload.array('files', MAX_FILES_PER_UPLOAD), async (req, re
           });
         }
 
-        if (currentStatus === 'in-process' && normalizedStatus === 'review') {
-          const hasDeliverable = hasAtLeastOneFinalDeliverable(request);
-          if (!hasDeliverable) {
-            return res.status(400).json({
-              success: false,
-              message: 'Debes registrar al menos 1 entregable antes de pasar a revisión.'
-            });
-          }
-        }
+        // Ya no se exige entregable obligatorio para pasar a revisión.
       }
 
       request.status = normalizedStatus;
