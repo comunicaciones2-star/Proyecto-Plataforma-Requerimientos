@@ -4399,14 +4399,27 @@
 
         getRequesterId(request) {
           if (!request) return null;
-          const requester = request.requester;
+          const requester = request.requester || request.requestedBy || request.requesterId || request.requestedById;
           if (!requester) return null;
           if (typeof requester === 'string') return requester;
           return requester._id || requester.id || null;
         },
 
         updateProfileStats() {
-          const ownRequests = (this.requests || []).filter((request) => this.isOwnRequest(request));
+          const currentUserId = this.user?._id || this.user?.id || null;
+          const currentUserEmail = String(this.user?.email || '').trim().toLowerCase();
+
+          const ownRequests = (this.requests || []).filter((request) => {
+            const requesterId = this.getRequesterId(request);
+            if (requesterId && currentUserId && requesterId.toString() === currentUserId.toString()) {
+              return true;
+            }
+
+            if (!currentUserEmail) return false;
+            const requesterEmail = String(request?.requester?.email || request?.requestedBy?.email || '').trim().toLowerCase();
+            return requesterEmail && requesterEmail === currentUserEmail;
+          });
+
           this.stats = {
             total: ownRequests.length,
             completed: ownRequests.filter((request) => request.status === 'completed').length,
@@ -5668,7 +5681,7 @@
         },
 
         isRequestOwner(request) {
-          const requesterId = request?.requester?._id || request?.requester;
+          const requesterId = this.getRequesterId(request);
           const currentUserId = this.user?._id || this.user?.id;
           return requesterId && currentUserId && requesterId.toString() === currentUserId.toString();
         },
