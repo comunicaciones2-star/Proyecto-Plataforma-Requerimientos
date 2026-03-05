@@ -132,6 +132,133 @@ function getExecutorProfileDefaults(executorType) {
   return { capacity: 5, priority: 3 };
 }
 
+function toValidDate(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function buildDefaultExecutorStats() {
+  return {
+    totalCompleted: 0,
+    averageCompletionTime: 0,
+    onTimeDeliveryRate: 100,
+    currentLoad: 0
+  };
+}
+
+function getExecutorStatsFromMap(statsMap, executorId) {
+  return statsMap.get(String(executorId)) || buildDefaultExecutorStats();
+}
+
+async function buildExecutorRealtimeStatsMap(executorIds) {
+  const statsMap = new Map();
+
+  if (!Array.isArray(executorIds) || executorIds.length === 0) {
+    return statsMap;
+  }
+
+  const completedRequests = await Request.find({
+    assignedTo: { $in: executorIds },
+    status: 'completed'
+  })
+    .select('assignedTo createdAt requestDate updatedAt completedDate deliveryDate')
+    .lean();
+
+  completedRequests.forEach((request) => {
+    const executorId = String(request.assignedTo || '');
+    if (!executorId) return;
+
+    const current = statsMap.get(executorId) || {
+      ...buildDefaultExecutorStats(),
+      _sumDurationDays: 0,
+      _onTimeCount: 0
+    };
+
+    current.totalCompleted += 1;
+
+    const startDate = toValidDate(request.createdAt || request.requestDate);
+    const endDate = toValidDate(request.completedDate || request.updatedAt);
+    if (startDate && endDate && endDate >= startDate) {
+      current._sumDurationDays += (endDate - startDate) / (1000 * 60 * 60 * 24);
+    }
+
+    const deadline = toValidDate(request.deliveryDate);
+    if (!deadline || (endDate && endDate <= deadline)) {
+      current._onTimeCount += 1;
+    }
+
+    statsMap.set(executorId, current);
+  });
+
+  const activeLoads = await Request.aggregate([
+    {
+      $match: {
+        assignedTo: { $in: executorIds },
+        status: { $in: ['pending', 'in-process', 'review'] }
+      }
+    },
+    {
+      $group: {
+        _id: '$assignedTo',
+        currentLoad: { $sum: 1 }
+      }
+    }
+  ]);
+
+  activeLoads.forEach((item) => {
+    const executorId = String(item._id || '');
+    if (!executorId) return;
+
+    const current = statsMap.get(executorId) || {
+      ...buildDefaultExecutorStats(),
+      _sumDurationDays: 0,
+      _onTimeCount: 0
+    };
+    current.currentLoad = Number(item.currentLoad) || 0;
+    statsMap.set(executorId, current);
+  });
+
+  statsMap.forEach((stats, executorId) => {
+    const totalCompleted = stats.totalCompleted || 0;
+    const averageCompletionTime = totalCompleted > 0 ? stats._sumDurationDays / totalCompleted : 0;
+    const onTimeDeliveryRate = totalCompleted > 0 ? (stats._onTimeCount / totalCompleted) * 100 : 100;
+
+    statsMap.set(executorId, {
+      totalCompleted,
+      averageCompletionTime,
+      onTimeDeliveryRate,
+      currentLoad: stats.currentLoad || 0
+    });
+  });
+
+  return statsMap;
+}
+
+function enrichExecutorWithRealtimeStats(executor, statsMap) {
+  const currentStats = getExecutorStatsFromMap(statsMap, executor._id);
+  const capacity = Number(executor?.executorProfile?.capacity) || 0;
+  const currentLoad = Number(currentStats.currentLoad) || 0;
+  const loadPercentage = capacity > 0 ? (currentLoad / capacity) * 100 : 0;
+
+  return {
+    ...executor.toObject(),
+    executorType: resolveExecutorType(executor),
+    currentLoad,
+    loadPercentage: Math.round(loadPercentage),
+    hasCapacity: Boolean(executor?.executorProfile?.available) && currentLoad < capacity,
+    executorProfile: {
+      ...executor.executorProfile,
+      stats: {
+        totalCompleted: Number(currentStats.totalCompleted) || 0,
+        averageCompletionTime: Number(currentStats.averageCompletionTime) || 0,
+        onTimeDeliveryRate: Number(currentStats.onTimeDeliveryRate) || 100,
+        currentLoad
+      }
+    }
+  };
+}
+
 // Todas las rutas de este archivo requieren ser ADMIN
 router.use(authenticate, authorize(['admin']));
 
@@ -690,20 +817,9 @@ router.get('/executors', async (req, res) => {
       .select('-password')
       .sort({ 'executorProfile.priority': 1, firstName: 1 });
     
-    // Enriquecer con estadísticas en tiempo real
-    const executorsWithStats = await Promise.all(executors.map(async (executor) => {
-      const currentLoad = await executor.getCurrentLoad();
-      const loadPercentage = (currentLoad / executor.executorProfile.capacity) * 100;
-      const normalizedExecutorType = resolveExecutorType(executor);
-      
-      return {
-        ...executor.toObject(),
-        executorType: normalizedExecutorType,
-        currentLoad,
-        loadPercentage: Math.round(loadPercentage),
-        hasCapacity: await executor.hasCapacity()
-      };
-    }));
+    const executorIds = executors.map((executor) => executor._id);
+    const realtimeStatsMap = await buildExecutorRealtimeStatsMap(executorIds);
+    const executorsWithStats = executors.map((executor) => enrichExecutorWithRealtimeStats(executor, realtimeStatsMap));
     
     res.json({
       success: true,
@@ -1061,19 +1177,35 @@ router.get('/executors/:id/details', async (req, res) => {
     .limit(10);
     
     // Calcular estadísticas en tiempo real
-    const currentLoad = await executor.getCurrentLoad();
-    const loadPercentage = (currentLoad / executor.executorProfile.capacity) * 100;
-    const hasCapacity = await executor.hasCapacity();
+    const realtimeStatsMap = await buildExecutorRealtimeStatsMap([executor._id]);
+    const realtimeStats = getExecutorStatsFromMap(realtimeStatsMap, executor._id);
+    const currentLoad = Number(realtimeStats.currentLoad) || 0;
+    const capacity = Number(executor?.executorProfile?.capacity) || 0;
+    const loadPercentage = capacity > 0 ? (currentLoad / capacity) * 100 : 0;
+    const hasCapacity = Boolean(executor?.executorProfile?.available) && currentLoad < capacity;
+
+    const executorWithRealtimeStats = {
+      ...executor.toObject(),
+      executorProfile: {
+        ...executor.executorProfile,
+        stats: {
+          totalCompleted: Number(realtimeStats.totalCompleted) || 0,
+          averageCompletionTime: Number(realtimeStats.averageCompletionTime) || 0,
+          onTimeDeliveryRate: Number(realtimeStats.onTimeDeliveryRate) || 100,
+          currentLoad
+        }
+      }
+    };
     
     res.json({
       success: true,
-      executor: executor.toObject(),
+      executor: executorWithRealtimeStats,
       statistics: {
         currentLoad,
         loadPercentage: Math.round(loadPercentage),
         hasCapacity,
         activeRequestsCount: activeRequests.length,
-        completedRequestsCount: executor.executorProfile.stats.totalCompleted
+        completedRequestsCount: Number(realtimeStats.totalCompleted) || 0
       },
       activeRequests,
       recentCompletedRequests: completedRequests
@@ -1274,6 +1406,9 @@ router.get('/stats/executors', async (req, res) => {
       isActive: true
     });
     
+    const executorIds = executors.map((executor) => executor._id);
+    const realtimeStatsMap = await buildExecutorRealtimeStatsMap(executorIds);
+
     // Calcular estadísticas por rol
     const statsByRole = {};
     
@@ -1292,12 +1427,12 @@ router.get('/stats/executors', async (req, res) => {
       }
       
       const available = roleExecutors.filter(e => e.executorProfile.available).length;
-      const totalCapacity = roleExecutors.reduce((sum, e) => sum + e.executorProfile.capacity, 0);
-      
-      let currentLoad = 0;
-      for (const executor of roleExecutors) {
-        currentLoad += await executor.getCurrentLoad();
-      }
+      const totalCapacity = roleExecutors.reduce((sum, e) => sum + (Number(e.executorProfile.capacity) || 0), 0);
+
+      const currentLoad = roleExecutors.reduce((sum, executor) => {
+        const stats = getExecutorStatsFromMap(realtimeStatsMap, executor._id);
+        return sum + (Number(stats.currentLoad) || 0);
+      }, 0);
       
       const utilizationRate = totalCapacity > 0 ? (currentLoad / totalCapacity) * 100 : 0;
       
@@ -1313,28 +1448,38 @@ router.get('/stats/executors', async (req, res) => {
     // Estadísticas globales
     const totalExecutors = executors.length;
     const totalAvailable = executors.filter(e => e.executorProfile.available).length;
-    const totalCapacity = executors.reduce((sum, e) => sum + e.executorProfile.capacity, 0);
-    
-    let totalCurrentLoad = 0;
-    for (const executor of executors) {
-      totalCurrentLoad += await executor.getCurrentLoad();
-    }
+    const totalCapacity = executors.reduce((sum, e) => sum + (Number(e.executorProfile.capacity) || 0), 0);
+
+    const totalCurrentLoad = executors.reduce((sum, executor) => {
+      const stats = getExecutorStatsFromMap(realtimeStatsMap, executor._id);
+      return sum + (Number(stats.currentLoad) || 0);
+    }, 0);
     
     const globalUtilizationRate = totalCapacity > 0 ? (totalCurrentLoad / totalCapacity) * 100 : 0;
     
     // Top performers
     const topPerformers = executors
-      .filter(e => e.executorProfile.stats.totalCompleted > 0)
-      .sort((a, b) => b.executorProfile.stats.onTimeDeliveryRate - a.executorProfile.stats.onTimeDeliveryRate)
+      .filter((executor) => {
+        const stats = getExecutorStatsFromMap(realtimeStatsMap, executor._id);
+        return (Number(stats.totalCompleted) || 0) > 0;
+      })
+      .sort((left, right) => {
+        const leftStats = getExecutorStatsFromMap(realtimeStatsMap, left._id);
+        const rightStats = getExecutorStatsFromMap(realtimeStatsMap, right._id);
+        return (Number(rightStats.onTimeDeliveryRate) || 0) - (Number(leftStats.onTimeDeliveryRate) || 0);
+      })
       .slice(0, 5)
-      .map(e => ({
-        id: e._id,
-        name: `${e.firstName} ${e.lastName}`,
-        role: resolveExecutorType(e),
-        totalCompleted: e.executorProfile.stats.totalCompleted,
-        onTimeDeliveryRate: Math.round(e.executorProfile.stats.onTimeDeliveryRate),
-        averageCompletionTime: Math.round(e.executorProfile.stats.averageCompletionTime * 10) / 10
-      }));
+      .map((executor) => {
+        const stats = getExecutorStatsFromMap(realtimeStatsMap, executor._id);
+        return {
+          id: executor._id,
+          name: `${executor.firstName} ${executor.lastName}`,
+          role: resolveExecutorType(executor),
+          totalCompleted: Number(stats.totalCompleted) || 0,
+          onTimeDeliveryRate: Math.round(Number(stats.onTimeDeliveryRate) || 0),
+          averageCompletionTime: Math.round((Number(stats.averageCompletionTime) || 0) * 10) / 10
+        };
+      });
     
     res.json({
       success: true,
