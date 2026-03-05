@@ -2488,12 +2488,8 @@
               <div class="flex justify-between py-2 border-b border-gray-100">
                 <span class="text-sm text-gray-600">Responsable Asignado:</span>
                 <span class="text-sm font-medium" 
-                      :class="selectedRequest?.assignedTo ? 'text-fenalco-blue' : 'text-gray-400'"
-                      x-text="selectedRequest?.assignedTo ? (selectedRequest?.assignedTo?.firstName + ' ' + selectedRequest?.assignedTo?.lastName) : 'Sin asignar'"></span>
-              </div>
-              <div class="flex justify-between py-2 border-b border-gray-100">
-                <span class="text-sm text-gray-600">Perfil solicitado:</span>
-                <span class="text-sm font-medium" x-text="selectedRequest?.preferredExecutorRole ? getExecutorRoleLabel(selectedRequest?.preferredExecutorRole) : 'No definido'"></span>
+                      :class="selectedRequest?.assignedTo ? 'text-fenalco-blue' : (selectedRequest?.preferredExecutorRole ? 'text-gray-700' : 'text-gray-400')"
+                      x-text="getResponsibleDisplayLabel(selectedRequest)"></span>
               </div>
               <div class="flex justify-between py-2">
                 <span class="text-sm text-gray-600">Nivel de Urgencia:</span>
@@ -3575,6 +3571,7 @@
                 ...request,
                 urgency: request.urgency === 'urgente' ? 'urgent' : request.urgency
               }));
+              this.updateProfileStats();
               const realtimeNotifications = this.notifications.filter((notification) =>
                 notification.id && notification.id.toString().startsWith('rt-')
               );
@@ -4406,6 +4403,31 @@
           if (!requester) return null;
           if (typeof requester === 'string') return requester;
           return requester._id || requester.id || null;
+        },
+
+        updateProfileStats() {
+          const ownRequests = (this.requests || []).filter((request) => this.isOwnRequest(request));
+          this.stats = {
+            total: ownRequests.length,
+            completed: ownRequests.filter((request) => request.status === 'completed').length,
+            inProcess: ownRequests.filter((request) => ['in-process', 'review'].includes(request.status)).length,
+            pending: ownRequests.filter((request) => request.status === 'pending').length
+          };
+        },
+
+        getResponsibleDisplayLabel(request) {
+          if (!request) return 'Sin asignar';
+          const assignedTo = request.assignedTo;
+          if (assignedTo && typeof assignedTo === 'object') {
+            const fullName = `${assignedTo.firstName || ''} ${assignedTo.lastName || ''}`.trim();
+            if (fullName) return fullName;
+          }
+
+          if (request?.preferredExecutorRole) {
+            return this.getExecutorRoleLabel(request.preferredExecutorRole);
+          }
+
+          return 'Sin asignar';
         },
 
         isOwnRequest(request) {
