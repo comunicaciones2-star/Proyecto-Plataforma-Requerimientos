@@ -1047,7 +1047,7 @@
               
               <!-- Month/Year selectors -->
               <div class="flex w-full gap-3 sm:w-auto sm:ml-auto">
-                <select x-model.number="reportMonth" @change="loadReportData()" class="flex-1 sm:flex-none px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fenalco-blue">
+                <select x-model.number="reportMonth" @change="onReportMonthChange()" class="flex-1 sm:flex-none px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fenalco-blue">
                   <option value="1">Enero</option>
                   <option value="2">Febrero</option>
                   <option value="3">Marzo</option>
@@ -1061,7 +1061,7 @@
                   <option value="11">Noviembre</option>
                   <option value="12">Diciembre</option>
                 </select>
-                <select x-model.number="reportYear" @change="loadReportData()" class="flex-1 sm:flex-none px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fenalco-blue">
+                <select x-model.number="reportYear" @change="onReportYearChange()" class="flex-1 sm:flex-none px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fenalco-blue">
                   <template x-for="year in getReportYearOptions()" :key="year">
                     <option :value="year" x-text="year"></option>
                   </template>
@@ -1780,10 +1780,9 @@
               <input
                 :type="adminUserPasswordVisibility.current ? 'text' : 'password'"
                 x-model="adminUserForm.currentPassword"
-                :required="!!adminUserForm.id && (!!adminUserForm.password || !!adminUserForm.confirmPassword)"
                 autocomplete="current-password"
                 class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green pr-10"
-                placeholder="Requerida si cambias la contraseña"
+                placeholder="Contraseña actual"
               >
               <button
                 type="button"
@@ -1794,9 +1793,6 @@
                 <i :class="adminUserPasswordVisibility.current ? 'ri-eye-off-line' : 'ri-eye-line'"></i>
               </button>
             </div>
-            <p x-show="adminUserForm.id" class="text-xs text-gray-500 mt-1">
-              Solo es obligatoria cuando cambias la contraseña.
-            </p>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1" x-text="adminUserForm.id ? 'Nueva contraseña (opcional)' : 'Contraseña *'"></label>
@@ -3972,6 +3968,20 @@
           };
         },
 
+        onReportMonthChange() {
+          // Selecting a specific month always implies monthly analysis.
+          this.reportPeriod = 'month';
+          this.loadReportData();
+        },
+
+        onReportYearChange() {
+          // Keep annual mode when active; otherwise, refresh monthly context.
+          if (this.reportPeriod !== 'year') {
+            this.reportPeriod = 'month';
+          }
+          this.loadReportData();
+        },
+
         loadReportData() {
           const filteredRequests = this.getFilteredReportRequests();
           const totalRequests = filteredRequests.length;
@@ -4881,6 +4891,10 @@
           const sortedRequests = [...(requests || [])]
             .sort((a, b) => new Date(b.createdAt || b.updatedAt || 0) - new Date(a.createdAt || a.updatedAt || 0));
 
+          const existingNotificationsById = new Map(
+            (this.notifications || []).map((notification) => [String(notification.id), notification])
+          );
+
           return sortedRequests.map((request) => {
             const statusConfig = {
               completed: {
@@ -4905,12 +4919,15 @@
               }
             };
             const config = statusConfig[request.status] || statusConfig.pending;
+            const requestId = String(request._id || '');
+            const existingNotification = existingNotificationsById.get(requestId);
             return {
-              id: request._id,
-              requestId: request._id,
+              id: requestId,
+              requestId,
               title: request.title || request.requestNumber || 'Solicitud',
               subtitle: config.subtitle,
               time: this.getRelativeTime(request.createdAt || request.updatedAt),
+              isUnread: existingNotification ? existingNotification.isUnread !== false : true,
               iconClass: config.iconClass,
               bgClass: config.bgClass
             };
@@ -6262,15 +6279,9 @@
 
             const password = String(this.adminUserForm.password || '');
             const confirmPassword = String(this.adminUserForm.confirmPassword || '');
-            const currentPassword = String(this.adminUserForm.currentPassword || '');
             const wantsPasswordChange = !isEditing || password.length > 0 || confirmPassword.length > 0;
 
             if (wantsPasswordChange) {
-              if (isEditing && currentPassword.trim().length === 0) {
-                await this.showAlert('Debes ingresar la contraseña actual para cambiar la contraseña del usuario.', 'Validación');
-                return;
-              }
-
               if (!this.isStrongPassword(password)) {
                 await this.showAlert('La contraseña debe tener mínimo 8 caracteres e incluir al menos una letra, un número y un símbolo especial (ej: !, @, #).', 'Validación');
                 return;
@@ -6282,9 +6293,6 @@
               }
 
               payload.password = password;
-              if (isEditing && currentPassword.trim().length > 0) {
-                payload.currentPassword = currentPassword;
-              }
             }
 
             const response = await fetch(endpoint, {

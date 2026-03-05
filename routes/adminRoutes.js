@@ -253,7 +253,7 @@ router.post('/users', async (req, res) => {
  */
 router.patch('/users/:id', async (req, res) => {
   try {
-    const { firstName, lastName, role, area, phone, department, isActive, position, cargo, email, executorType, password, currentPassword } = req.body;
+    const { firstName, lastName, role, area, phone, department, isActive, position, cargo, email, executorType, password } = req.body;
 
     const updateData = {
       firstName,
@@ -309,32 +309,6 @@ router.patch('/users/:id', async (req, res) => {
 
     if (typeof password !== 'undefined') {
       const rawPassword = String(password || '');
-      const rawCurrentPassword = String(currentPassword || '');
-
-      if (!rawCurrentPassword.trim()) {
-        return res.status(400).json({
-          success: false,
-          message: 'La contraseña actual es obligatoria para cambiar la contraseña.'
-        });
-      }
-
-      const existingUser = await User.findById(req.params.id).select('+password');
-
-      if (!existingUser) {
-        return res.status(404).json({
-          success: false,
-          message: 'Usuario no encontrado'
-        });
-      }
-
-      const isCurrentPasswordValid = await bcrypt.compare(rawCurrentPassword, existingUser.password || '');
-
-      if (!isCurrentPasswordValid) {
-        return res.status(400).json({
-          success: false,
-          message: 'La contraseña actual no es válida.'
-        });
-      }
 
       if (!isStrongPassword(rawPassword)) {
         return res.status(400).json({
