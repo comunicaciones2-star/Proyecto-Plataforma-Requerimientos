@@ -3721,9 +3721,16 @@
               this.adminDashboard.loading = true;
               this.adminDashboard.error = '';
 
-              const response = await fetch(`${API_URL}/dashboard/admin`, {
+              let response = await fetch(`${API_URL}/admin/dashboard`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               });
+
+              if (response.status === 404) {
+                // Backward compatibility fallback in case an old route mount is active.
+                response = await fetch(`${API_URL}/dashboard/admin`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+              }
 
               if (response.status === 401 || response.status === 403) {
                 alert('⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');

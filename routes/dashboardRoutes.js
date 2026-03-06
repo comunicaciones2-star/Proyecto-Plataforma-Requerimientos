@@ -84,7 +84,7 @@ function buildCanonicalStatusProjection() {
 
 router.use(authenticate, authorize(['admin']));
 
-router.get('/admin', async (req, res) => {
+const getAdminDashboard = async (req, res) => {
   try {
     const now = new Date();
     const startOfWeek = getWeekStartMonday(now);
@@ -403,6 +403,11 @@ router.get('/admin', async (req, res) => {
       message: 'Error al cargar el dashboard administrativo'
     });
   }
-});
+};
+
+// Backward compatible route (used by existing frontend)
+router.get('/admin', getAdminDashboard);
+// Preferred route when mounted as /api/admin/dashboard
+router.get('/', getAdminDashboard);
 
 module.exports = router;

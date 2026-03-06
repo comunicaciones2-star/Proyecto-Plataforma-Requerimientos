@@ -651,6 +651,7 @@ router.get('/requests/stats', async (req, res) => {
     const completed = await Request.countDocuments({ status: 'completed' });
     const inProcess = await Request.countDocuments({ status: 'in-process' });
     const pending = await Request.countDocuments({ status: 'pending' });
+    const review = await Request.countDocuments({ status: 'review' });
 
     res.json({
       success: true,
@@ -658,7 +659,8 @@ router.get('/requests/stats', async (req, res) => {
         total,
         completed,
         inProcess,
-        pending
+        pending,
+        review
       }
     });
   } catch (error) {

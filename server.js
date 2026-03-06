@@ -135,6 +135,7 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+app.use('/api/admin/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/departments', require('./routes/departmentRoutes'));
 app.use('/api/queue', require('./routes/queueRoutes'));
 app.use('/api/files', require('./routes/fileRoutes'));
