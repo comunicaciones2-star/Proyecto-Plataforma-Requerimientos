@@ -714,7 +714,7 @@
             <!-- Gráficos -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <div class="card">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Performance Mensual</h3>
+                <h3 class="text-lg font-semibold text-gray-800 mb-4" x-text="getPerformanceChartTitle()">Performance Mensual</h3>
                 <div class="chart-wrapper">
                   <canvas id="chartPerformance"></canvas>
                   <div x-show="dashboardChartStatus.performance.error || dashboardChartStatus.performance.noData" class="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg" x-cloak>
@@ -724,7 +724,7 @@
               </div>
 
               <div class="card">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Distribución por Urgencia</h3>
+                <h3 class="text-lg font-semibold text-gray-800 mb-4" x-text="getUrgencyChartTitle()">Distribución por Urgencia</h3>
                 <div class="chart-wrapper">
                   <canvas id="chartUrgencia"></canvas>
                   <div x-show="dashboardChartStatus.urgency.error || dashboardChartStatus.urgency.noData" class="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg" x-cloak>
@@ -736,7 +736,7 @@
 
             <!-- Estadísticas por Área -->
             <div class="card">
-              <h3 class="text-lg font-semibold text-gray-800 mb-4">Estadísticas por Área</h3>
+              <h3 class="text-lg font-semibold text-gray-800 mb-4" x-text="getAreaSectionTitle()">Estadísticas por Área</h3>
               <div class="chart-wrapper mb-6">
                 <canvas id="chartAreas"></canvas>
               </div>
@@ -3081,6 +3081,14 @@
             landing: {
               sections: '',
               referenceUrl: ''
+            },
+            valla: {
+              kind: '',
+              measures: '',
+              resolution: '',
+              formats: '',
+              aspect: '',
+              duration: ''
             }
           },
           selectedFiles: []
@@ -5888,6 +5896,24 @@
           return this.isExecutorDashboardView()
             ? 'Seguimiento de tus solicitudes asignadas'
             : 'Seguimiento de tus solicitudes de diseño';
+        },
+
+        getPerformanceChartTitle() {
+          return this.isExecutorDashboardView()
+            ? 'Tendencia de trabajo (completadas)'
+            : 'Performance Mensual';
+        },
+
+        getUrgencyChartTitle() {
+          return this.isExecutorDashboardView()
+            ? 'Urgencia de mis tareas'
+            : 'Distribución por Urgencia';
+        },
+
+        getAreaSectionTitle() {
+          return this.isExecutorDashboardView()
+            ? 'Áreas de trabajo asignado'
+            : 'Estadísticas por Área';
         },
 
         isAdminUser() {

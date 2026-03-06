@@ -174,12 +174,76 @@
 
         async loadStats() {
           try {
-            const response = await fetch('http://localhost:5000/api/admin/dashboard', {
+            const response = await fetch(`${window.location.origin}/api/reports/analytics/overview`, {
               headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
               }
             });
-            this.stats = await response.json();
+
+            const payload = await response.json();
+            if (!response.ok || !payload?.success) {
+              throw new Error(payload?.message || 'No se pudo cargar la analítica');
+            }
+
+            const roleView = payload?.roleView || 'requester';
+            const data = payload?.data || {};
+
+            if (roleView === 'admin') {
+              const operacion = data?.operacion || {};
+              const byArea = Array.isArray(data?.desempeno?.solicitudesPorArea)
+                ? data.desempeno.solicitudesPorArea.map((row) => ({
+                  area: row?.area || 'Sin área',
+                  count: Number(row?.total) || 0
+                }))
+                : [];
+              const statusRows = Array.isArray(operacion?.distribucionEstado) ? operacion.distribucionEstado : [];
+              const countByStatus = (statusKey) => statusRows
+                .filter((row) => String(row?.status || '').toLowerCase() === statusKey)
+                .reduce((sum, row) => sum + (Number(row?.total) || 0), 0);
+
+              this.stats = {
+                totalRequests: Number(operacion?.totalSolicitudes) || 0,
+                requestsThisMonth: Array.isArray(operacion?.tendenciaMensual)
+                  ? (operacion.tendenciaMensual[operacion.tendenciaMensual.length - 1]?.total || 0)
+                  : 0,
+                pending: countByStatus('pending') + countByStatus('assigned'),
+                inProgress: countByStatus('in-process') + countByStatus('review'),
+                completed: countByStatus('completed'),
+                rejected: countByStatus('rejected'),
+                byArea
+              };
+              return;
+            }
+
+            const requesterServicio = data?.servicio || {};
+            const requesterOperacion = data?.operacion || {};
+            const executorDesempeno = data?.desempeno || {};
+            const ownStatusRows = Array.isArray(requesterOperacion?.distribucionEstadoPropio)
+              ? requesterOperacion.distribucionEstadoPropio
+              : [];
+            const ownCountByStatus = (statusKey) => ownStatusRows
+              .filter((row) => String(row?.status || '').toLowerCase() === statusKey)
+              .reduce((sum, row) => sum + (Number(row?.total) || 0), 0);
+
+            const fallbackByArea = [{ area: 'Mi vista', count: Number(requesterServicio?.volumenSolicitudesUsuario) || 0 }];
+
+            this.stats = {
+              totalRequests: Number(requesterServicio?.volumenSolicitudesUsuario) || 0,
+              requestsThisMonth: Array.isArray(requesterOperacion?.tendenciaMensual)
+                ? (requesterOperacion.tendenciaMensual[requesterOperacion.tendenciaMensual.length - 1]?.total || 0)
+                : 0,
+              pending: roleView === 'executor'
+                ? ownCountByStatus('pending') + ownCountByStatus('assigned')
+                : 0,
+              inProgress: roleView === 'executor'
+                ? Number(executorDesempeno?.enProceso) + Number(executorDesempeno?.enRevision)
+                : 0,
+              completed: roleView === 'executor'
+                ? Number(executorDesempeno?.completadas) || 0
+                : Number(requesterServicio?.completadas) || 0,
+              rejected: roleView === 'executor' ? ownCountByStatus('rejected') : 0,
+              byArea: fallbackByArea
+            };
           } catch (error) {
             console.error('Error loading stats:', error);
           }
@@ -187,7 +251,7 @@
 
         async loadRecentRequests() {
           try {
-            const response = await fetch('http://localhost:5000/api/requests?limit=5', {
+            const response = await fetch(`${window.location.origin}/api/requests?limit=5`, {
               headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
               }
@@ -201,7 +265,7 @@
 
         async loadRecentActivity() {
           try {
-            const response = await fetch('http://localhost:5000/api/admin/activity', {
+            const response = await fetch(`${window.location.origin}/api/admin/activity`, {
               headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
               }
