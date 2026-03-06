@@ -19,12 +19,8 @@ const EXECUTOR_AND_ADMIN_ROLES = new Set([
 
 router.get('/:filename', authenticate, async (req, res) => {
   const userRole = String(req.user?.role || '').trim().toLowerCase();
-  if (!EXECUTOR_AND_ADMIN_ROLES.has(userRole)) {
-    return res.status(403).json({
-      success: false,
-      message: 'No tiene permisos para acceder a este archivo'
-    });
-  }
+  const isPrivilegedRole = EXECUTOR_AND_ADMIN_ROLES.has(userRole);
+  const currentUserId = String(req.user?.id || req.user?._id || '').trim();
 
   const requestedName = String(req.params.filename || '').trim();
   const safeFilename = path.basename(requestedName);
@@ -46,11 +42,16 @@ router.get('/:filename', authenticate, async (req, res) => {
     });
   }
 
+  let requestWithAttachment = null;
   let downloadName = safeFilename;
   try {
-    const requestWithAttachment = await Request.findOne(
+    requestWithAttachment = await Request.findOne(
       { 'attachments.filename': safeFilename },
-      { attachments: { $elemMatch: { filename: safeFilename } } }
+      {
+        requester: 1,
+        assignedTo: 1,
+        attachments: { $elemMatch: { filename: safeFilename } }
+      }
     ).lean();
 
     const originalName = requestWithAttachment?.attachments?.[0]?.originalName;
@@ -59,6 +60,20 @@ router.get('/:filename', authenticate, async (req, res) => {
     }
   } catch (error) {
     console.warn('No se pudo resolver nombre original para descarga:', error.message);
+  }
+
+  const requesterId = String(requestWithAttachment?.requester || '').trim();
+  const assignedToId = String(requestWithAttachment?.assignedTo || '').trim();
+  const isOwnerOrAssignee = Boolean(
+    currentUserId &&
+    (currentUserId === requesterId || currentUserId === assignedToId)
+  );
+
+  if (!isPrivilegedRole && !isOwnerOrAssignee) {
+    return res.status(403).json({
+      success: false,
+      message: 'No tiene permisos para acceder a este archivo'
+    });
   }
 
   // Forzamos attachment para que el navegador descargue el archivo protegido.
