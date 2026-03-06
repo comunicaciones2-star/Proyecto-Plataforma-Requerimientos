@@ -4,15 +4,23 @@ const jwt = require('jsonwebtoken');
 // Verifica que el request tenga un token válido
 function authenticate(req, res, next) {
   const authHeader = req.headers['authorization'];
+  let token = null;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  }
+
+  if (!token) {
+    // Fallback para navegación directa (<a href>): el browser sí envía cookies httpOnly.
+    token = req.cookies?.auth_token || null;
+  }
+
+  if (!token) {
     return res.status(401).json({
       success: false,
       message: 'No autorizado: token no proporcionado'
     });
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

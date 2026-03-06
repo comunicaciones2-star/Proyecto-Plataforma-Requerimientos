@@ -2885,7 +2885,7 @@
                     <p class="text-xs text-gray-500" x-text="(attachment.size / 1024).toFixed(1) + ' KB'"></p>
                   </div>
                 </div>
-                <a :href="getSecureAttachmentUrl(attachment)" target="_blank" 
+                <a :href="attachment?.filename ? `/api/files/${encodeURIComponent(attachment.filename)}` : '#'"
                    class="text-fenalco-blue hover:text-fenalco-blue-600">
                   <i class="ri-download-line text-xl"></i>
                 </a>
@@ -3365,7 +3365,16 @@
           }
         },
         
-        logout() {
+        async logout() {
+          try {
+            await fetch(`${API_URL}/auth/logout`, {
+              method: 'POST',
+              credentials: 'same-origin'
+            });
+          } catch (error) {
+            console.warn('No se pudo cerrar sesión en servidor:', error);
+          }
+
           this.stopColombiaRealtimeClock();
           this.unbindNotificationSoundUnlock();
           this.notificationAudio = null;

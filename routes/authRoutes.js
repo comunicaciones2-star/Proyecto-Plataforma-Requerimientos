@@ -130,6 +130,22 @@ function generateToken(user) {
   );
 }
 
+function getAuthCookieBaseOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/'
+  };
+}
+
+function getAuthCookieOptions() {
+  return {
+    ...getAuthCookieBaseOptions(),
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  };
+}
+
 // ==================== POST /api/auth/login ====================
 router.post('/login', loginLimiter, async (req, res) => {
   const logger = global.logger || console;
@@ -182,6 +198,10 @@ router.post('/login', loginLimiter, async (req, res) => {
     const token = generateToken(user);
     logger.info(`✅ Login exitoso: ${email} (${user.role})`);
 
+    // Los <a href> no permiten enviar Authorization manual, por eso guardamos
+    // el JWT en cookie httpOnly para que el navegador la adjunte automáticamente.
+    res.cookie('auth_token', token, getAuthCookieOptions());
+
     // Preparar usuario sin contraseña
     const userSafe = sanitizeUserForApp(user);
 
@@ -199,6 +219,16 @@ router.post('/login', loginLimiter, async (req, res) => {
       message: 'Error al iniciar sesión: ' + error.message
     });
   }
+});
+
+// ==================== POST /api/auth/logout ====================
+router.post('/logout', (req, res) => {
+  res.clearCookie('auth_token', getAuthCookieBaseOptions());
+
+  res.json({
+    success: true,
+    message: 'Sesión cerrada correctamente'
+  });
 });
 
 // ==================== POST /api/auth/register ====================
