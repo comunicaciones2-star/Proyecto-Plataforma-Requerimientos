@@ -481,127 +481,243 @@
         
         <!-- Dashboard Tab -->
         <div x-show="currentTab === 'dashboard'">
-          <div class="mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Vista General</h2>
-            <div class="flex items-center justify-between">
-              <p class="text-gray-600">Últimos 7 días</p>
-              <button @click="exportDashboardPDF()" class="px-4 py-2 bg-fenalco-blue text-white rounded-lg flex items-center gap-2 hover:bg-fenalco-blue-600 transition">
-                <i class="ri-download-line"></i>
-                Exportar PDF
+          <div x-show="isAdminUser()" x-cloak>
+            <div class="mb-6 flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-1">Dashboard Administrativo</h2>
+                <p class="text-gray-600">Operación global en tiempo real</p>
+              </div>
+              <button @click="loadDashboard()" class="px-4 py-2 bg-fenalco-blue text-white rounded-lg hover:bg-fenalco-blue-600 transition flex items-center gap-2">
+                <i class="ri-refresh-line"></i>
+                Actualizar
               </button>
             </div>
-          </div>
 
-          <!-- Análisis de Solicitudes -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <!-- Tiempo Promedio -->
-            <div class="bg-blue-50 rounded-xl p-6 border border-blue-100">
-              <div class="flex items-start justify-between mb-3">
-                <p class="text-sm font-medium text-blue-600">Tiempo Promedio</p>
-                <i class="ri-time-line text-2xl text-blue-400"></i>
+            <div x-show="adminDashboard.loading" class="card mb-6 text-sm text-gray-600">Cargando indicadores administrativos...</div>
+            <div x-show="adminDashboard.error" class="card mb-6 text-sm text-red-600" x-text="adminDashboard.error"></div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4 mb-6">
+              <div class="bg-white rounded-xl border p-4">
+                <p class="text-xs text-gray-500">Total solicitudes</p>
+                <p class="text-2xl font-bold text-gray-800" x-text="adminDashboard.data.kpis.totalSolicitudes || 0"></p>
               </div>
-              <h3 class="text-4xl font-bold text-blue-900 mb-2" x-text="dashboardStats.averageTime + ' días'">0.0 días</h3>
-              <p class="text-xs text-blue-600">
-                <i class="ri-time-line"></i> Promedio global
-              </p>
+              <div class="bg-white rounded-xl border p-4">
+                <p class="text-xs text-gray-500">Nuevas esta semana</p>
+                <p class="text-2xl font-bold text-fenalco-blue" x-text="adminDashboard.data.kpis.nuevasEstaSemana || 0"></p>
+              </div>
+              <div class="bg-white rounded-xl border p-4">
+                <p class="text-xs text-gray-500">Pendientes asignación</p>
+                <p class="text-2xl font-bold text-amber-700" x-text="adminDashboard.data.kpis.pendientesAsignacion || 0"></p>
+              </div>
+              <div class="bg-white rounded-xl border p-4">
+                <p class="text-xs text-gray-500">En proceso</p>
+                <p class="text-2xl font-bold text-blue-700" x-text="adminDashboard.data.kpis.enProceso || 0"></p>
+              </div>
+              <div class="bg-white rounded-xl border p-4">
+                <p class="text-xs text-gray-500">En revisión</p>
+                <p class="text-2xl font-bold text-purple-700" x-text="adminDashboard.data.kpis.enRevision || 0"></p>
+              </div>
+              <div class="bg-white rounded-xl border p-4">
+                <p class="text-xs text-gray-500">Completadas</p>
+                <p class="text-2xl font-bold text-green-700" x-text="adminDashboard.data.kpis.completadas || 0"></p>
+              </div>
             </div>
 
-            <!-- Porcentaje de Cumplimiento -->
-            <div class="bg-green-50 rounded-xl p-6 border border-green-100">
-              <div class="flex items-start justify-between mb-3">
-                <p class="text-sm font-medium text-green-600">Porcentaje de Cumplimiento</p>
-                <i class="ri-checkbox-circle-line text-2xl text-green-400"></i>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div class="bg-white rounded-xl border p-4">
+                <p class="text-xs text-gray-500">Tiempo promedio de cierre</p>
+                <p class="text-2xl font-bold text-gray-800" x-text="(adminDashboard.data.kpis.tiempoPromedioCierreDias || 0) + ' días'"></p>
               </div>
-              <h3 class="text-4xl font-bold text-green-900 mb-2" x-text="dashboardStats.completionPercentage + '%'">85%</h3>
-              <p class="text-xs text-green-600">
-                <i class="ri-checkbox-line"></i> <span x-text="dashboardStats.completedRequests">0</span> completadas
-              </p>
             </div>
 
-            <!-- Solicitudes Urgentes -->
-            <div class="bg-amber-50 rounded-xl p-6 border border-amber-100">
-              <div class="flex items-start justify-between mb-3">
-                <p class="text-sm font-medium text-amber-600">Solicitudes Urgentes</p>
-                <i class="ri-error-warning-line text-2xl text-amber-400"></i>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <div class="card">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Solicitudes por estado</h3>
+                <div class="chart-wrapper">
+                  <canvas id="chartAdminStatus"></canvas>
+                </div>
               </div>
-              <h3 class="text-4xl font-bold text-amber-900 mb-2" x-text="dashboardStats.urgentPercentage + '%'">33%</h3>
-              <p class="text-xs text-amber-600">
-                <i class="ri-alert-line"></i> <span x-text="dashboardStats.urgentRequests">0</span> urgentes
-              </p>
-            </div>
-
-            <!-- Satisfacción -->
-            <div class="bg-purple-50 rounded-xl p-6 border border-purple-100">
-              <div class="flex items-start justify-between mb-3">
-                <p class="text-sm font-medium text-purple-600">Satisfacción</p>
-                <i class="ri-star-line text-2xl text-purple-400"></i>
-              </div>
-              <h3 class="text-4xl font-bold text-purple-900 mb-2" x-text="dashboardStats.satisfaction + '%'">92%</h3>
-              <p class="text-xs text-purple-600">
-                <i class="ri-thumb-up-line"></i> Excelente
-              </p>
-            </div>
-          </div>
-
-          <!-- Gráficos -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div class="card">
-              <h3 class="text-lg font-semibold text-gray-800 mb-4">Performance Mensual</h3>
-              <div class="chart-wrapper">
-                <canvas id="chartPerformance"></canvas>
-                <div x-show="dashboardChartStatus.performance.error || dashboardChartStatus.performance.noData" class="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg" x-cloak>
-                  <p class="text-sm text-gray-600 text-center px-4" x-text="dashboardChartStatus.performance.error || 'Sin datos para graficar en este período'"></p>
+              <div class="card">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Nuevas solicitudes por semana</h3>
+                <div class="chart-wrapper">
+                  <canvas id="chartAdminTrend"></canvas>
                 </div>
               </div>
             </div>
-            
-            <div class="card">
-              <h3 class="text-lg font-semibold text-gray-800 mb-4">Distribución por Urgencia</h3>
-              <div class="chart-wrapper">
-                <canvas id="chartUrgencia"></canvas>
-                <div x-show="dashboardChartStatus.urgency.error || dashboardChartStatus.urgency.noData" class="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg" x-cloak>
-                  <p class="text-sm text-gray-600 text-center px-4" x-text="dashboardChartStatus.urgency.error || 'Sin datos para graficar en este período'"></p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <div class="card">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Solicitudes por responsable</h3>
+                <div class="chart-wrapper">
+                  <canvas id="chartAdminAssignees"></canvas>
                 </div>
+              </div>
+              <div class="card">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Solicitudes por área</h3>
+                <div class="chart-wrapper">
+                  <canvas id="chartAdminAreas"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">Alertas operativas</h3>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="border-b border-gray-200">
+                      <th class="text-left py-2 px-3">Tipo</th>
+                      <th class="text-left py-2 px-3">Solicitud</th>
+                      <th class="text-left py-2 px-3">Estado</th>
+                      <th class="text-left py-2 px-3">Fecha</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template x-if="getAdminAlertRows().length === 0">
+                      <tr>
+                        <td colspan="4" class="py-4 px-3 text-center text-gray-500">Sin alertas críticas por ahora</td>
+                      </tr>
+                    </template>
+                    <template x-for="alert in getAdminAlertRows()" :key="alert.key">
+                      <tr class="border-b border-gray-100">
+                        <td class="py-2 px-3" x-text="alert.type"></td>
+                        <td class="py-2 px-3">
+                          <p class="font-medium text-gray-800" x-text="alert.requestNumber"></p>
+                          <p class="text-xs text-gray-500" x-text="alert.title"></p>
+                        </td>
+                        <td class="py-2 px-3" x-text="getStatusLabel(alert.status)"></td>
+                        <td class="py-2 px-3" x-text="formatAdminAlertDate(alert.date)"></td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
 
-          <!-- Estadísticas por Área -->
-          <div class="card">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Estadísticas por Área</h3>
-            <div class="chart-wrapper mb-6">
-              <canvas id="chartAreas"></canvas>
+          <div x-show="!isAdminUser()">
+            <div class="mb-6">
+              <h2 class="text-2xl font-bold text-gray-800 mb-2">Vista General</h2>
+              <div class="flex items-center justify-between">
+                <p class="text-gray-600">Últimos 7 días</p>
+                <button @click="exportDashboardPDF()" class="px-4 py-2 bg-fenalco-blue text-white rounded-lg flex items-center gap-2 hover:bg-fenalco-blue-600 transition">
+                  <i class="ri-download-line"></i>
+                  Exportar PDF
+                </button>
+              </div>
             </div>
-            <div class="overflow-x-auto">
-              <table class="w-full">
-                <thead>
-                  <tr class="border-b-2 border-gray-200">
-                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Área</th>
-                    <th class="text-center py-3 px-4 font-semibold text-gray-700">Total</th>
-                    <th class="text-center py-3 px-4 font-semibold text-gray-700">Completadas</th>
-                    <th class="text-center py-3 px-4 font-semibold text-gray-700">En Proceso</th>
-                    <th class="text-center py-3 px-4 font-semibold text-gray-700">Pendientes</th>
-                    <th class="text-center py-3 px-4 font-semibold text-gray-700">Promedio</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <template x-if="getDashboardAreaTableRows().length === 0">
-                    <tr>
-                      <td colspan="6" class="py-6 px-4 text-center text-gray-500">No hay solicitudes registradas por área</td>
+
+            <!-- Análisis de Solicitudes -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <!-- Tiempo Promedio -->
+              <div class="bg-blue-50 rounded-xl p-6 border border-blue-100">
+                <div class="flex items-start justify-between mb-3">
+                  <p class="text-sm font-medium text-blue-600">Tiempo Promedio</p>
+                  <i class="ri-time-line text-2xl text-blue-400"></i>
+                </div>
+                <h3 class="text-4xl font-bold text-blue-900 mb-2" x-text="dashboardStats.averageTime + ' días'">0.0 días</h3>
+                <p class="text-xs text-blue-600">
+                  <i class="ri-time-line"></i> Promedio global
+                </p>
+              </div>
+
+              <!-- Porcentaje de Cumplimiento -->
+              <div class="bg-green-50 rounded-xl p-6 border border-green-100">
+                <div class="flex items-start justify-between mb-3">
+                  <p class="text-sm font-medium text-green-600">Porcentaje de Cumplimiento</p>
+                  <i class="ri-checkbox-circle-line text-2xl text-green-400"></i>
+                </div>
+                <h3 class="text-4xl font-bold text-green-900 mb-2" x-text="dashboardStats.completionPercentage + '%'">85%</h3>
+                <p class="text-xs text-green-600">
+                  <i class="ri-checkbox-line"></i> <span x-text="dashboardStats.completedRequests">0</span> completadas
+                </p>
+              </div>
+
+              <!-- Solicitudes Urgentes -->
+              <div class="bg-amber-50 rounded-xl p-6 border border-amber-100">
+                <div class="flex items-start justify-between mb-3">
+                  <p class="text-sm font-medium text-amber-600">Solicitudes Urgentes</p>
+                  <i class="ri-error-warning-line text-2xl text-amber-400"></i>
+                </div>
+                <h3 class="text-4xl font-bold text-amber-900 mb-2" x-text="dashboardStats.urgentPercentage + '%'">33%</h3>
+                <p class="text-xs text-amber-600">
+                  <i class="ri-alert-line"></i> <span x-text="dashboardStats.urgentRequests">0</span> urgentes
+                </p>
+              </div>
+
+              <!-- Satisfacción -->
+              <div class="bg-purple-50 rounded-xl p-6 border border-purple-100">
+                <div class="flex items-start justify-between mb-3">
+                  <p class="text-sm font-medium text-purple-600">Satisfacción</p>
+                  <i class="ri-star-line text-2xl text-purple-400"></i>
+                </div>
+                <h3 class="text-4xl font-bold text-purple-900 mb-2" x-text="dashboardStats.satisfaction + '%'">92%</h3>
+                <p class="text-xs text-purple-600">
+                  <i class="ri-thumb-up-line"></i> Excelente
+                </p>
+              </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              <div class="card">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Performance Mensual</h3>
+                <div class="chart-wrapper">
+                  <canvas id="chartPerformance"></canvas>
+                  <div x-show="dashboardChartStatus.performance.error || dashboardChartStatus.performance.noData" class="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg" x-cloak>
+                    <p class="text-sm text-gray-600 text-center px-4" x-text="dashboardChartStatus.performance.error || 'Sin datos para graficar en este período'"></p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Distribución por Urgencia</h3>
+                <div class="chart-wrapper">
+                  <canvas id="chartUrgencia"></canvas>
+                  <div x-show="dashboardChartStatus.urgency.error || dashboardChartStatus.urgency.noData" class="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg" x-cloak>
+                    <p class="text-sm text-gray-600 text-center px-4" x-text="dashboardChartStatus.urgency.error || 'Sin datos para graficar en este período'"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Estadísticas por Área -->
+            <div class="card">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">Estadísticas por Área</h3>
+              <div class="chart-wrapper mb-6">
+                <canvas id="chartAreas"></canvas>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full">
+                  <thead>
+                    <tr class="border-b-2 border-gray-200">
+                      <th class="text-left py-3 px-4 font-semibold text-gray-700">Área</th>
+                      <th class="text-center py-3 px-4 font-semibold text-gray-700">Total</th>
+                      <th class="text-center py-3 px-4 font-semibold text-gray-700">Completadas</th>
+                      <th class="text-center py-3 px-4 font-semibold text-gray-700">En Proceso</th>
+                      <th class="text-center py-3 px-4 font-semibold text-gray-700">Pendientes</th>
+                      <th class="text-center py-3 px-4 font-semibold text-gray-700">Promedio</th>
                     </tr>
-                  </template>
-                  <template x-for="row in getDashboardAreaTableRows()" :key="row.area">
-                    <tr class="border-b border-gray-100 hover:bg-gray-50">
-                      <td class="py-3 px-4 font-medium text-gray-800" x-text="row.area"></td>
-                      <td class="py-3 px-4 text-center text-gray-700" x-text="row.total"></td>
-                      <td class="py-3 px-4 text-center text-green-600 font-semibold" x-text="row.completed"></td>
-                      <td class="py-3 px-4 text-center text-blue-600 font-semibold" x-text="row.inProcess"></td>
-                      <td class="py-3 px-4 text-center text-amber-600 font-semibold" x-text="row.pending"></td>
-                      <td class="py-3 px-4 text-center text-gray-700" x-text="row.averageTimeLabel"></td>
-                    </tr>
-                  </template>
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    <template x-if="getDashboardAreaTableRows().length === 0">
+                      <tr>
+                        <td colspan="6" class="py-6 px-4 text-center text-gray-500">No hay solicitudes registradas por área</td>
+                      </tr>
+                    </template>
+                    <template x-for="row in getDashboardAreaTableRows()" :key="row.area">
+                      <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="py-3 px-4 font-medium text-gray-800" x-text="row.area"></td>
+                        <td class="py-3 px-4 text-center text-gray-700" x-text="row.total"></td>
+                        <td class="py-3 px-4 text-center text-green-600 font-semibold" x-text="row.completed"></td>
+                        <td class="py-3 px-4 text-center text-blue-600 font-semibold" x-text="row.inProcess"></td>
+                        <td class="py-3 px-4 text-center text-amber-600 font-semibold" x-text="row.pending"></td>
+                        <td class="py-3 px-4 text-center text-gray-700" x-text="row.averageTimeLabel"></td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -2826,6 +2942,30 @@
           averageTime: 0,
           satisfaction: 0
         },
+        adminDashboard: {
+          loading: false,
+          error: '',
+          data: {
+            kpis: {
+              totalSolicitudes: 0,
+              nuevasEstaSemana: 0,
+              pendientesAsignacion: 0,
+              enProceso: 0,
+              enRevision: 0,
+              completadas: 0,
+              tiempoPromedioCierreDias: 0
+            },
+            solicitudesPorEstado: [],
+            solicitudesPorResponsable: [],
+            solicitudesPorArea: [],
+            solicitudesNuevasPorSemana: [],
+            alertas: {
+              sinAsignarCriticas: [],
+              enRevisionLentas: [],
+              proximasOVencidas: []
+            }
+          }
+        },
         requests: [],
         notifications: [],
         wsConnection: null,
@@ -2902,6 +3042,12 @@
         dashboardCharts: {
           performance: null,
           urgency: null,
+          areas: null
+        },
+        adminDashboardCharts: {
+          status: null,
+          trend: null,
+          assignees: null,
           areas: null
         },
         dashboardChartsRenderTimer: null,
@@ -3540,65 +3686,73 @@
         async loadDashboard() {
           try {
             const token = localStorage.getItem('token');
-            const normalizedRole = String(this.user?.role || '').trim().toLowerCase();
-            const normalizedAccessLevel = String(this.user?.accessLevel || '').trim().toLowerCase();
-            const isAdminUser = normalizedRole === 'admin' || normalizedAccessLevel === 'admin';
-            let normalizedDashboardData = null;
-            
-            if (isAdminUser) {
-              const statsResponse = await fetch(`${API_URL}/admin/requests/stats`, {
+
+            if (this.isAdminUser()) {
+              this.adminDashboard.loading = true;
+              this.adminDashboard.error = '';
+
+              const response = await fetch(`${API_URL}/dashboard/admin`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               });
 
-              if (statsResponse.status === 401 || statsResponse.status === 403) {
+              if (response.status === 401 || response.status === 403) {
                 alert('⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
                 this.logout();
                 return;
               }
 
-              const statsData = await statsResponse.json();
+              const payload = await response.json();
 
-              if (statsData.success) {
-                this.stats = statsData.stats;
+              if (!response.ok || !payload?.success) {
+                throw new Error(payload?.message || 'No fue posible cargar el dashboard administrativo');
               }
 
-              const dashboardResponse = await fetch(`${API_URL}/admin/stats/dashboard`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-              });
+              const adminData = payload.data || {};
+              this.adminDashboard.data = {
+                ...this.adminDashboard.data,
+                ...adminData,
+                kpis: {
+                  ...this.adminDashboard.data.kpis,
+                  ...(adminData.kpis || {})
+                },
+                alertas: {
+                  ...this.adminDashboard.data.alertas,
+                  ...(adminData.alertas || {})
+                }
+              };
 
-              if (dashboardResponse.status === 401 || dashboardResponse.status === 403) {
-                alert('⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-                this.logout();
-                return;
-              }
+              // Mantiene compatibilidad con exportes/etiquetas que dependen de dashboardStats.
+              this.dashboardStats = {
+                ...this.dashboardStats,
+                totalRequests: Number(this.adminDashboard.data.kpis.totalSolicitudes) || 0,
+                completedRequests: Number(this.adminDashboard.data.kpis.completadas) || 0,
+                inProcessRequests: Number(this.adminDashboard.data.kpis.enProceso) || 0,
+                pendingRequests: Number(this.adminDashboard.data.kpis.pendientesAsignacion) || 0,
+                averageTime: Number(this.adminDashboard.data.kpis.tiempoPromedioCierreDias) || 0
+              };
 
-              const dashboardData = await dashboardResponse.json();
-
-              if (dashboardResponse.ok && dashboardData && typeof dashboardData === 'object') {
-                normalizedDashboardData = dashboardData;
-              } else {
-                console.warn('No fue posible cargar estadísticas del dashboard:', dashboardData?.message || 'respuesta inválida');
-              }
+              this.adminDashboard.loading = false;
+              this.scheduleDashboardChartsRender();
+              return;
             }
 
-            if (!normalizedDashboardData) {
-              const reportDashboardResponse = await fetch(`${API_URL}/reports/dashboard-summary`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-              });
+            let normalizedDashboardData = null;
+            const reportDashboardResponse = await fetch(`${API_URL}/reports/dashboard-summary`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
 
-              if (reportDashboardResponse.status === 401 || reportDashboardResponse.status === 403) {
-                alert('⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-                this.logout();
-                return;
-              }
+            if (reportDashboardResponse.status === 401 || reportDashboardResponse.status === 403) {
+              alert('⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+              this.logout();
+              return;
+            }
 
-              const reportDashboardData = await reportDashboardResponse.json();
+            const reportDashboardData = await reportDashboardResponse.json();
 
-              if (reportDashboardResponse.ok && reportDashboardData && typeof reportDashboardData === 'object') {
-                normalizedDashboardData = reportDashboardData;
-              } else {
-                console.warn('No fue posible cargar fallback de reportes:', reportDashboardData?.message || 'respuesta inválida');
-              }
+            if (reportDashboardResponse.ok && reportDashboardData && typeof reportDashboardData === 'object') {
+              normalizedDashboardData = reportDashboardData;
+            } else {
+              console.warn('No fue posible cargar fallback de reportes:', reportDashboardData?.message || 'respuesta inválida');
             }
 
             if (normalizedDashboardData) {
@@ -3615,9 +3769,13 @@
                 satisfaction: Number(normalizedDashboardData.satisfaction) || 0
               };
             }
-            
+
             this.scheduleDashboardChartsRender();
           } catch (error) {
+            this.adminDashboard.loading = false;
+            if (this.isAdminUser()) {
+              this.adminDashboard.error = error?.message || 'Error cargando dashboard administrativo';
+            }
             console.error('Error loading dashboard:', error);
           }
         },
@@ -3690,10 +3848,92 @@
           }
 
           this.dashboardChartsRenderTimer = setTimeout(() => {
+            if (this.isAdminUser()) {
+              this.renderAdminDashboardCharts();
+              return;
+            }
+
             this.initCharts().catch((error) => {
               console.error('Error renderizando dashboard:', error);
             });
           }, 120);
+        },
+
+        renderAdminDashboardCharts() {
+          if (typeof Chart === 'undefined') {
+            this.adminDashboard.error = 'No se pudo cargar Chart.js';
+            return;
+          }
+
+          const statusRows = this.adminDashboard.data.solicitudesPorEstado || [];
+          const trendRows = this.adminDashboard.data.solicitudesNuevasPorSemana || [];
+          const assigneeRows = (this.adminDashboard.data.solicitudesPorResponsable || []).slice(0, 10);
+          const areaRows = (this.adminDashboard.data.solicitudesPorArea || []).slice(0, 10);
+
+          const buildOrReplace = (chartKey, canvasId, config) => {
+            const ctx = this.getChartContext(canvasId);
+            if (!ctx) return;
+            if (this.adminDashboardCharts[chartKey]) {
+              this.adminDashboardCharts[chartKey].destroy();
+            }
+            this.adminDashboardCharts[chartKey] = new Chart(ctx, config);
+          };
+
+          buildOrReplace('status', 'chartAdminStatus', {
+            type: 'doughnut',
+            data: {
+              labels: statusRows.map((row) => this.getStatusLabel(row.status)),
+              datasets: [{
+                data: statusRows.map((row) => Number(row.total) || 0),
+                backgroundColor: ['#FFB549', '#A78BFA', '#60A5FA', '#818CF8', '#22C55E', '#F87171'],
+                borderWidth: 0
+              }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { position: 'bottom' } }, cutout: '58%' }
+          });
+
+          buildOrReplace('trend', 'chartAdminTrend', {
+            type: 'line',
+            data: {
+              labels: trendRows.map((row) => row.label),
+              datasets: [{
+                label: 'Solicitudes nuevas',
+                data: trendRows.map((row) => Number(row.total) || 0),
+                borderColor: '#280071',
+                backgroundColor: 'rgba(40, 0, 113, 0.12)',
+                fill: true,
+                tension: 0.35
+              }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, animation: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+          });
+
+          buildOrReplace('assignees', 'chartAdminAssignees', {
+            type: 'bar',
+            data: {
+              labels: assigneeRows.map((row) => row.responsable || 'Sin nombre'),
+              datasets: [
+                { label: 'Activas', data: assigneeRows.map((row) => Number(row.activas) || 0), backgroundColor: 'rgba(59, 130, 246, 0.75)' },
+                { label: 'Completadas', data: assigneeRows.map((row) => Number(row.completadas) || 0), backgroundColor: 'rgba(34, 197, 94, 0.75)' }
+              ]
+            },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: false, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+          });
+
+          buildOrReplace('areas', 'chartAdminAreas', {
+            type: 'bar',
+            data: {
+              labels: areaRows.map((row) => row.area || 'Sin área'),
+              datasets: [{
+                label: 'Solicitudes',
+                data: areaRows.map((row) => Number(row.total) || 0),
+                backgroundColor: 'rgba(40, 0, 113, 0.75)',
+                borderRadius: 6,
+                maxBarThickness: 28
+              }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+          });
         },
 
         getDashboardAreaData() {
@@ -5406,6 +5646,64 @@
           };
           return titles[this.currentTab] || 'Dashboard';
         },
+
+        isAdminUser() {
+          const normalizedRole = String(this.user?.role || '').trim().toLowerCase();
+          const normalizedAccessLevel = String(this.user?.accessLevel || '').trim().toLowerCase();
+          return normalizedRole === 'admin' || normalizedAccessLevel === 'admin';
+        },
+
+        formatAdminAlertDate(dateValue) {
+          if (!dateValue) return 'N/A';
+          const parsed = new Date(dateValue);
+          if (Number.isNaN(parsed.getTime())) return 'N/A';
+          return parsed.toLocaleString('es-CO', {
+            dateStyle: 'short',
+            timeStyle: 'short'
+          });
+        },
+
+        getAdminAlertRows() {
+          const alerts = this.adminDashboard.data?.alertas || {};
+          const rows = [];
+
+          (alerts.sinAsignarCriticas || []).forEach((item) => {
+            rows.push({
+              key: `sin-asignar-${item._id || item.requestNumber}`,
+              type: 'Sin asignar +48h',
+              requestNumber: item.requestNumber || 'N/A',
+              title: item.title || 'Solicitud',
+              status: item.status || 'pending',
+              date: item.createdAt || item.updatedAt
+            });
+          });
+
+          (alerts.enRevisionLentas || []).forEach((item) => {
+            rows.push({
+              key: `revision-lenta-${item._id || item.requestNumber}`,
+              type: 'En revisión +3d',
+              requestNumber: item.requestNumber || 'N/A',
+              title: item.title || 'Solicitud',
+              status: item.status || 'review',
+              date: item.updatedAt || item.createdAt
+            });
+          });
+
+          (alerts.proximasOVencidas || []).forEach((item) => {
+            rows.push({
+              key: `vencida-${item._id || item.requestNumber}`,
+              type: 'Vencida / próxima',
+              requestNumber: item.requestNumber || 'N/A',
+              title: item.title || 'Solicitud',
+              status: item.status || 'pending',
+              date: item.deliveryDate || item.updatedAt || item.createdAt
+            });
+          });
+
+          return rows
+            .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0))
+            .slice(0, 5);
+        },
         
         getStatusLabel(status) {
           const labels = {
@@ -5413,7 +5711,14 @@
             'in-process': 'En Proceso',
             review: 'Revisión',
             completed: 'Completada',
-            rejected: 'Rechazada'
+            rejected: 'Rechazada',
+            assigned: 'Asignada',
+            pendiente: 'Pendiente',
+            asignada: 'Asignada',
+            en_proceso: 'En Proceso',
+            en_revision: 'En Revisión',
+            completada: 'Completada',
+            cancelada: 'Cancelada'
           };
           return labels[status] || status;
         },
