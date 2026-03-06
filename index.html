@@ -2232,6 +2232,7 @@
                 <option value="venta">Venta</option>
                 <option value="informativo">Informativo</option>
                 <option value="institucional">Institucional</option>
+                <option value="dia comercial">Día Comercial</option>
               </select>
             </div>
           </div>
@@ -2767,6 +2768,10 @@
         hasUnreadNotifications: false,
         unreadNotificationCount: 0,
         customNotificationSoundUrl: '/public/Notification.mp3',
+        notificationAudio: null,
+        notificationSoundArmed: false,
+        notificationUnlockBound: false,
+        notificationUnlockHandler: null,
         colombiaDateLabel: '',
         colombiaTimeLabel: '',
         colombiaClockTimer: null,
@@ -2986,6 +2991,7 @@
         init() {
           this.startColombiaRealtimeClock();
           this.handleViewportChange();
+          this.bindNotificationSoundUnlock();
           window.addEventListener('resize', () => this.handleViewportChange());
 
           this.$watch('solicitudesSection', (value) => {
@@ -3062,6 +3068,7 @@
               this.token = data.token;
               this.user = data.user;
               this.isAuthenticated = true;
+              this.bindNotificationSoundUnlock();
               this.startColombiaRealtimeClock();
               this.loadDashboard();
               this.loadRequests();
@@ -3077,6 +3084,9 @@
         
         logout() {
           this.stopColombiaRealtimeClock();
+          this.unbindNotificationSoundUnlock();
+          this.notificationAudio = null;
+          this.notificationSoundArmed = false;
           if (this.wsConnection) {
             try {
               this.wsConnection.close();
@@ -4730,21 +4740,91 @@
           });
         },
 
-        playNotificationSound() {
-          const soundUrls = [
+        getNotificationSoundUrls() {
+          return [
             this.customNotificationSoundUrl,
             '/Notification.mp3'
           ].filter((url, index, array) => url && array.indexOf(url) === index);
+        },
+
+        bindNotificationSoundUnlock() {
+          if (this.notificationUnlockBound) return;
+
+          const unlockEvents = ['pointerdown', 'keydown', 'touchstart'];
+          this.notificationUnlockHandler = async () => {
+            const unlocked = await this.primeNotificationAudio();
+            if (unlocked) {
+              this.notificationSoundArmed = true;
+              this.unbindNotificationSoundUnlock();
+            }
+          };
+
+          unlockEvents.forEach((eventName) => {
+            window.addEventListener(eventName, this.notificationUnlockHandler, { passive: true });
+          });
+
+          this.notificationUnlockBound = true;
+        },
+
+        unbindNotificationSoundUnlock() {
+          if (!this.notificationUnlockHandler) return;
+
+          const unlockEvents = ['pointerdown', 'keydown', 'touchstart'];
+          unlockEvents.forEach((eventName) => {
+            window.removeEventListener(eventName, this.notificationUnlockHandler);
+          });
+
+          this.notificationUnlockHandler = null;
+          this.notificationUnlockBound = false;
+        },
+
+        async primeNotificationAudio() {
+          const soundUrls = this.getNotificationSoundUrls();
+          if (!soundUrls.length) return false;
+
+          const audio = this.notificationAudio || new Audio();
+          audio.preload = 'auto';
+
+          for (const soundUrl of soundUrls) {
+            try {
+              audio.src = soundUrl;
+              audio.volume = 0;
+              await audio.play();
+              audio.pause();
+              audio.currentTime = 0;
+              audio.volume = 0.6;
+              this.notificationAudio = audio;
+              return true;
+            } catch (error) {
+              // Try next URL when current source cannot be primed.
+            }
+          }
+
+          return false;
+        },
+
+        playNotificationSound() {
+          const soundUrls = this.getNotificationSoundUrls();
 
           const tryPlay = (index) => {
             if (index >= soundUrls.length) {
               this.playFallbackBeep();
+              this.bindNotificationSoundUnlock();
               return;
             }
 
-            const audio = new Audio(soundUrls[index]);
+            const audio = this.notificationAudio || new Audio(soundUrls[index]);
+            if (!this.notificationAudio) {
+              audio.src = soundUrls[index];
+            }
             audio.volume = 0.6;
-            audio.play().catch(() => tryPlay(index + 1));
+            audio.currentTime = 0;
+            audio.play().catch(() => {
+              if (this.notificationAudio) {
+                this.notificationAudio = null;
+              }
+              tryPlay(index + 1);
+            });
           };
 
           tryPlay(0);
@@ -4753,6 +4833,9 @@
         playFallbackBeep() {
           try {
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioContext.state === 'suspended') {
+              audioContext.resume().catch(() => {});
+            }
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
 
