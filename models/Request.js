@@ -304,6 +304,21 @@ const requestSchema = new Schema(
 
     approvals: [approvalSchema],
 
+    satisfaction: {
+      score: {
+        type: Number,
+        min: 1,
+        max: 5
+      },
+      comment: {
+        type: String,
+        trim: true
+      },
+      respondedAt: {
+        type: Date
+      }
+    },
+
     deadlineAlertsSent: [{
       type: String,
       enum: ['normal_24h', 'urgent_12h', 'express_3h']

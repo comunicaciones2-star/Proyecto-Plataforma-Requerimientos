@@ -649,9 +649,9 @@
 
           <div x-show="!isAdminUser()">
             <div class="mb-6">
-              <h2 class="text-2xl font-bold text-gray-800 mb-2">Vista General</h2>
+              <h2 class="text-2xl font-bold text-gray-800 mb-2" x-text="getDashboardTitle()">Vista General</h2>
               <div class="flex items-center justify-between">
-                <p class="text-gray-600">Últimos 7 días</p>
+                <p class="text-gray-600" x-text="getDashboardSubtitle()">Últimos 7 días</p>
                 <button @click="exportDashboardPDF()" class="px-4 py-2 bg-fenalco-blue text-white rounded-lg flex items-center gap-2 hover:bg-fenalco-blue-600 transition">
                   <i class="ri-download-line"></i>
                   Exportar PDF
@@ -664,48 +664,49 @@
               <!-- Tiempo Promedio -->
               <div class="bg-blue-50 rounded-xl p-6 border border-blue-100">
                 <div class="flex items-start justify-between mb-3">
-                  <p class="text-sm font-medium text-blue-600">Tiempo Promedio</p>
+                  <p class="text-sm font-medium text-blue-600" x-text="isExecutorDashboardView() ? 'Tiempo Promedio de Entrega' : 'Tiempo Promedio'">Tiempo Promedio</p>
                   <i class="ri-time-line text-2xl text-blue-400"></i>
                 </div>
                 <h3 class="text-4xl font-bold text-blue-900 mb-2" x-text="dashboardStats.averageTime + ' días'">0.0 días</h3>
                 <p class="text-xs text-blue-600">
-                  <i class="ri-time-line"></i> Promedio global
+                  <i class="ri-time-line"></i> <span x-text="isExecutorDashboardView() ? 'Promedio personal' : 'Promedio de mis solicitudes'"></span>
                 </p>
               </div>
 
               <!-- Porcentaje de Cumplimiento -->
               <div class="bg-green-50 rounded-xl p-6 border border-green-100">
                 <div class="flex items-start justify-between mb-3">
-                  <p class="text-sm font-medium text-green-600">Porcentaje de Cumplimiento</p>
+                  <p class="text-sm font-medium text-green-600" x-text="isExecutorDashboardView() ? 'Cumplimiento Personal' : 'Porcentaje de Cumplimiento'">Porcentaje de Cumplimiento</p>
                   <i class="ri-checkbox-circle-line text-2xl text-green-400"></i>
                 </div>
                 <h3 class="text-4xl font-bold text-green-900 mb-2" x-text="dashboardStats.completionPercentage + '%'">85%</h3>
                 <p class="text-xs text-green-600">
-                  <i class="ri-checkbox-line"></i> <span x-text="dashboardStats.completedRequests">0</span> completadas
+                  <i class="ri-checkbox-line"></i> <span x-text="dashboardStats.completedRequests">0</span> <span x-text="isExecutorDashboardView() ? 'completadas por mí' : 'completadas'"></span>
                 </p>
               </div>
 
               <!-- Solicitudes Urgentes -->
               <div class="bg-amber-50 rounded-xl p-6 border border-amber-100">
                 <div class="flex items-start justify-between mb-3">
-                  <p class="text-sm font-medium text-amber-600">Solicitudes Urgentes</p>
+                  <p class="text-sm font-medium text-amber-600" x-text="isExecutorDashboardView() ? 'Carga Urgente' : 'Solicitudes Urgentes'">Solicitudes Urgentes</p>
                   <i class="ri-error-warning-line text-2xl text-amber-400"></i>
                 </div>
                 <h3 class="text-4xl font-bold text-amber-900 mb-2" x-text="dashboardStats.urgentPercentage + '%'">33%</h3>
                 <p class="text-xs text-amber-600">
-                  <i class="ri-alert-line"></i> <span x-text="dashboardStats.urgentRequests">0</span> urgentes
+                  <i class="ri-alert-line"></i> <span x-text="dashboardStats.urgentRequests">0</span> <span x-text="isExecutorDashboardView() ? 'tareas urgentes' : 'urgentes'"></span>
                 </p>
               </div>
 
               <!-- Satisfacción -->
               <div class="bg-purple-50 rounded-xl p-6 border border-purple-100">
                 <div class="flex items-start justify-between mb-3">
-                  <p class="text-sm font-medium text-purple-600">Satisfacción</p>
-                  <i class="ri-star-line text-2xl text-purple-400"></i>
+                  <p class="text-sm font-medium text-purple-600" x-text="isExecutorDashboardView() ? 'Vencidas Asignadas' : 'Satisfacción'">Satisfacción</p>
+                  <i class="text-2xl text-purple-400" :class="isExecutorDashboardView() ? 'ri-alarm-warning-line' : 'ri-star-line'"></i>
                 </div>
-                <h3 class="text-4xl font-bold text-purple-900 mb-2" x-text="dashboardStats.satisfaction + '%'">92%</h3>
+                <h3 class="text-4xl font-bold text-purple-900 mb-2" x-text="isExecutorDashboardView() ? dashboardStats.satisfaction : (dashboardStats.satisfaction + '%')">92%</h3>
                 <p class="text-xs text-purple-600">
-                  <i class="ri-thumb-up-line"></i> Excelente
+                  <i :class="isExecutorDashboardView() ? 'ri-time-line' : 'ri-thumb-up-line'"></i>
+                  <span x-text="isExecutorDashboardView() ? 'Solicitudes fuera de fecha objetivo' : 'Nivel de satisfacción del solicitante'"></span>
                 </p>
               </div>
             </div>
@@ -2994,6 +2995,7 @@
           averageTime: 0,
           satisfaction: 0
         },
+        dashboardRoleView: 'requester',
         adminDashboard: {
           loading: false,
           error: '',
@@ -3392,6 +3394,7 @@
           localStorage.removeItem('user');
           this.isAuthenticated = false;
           this.user = null;
+          this.dashboardRoleView = 'requester';
         },
 
         formatColombiaDateTimeParts(dateValue = new Date()) {
@@ -3761,60 +3764,205 @@
             alert('Error al generar el CSV. Por favor, intenta nuevamente.');
           }
         },
+
+        getUrgencySummaryFromRows(rows = []) {
+          const normalizedRows = Array.isArray(rows) ? rows : [];
+          let total = 0;
+          let urgent = 0;
+
+          normalizedRows.forEach((row) => {
+            const urgency = String(row?.urgency || '').toLowerCase();
+            const value = Number(row?.total) || 0;
+            total += value;
+            if (urgency === 'urgent' || urgency === 'urgente' || urgency === 'express') {
+              urgent += value;
+            }
+          });
+
+          const percentage = total > 0 ? Math.round((urgent / total) * 100) : 0;
+          return { total, urgent, percentage };
+        },
+
+        buildDashboardStatsFromAnalytics(analytics = {}) {
+          const roleView = analytics?.roleView || 'requester';
+          const data = analytics?.data || {};
+          const servicio = data?.servicio || {};
+          const operacion = data?.operacion || {};
+          const desempeno = data?.desempeno || {};
+          const calidadRiesgo = data?.calidadRiesgo || {};
+
+          if (roleView === 'executor') {
+            const ownUrgency = this.getUrgencySummaryFromRows(operacion?.distribucionUrgenciaPropia || []);
+            const ownStatuses = Array.isArray(operacion?.distribucionEstadoPropio)
+              ? operacion.distribucionEstadoPropio
+              : [];
+            const totalRequests = ownStatuses.reduce((sum, row) => sum + (Number(row?.total) || 0), 0);
+            const pendingRequests = ownStatuses
+              .filter((row) => ['pending', 'assigned'].includes(String(row?.status || '').toLowerCase()))
+              .reduce((sum, row) => sum + (Number(row?.total) || 0), 0);
+
+            return {
+              totalRequests,
+              completedRequests: Number(desempeno?.completadas) || 0,
+              inProcessRequests: Number(desempeno?.enProceso) || 0,
+              pendingRequests,
+              urgentRequests: ownUrgency.urgent,
+              urgentPercentage: ownUrgency.percentage,
+              completionPercentage: Number(desempeno?.cumplimientoPorcentaje) || 0,
+              averageTime: Number(desempeno?.tiempoPromedioCierreDias) || 0,
+              satisfaction: Number(calidadRiesgo?.vencidasAsignadas) || 0
+            };
+          }
+
+          const satisfactionAvg = Number(servicio?.satisfaccion?.averageScore) || 0;
+          const satisfaction = servicio?.satisfaccion?.available
+            ? Math.round((satisfactionAvg / 5) * 100)
+            : 0;
+
+          return {
+            totalRequests: Number(servicio?.volumenSolicitudesUsuario) || 0,
+            completedRequests: Number(servicio?.completadas) || 0,
+            inProcessRequests: Number(operacion?.enProceso) || 0,
+            pendingRequests: Number(operacion?.pendientesAsignacion) || 0,
+            urgentRequests: Number(servicio?.solicitudesUrgentes) || 0,
+            urgentPercentage: Number(servicio?.porcentajeUrgentes) || 0,
+            completionPercentage: Number(servicio?.porcentajeCumplimiento) || 0,
+            averageTime: Number(servicio?.tiempoPromedioCierreDias) || 0,
+            satisfaction
+          };
+        },
+
+        buildAdminDashboardFromAnalytics(analyticsData = {}) {
+          const servicio = analyticsData?.servicio || {};
+          const operacion = analyticsData?.operacion || {};
+          const desempeno = analyticsData?.desempeno || {};
+          const calidadRiesgo = analyticsData?.calidadRiesgo || {};
+          const activeRows = Array.isArray(desempeno?.solicitudesActivasPorResponsable)
+            ? desempeno.solicitudesActivasPorResponsable
+            : [];
+          const completedRows = Array.isArray(desempeno?.cumplimientoPorResponsable)
+            ? desempeno.cumplimientoPorResponsable
+            : [];
+          const totalRows = Array.isArray(desempeno?.solicitudesPorResponsable)
+            ? desempeno.solicitudesPorResponsable
+            : [];
+
+          const mergedByResponsible = new Map();
+
+          totalRows.forEach((row) => {
+            const key = String(row?.responsibleId || row?.responsable || '').trim();
+            if (!key) return;
+            mergedByResponsible.set(key, {
+              responsable: row?.responsible || row?.responsable || 'Sin nombre',
+              total: Number(row?.total) || 0,
+              activas: 0,
+              completadas: 0
+            });
+          });
+
+          activeRows.forEach((row) => {
+            const key = String(row?.responsibleId || row?.responsable || '').trim();
+            if (!key) return;
+            const previous = mergedByResponsible.get(key) || {
+              responsable: row?.responsible || row?.responsable || 'Sin nombre',
+              total: 0,
+              activas: 0,
+              completadas: 0
+            };
+            previous.activas = Number(row?.active ?? row?.activas) || 0;
+            mergedByResponsible.set(key, previous);
+          });
+
+          completedRows.forEach((row) => {
+            const key = String(row?.responsibleId || row?.responsable || '').trim();
+            if (!key) return;
+            const previous = mergedByResponsible.get(key) || {
+              responsable: row?.responsible || row?.responsable || 'Sin nombre',
+              total: 0,
+              activas: 0,
+              completadas: 0
+            };
+            previous.completadas = Number(row?.total) || 0;
+            mergedByResponsible.set(key, previous);
+          });
+
+          const solicitudesPorResponsable = Array.from(mergedByResponsible.values())
+            .sort((left, right) => (right.activas - left.activas) || (right.total - left.total));
+
+          return {
+            kpis: {
+              totalSolicitudes: Number(operacion?.totalSolicitudes) || 0,
+              nuevasEstaSemana: Number(operacion?.nuevasEstaSemana) || 0,
+              pendientesAsignacion: Number(operacion?.pendientesAsignacion) || 0,
+              enProceso: Number(operacion?.enProceso) || 0,
+              enRevision: Number(operacion?.enRevision) || 0,
+              completadas: Number(operacion?.completadas) || 0,
+              tiempoPromedioCierreDias: Number(servicio?.tiempoPromedioCierreDias) || 0
+            },
+            solicitudesPorEstado: Array.isArray(operacion?.distribucionEstado) ? operacion.distribucionEstado : [],
+            solicitudesPorResponsable,
+            solicitudesPorArea: Array.isArray(desempeno?.solicitudesPorArea) ? desempeno.solicitudesPorArea : [],
+            solicitudesNuevasPorSemana: Array.isArray(operacion?.tendenciaSemanal) ? operacion.tendenciaSemanal : [],
+            resumenAlertas: calidadRiesgo?.alertasCriticas || { sinAsignar: 0, vencidas: 0, revisionesEstancadas: 0 },
+            alertas: {
+              sinAsignarCriticas: [],
+              enRevisionLentas: [],
+              proximasOVencidas: []
+            }
+          };
+        },
         
         async loadDashboard() {
           try {
             const token = localStorage.getItem('token');
 
-            if (this.isAdminUser()) {
+            if (!token) {
+              throw new Error('No hay sesión activa para cargar el dashboard');
+            }
+
+            const analyticsResponse = await fetch(`${API_URL}/reports/analytics/overview`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (analyticsResponse.status === 401 || analyticsResponse.status === 403) {
+              alert('⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+              this.logout();
+              return;
+            }
+
+            const analyticsPayload = await analyticsResponse.json();
+
+            if (!analyticsResponse.ok || !analyticsPayload?.success) {
+              throw new Error(analyticsPayload?.message || 'No fue posible cargar la analítica del dashboard');
+            }
+
+            this.dashboardRoleView = analyticsPayload.roleView || 'requester';
+
+            if (this.dashboardRoleView === 'admin') {
               this.adminDashboard.loading = true;
               this.adminDashboard.error = '';
 
-              let response = await fetch(`${API_URL}/admin/dashboard`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-              });
-
-              if (response.status === 404) {
-                // Backward compatibility fallback in case an old route mount is active.
-                response = await fetch(`${API_URL}/dashboard/admin`, {
-                  headers: { 'Authorization': `Bearer ${token}` }
-                });
-              }
-
-              if (response.status === 401 || response.status === 403) {
-                alert('⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-                this.logout();
-                return;
-              }
-
-              const payload = await response.json();
-
-              if (!response.ok || !payload?.success) {
-                throw new Error(payload?.message || 'No fue posible cargar el dashboard administrativo');
-              }
-
-              const adminData = payload.data || {};
               this.adminDashboard.data = {
                 ...this.adminDashboard.data,
-                ...adminData,
-                kpis: {
-                  ...this.adminDashboard.data.kpis,
-                  ...(adminData.kpis || {})
-                },
-                alertas: {
-                  ...this.adminDashboard.data.alertas,
-                  ...(adminData.alertas || {})
-                }
+                ...this.buildAdminDashboardFromAnalytics(analyticsPayload.data || {})
               };
 
-              // Mantiene compatibilidad con exportes/etiquetas que dependen de dashboardStats.
+              const adminSatisfactionRaw = Number(analyticsPayload?.data?.servicio?.satisfaccion?.averageScore) || 0;
+              const adminSatisfaction = analyticsPayload?.data?.servicio?.satisfaccion?.available
+                ? Math.round((adminSatisfactionRaw / 5) * 100)
+                : 0;
+
               this.dashboardStats = {
                 ...this.dashboardStats,
                 totalRequests: Number(this.adminDashboard.data.kpis.totalSolicitudes) || 0,
                 completedRequests: Number(this.adminDashboard.data.kpis.completadas) || 0,
                 inProcessRequests: Number(this.adminDashboard.data.kpis.enProceso) || 0,
                 pendingRequests: Number(this.adminDashboard.data.kpis.pendientesAsignacion) || 0,
-                averageTime: Number(this.adminDashboard.data.kpis.tiempoPromedioCierreDias) || 0
+                averageTime: Number(this.adminDashboard.data.kpis.tiempoPromedioCierreDias) || 0,
+                urgentRequests: Number(analyticsPayload?.data?.servicio?.solicitudesUrgentes) || 0,
+                urgentPercentage: Number(analyticsPayload?.data?.servicio?.porcentajeUrgentes) || 0,
+                completionPercentage: Number(analyticsPayload?.data?.servicio?.porcentajeCumplimiento) || 0,
+                satisfaction: adminSatisfaction
               };
 
               this.adminDashboard.loading = false;
@@ -3822,39 +3970,10 @@
               return;
             }
 
-            let normalizedDashboardData = null;
-            const reportDashboardResponse = await fetch(`${API_URL}/reports/dashboard-summary`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (reportDashboardResponse.status === 401 || reportDashboardResponse.status === 403) {
-              alert('⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-              this.logout();
-              return;
-            }
-
-            const reportDashboardData = await reportDashboardResponse.json();
-
-            if (reportDashboardResponse.ok && reportDashboardData && typeof reportDashboardData === 'object') {
-              normalizedDashboardData = reportDashboardData;
-            } else {
-              console.warn('No fue posible cargar fallback de reportes:', reportDashboardData?.message || 'respuesta inválida');
-            }
-
-            if (normalizedDashboardData) {
-              this.dashboardStats = {
-                ...this.dashboardStats,
-                totalRequests: Number(normalizedDashboardData.totalRequests) || 0,
-                completedRequests: Number(normalizedDashboardData.completedRequests) || 0,
-                inProcessRequests: Number(normalizedDashboardData.inProcessRequests) || 0,
-                pendingRequests: Number(normalizedDashboardData.pendingRequests) || 0,
-                urgentRequests: Number(normalizedDashboardData.urgentRequests) || 0,
-                urgentPercentage: Number(normalizedDashboardData.urgentPercentage) || 0,
-                completionPercentage: Number(normalizedDashboardData.completionPercentage) || 0,
-                averageTime: Number(normalizedDashboardData.averageTime) || 0,
-                satisfaction: Number(normalizedDashboardData.satisfaction) || 0
-              };
-            }
+            this.dashboardStats = {
+              ...this.dashboardStats,
+              ...this.buildDashboardStatsFromAnalytics(analyticsPayload)
+            };
 
             this.scheduleDashboardChartsRender();
           } catch (error) {
@@ -5757,6 +5876,20 @@
           return titles[this.currentTab] || 'Dashboard';
         },
 
+        isExecutorDashboardView() {
+          return this.dashboardRoleView === 'executor';
+        },
+
+        getDashboardTitle() {
+          return this.isExecutorDashboardView() ? 'Mi Carga y Desempeño' : 'Vista General';
+        },
+
+        getDashboardSubtitle() {
+          return this.isExecutorDashboardView()
+            ? 'Seguimiento de tus solicitudes asignadas'
+            : 'Seguimiento de tus solicitudes de diseño';
+        },
+
         isAdminUser() {
           const normalizedRole = String(this.user?.role || '').trim().toLowerCase();
           const normalizedAccessLevel = String(this.user?.accessLevel || '').trim().toLowerCase();
@@ -5809,6 +5942,46 @@
               date: item.deliveryDate || item.updatedAt || item.createdAt
             });
           });
+
+          if (rows.length === 0) {
+            const resumenAlertas = this.adminDashboard.data?.resumenAlertas || {};
+            const sinAsignar = Number(resumenAlertas?.sinAsignar) || 0;
+            const vencidas = Number(resumenAlertas?.vencidas) || 0;
+            const revisionesEstancadas = Number(resumenAlertas?.revisionesEstancadas) || 0;
+
+            if (sinAsignar > 0) {
+              rows.push({
+                key: 'resumen-sin-asignar',
+                type: 'Sin asignar',
+                requestNumber: `${sinAsignar} casos`,
+                title: 'Solicitudes sin responsable',
+                status: 'pending',
+                date: null
+              });
+            }
+
+            if (revisionesEstancadas > 0) {
+              rows.push({
+                key: 'resumen-revision',
+                type: 'Revisión estancada',
+                requestNumber: `${revisionesEstancadas} casos`,
+                title: 'Solicitudes en revisión prolongada',
+                status: 'review',
+                date: null
+              });
+            }
+
+            if (vencidas > 0) {
+              rows.push({
+                key: 'resumen-vencidas',
+                type: 'Backlog vencido',
+                requestNumber: `${vencidas} casos`,
+                title: 'Solicitudes vencidas no cerradas',
+                status: 'pending',
+                date: null
+              });
+            }
+          }
 
           return rows
             .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0))
