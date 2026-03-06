@@ -3928,8 +3928,52 @@
               throw new Error('No hay sesión activa para cargar el dashboard');
             }
 
+            const authHeaders = { 'Authorization': `Bearer ${token}` };
+
+            // Para admin, usar endpoint operativo dedicado para evitar métricas vacías por fallback analítico.
+            if (this.isAdminUser()) {
+              this.adminDashboard.loading = true;
+              this.adminDashboard.error = '';
+
+              const adminResponse = await fetch(`${API_URL}/admin/dashboard`, {
+                headers: authHeaders
+              });
+
+              if (adminResponse.status === 401 || adminResponse.status === 403) {
+                alert('⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+                this.logout();
+                return;
+              }
+
+              const adminPayload = await adminResponse.json();
+
+              if (adminResponse.ok && adminPayload?.success && adminPayload?.data) {
+                this.dashboardRoleView = 'admin';
+                this.adminDashboard.data = {
+                  ...this.adminDashboard.data,
+                  ...adminPayload.data
+                };
+
+                this.dashboardStats = {
+                  ...this.dashboardStats,
+                  totalRequests: Number(this.adminDashboard.data?.kpis?.totalSolicitudes) || 0,
+                  completedRequests: Number(this.adminDashboard.data?.kpis?.completadas) || 0,
+                  inProcessRequests: Number(this.adminDashboard.data?.kpis?.enProceso) || 0,
+                  pendingRequests: Number(this.adminDashboard.data?.kpis?.pendientesAsignacion) || 0,
+                  averageTime: Number(this.adminDashboard.data?.kpis?.tiempoPromedioCierreDias) || 0
+                };
+
+                this.adminDashboard.loading = false;
+                this.scheduleDashboardChartsRender();
+                return;
+              }
+
+              console.warn('Fallback a analítica: /api/admin/dashboard no devolvió datos válidos.');
+              this.adminDashboard.loading = false;
+            }
+
             const analyticsResponse = await fetch(`${API_URL}/reports/analytics/overview`, {
-              headers: { 'Authorization': `Bearer ${token}` }
+              headers: authHeaders
             });
 
             if (analyticsResponse.status === 401 || analyticsResponse.status === 403) {
@@ -5313,7 +5357,7 @@
         getNotificationSoundUrls() {
           return [
             this.customNotificationSoundUrl,
-            '/Notification.mp3'
+            '/public/Notification.mp3'
           ].filter((url, index, array) => url && array.indexOf(url) === index);
         },
 
