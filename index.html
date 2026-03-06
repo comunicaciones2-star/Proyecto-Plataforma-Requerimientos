@@ -535,12 +535,18 @@
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Solicitudes por estado</h3>
                 <div class="chart-wrapper">
                   <canvas id="chartAdminStatus"></canvas>
+                  <div x-show="adminDashboardChartStatus.status.error || adminDashboardChartStatus.status.noData" class="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg" x-cloak>
+                    <p class="text-sm text-gray-600 text-center px-4" x-text="adminDashboardChartStatus.status.error || 'Sin datos de estado para graficar'" ></p>
+                  </div>
                 </div>
               </div>
               <div class="card">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Nuevas solicitudes por semana</h3>
                 <div class="chart-wrapper">
                   <canvas id="chartAdminTrend"></canvas>
+                  <div x-show="adminDashboardChartStatus.trend.error || adminDashboardChartStatus.trend.noData" class="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg" x-cloak>
+                    <p class="text-sm text-gray-600 text-center px-4" x-text="adminDashboardChartStatus.trend.error || 'Sin tendencia semanal para graficar'" ></p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -550,12 +556,18 @@
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Solicitudes por responsable</h3>
                 <div class="chart-wrapper">
                   <canvas id="chartAdminAssignees"></canvas>
+                  <div x-show="adminDashboardChartStatus.assignees.error || adminDashboardChartStatus.assignees.noData" class="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg" x-cloak>
+                    <p class="text-sm text-gray-600 text-center px-4" x-text="adminDashboardChartStatus.assignees.error || 'Sin carga por responsable para graficar'" ></p>
+                  </div>
                 </div>
               </div>
               <div class="card">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Solicitudes por área</h3>
                 <div class="chart-wrapper">
                   <canvas id="chartAdminAreas"></canvas>
+                  <div x-show="adminDashboardChartStatus.areas.error || adminDashboardChartStatus.areas.noData" class="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg" x-cloak>
+                    <p class="text-sm text-gray-600 text-center px-4" x-text="adminDashboardChartStatus.areas.error || 'Sin distribución por área para graficar'" ></p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3050,6 +3062,24 @@
           assignees: null,
           areas: null
         },
+        adminDashboardChartStatus: {
+          status: {
+            noData: false,
+            error: ''
+          },
+          trend: {
+            noData: false,
+            error: ''
+          },
+          assignees: {
+            noData: false,
+            error: ''
+          },
+          areas: {
+            noData: false,
+            error: ''
+          }
+        },
         dashboardChartsRenderTimer: null,
         dashboardChartStatus: {
           performance: {
@@ -3862,13 +3892,37 @@
         renderAdminDashboardCharts() {
           if (typeof Chart === 'undefined') {
             this.adminDashboard.error = 'No se pudo cargar Chart.js';
+            this.adminDashboardChartStatus.status.error = 'No se pudo cargar Chart.js';
+            this.adminDashboardChartStatus.trend.error = 'No se pudo cargar Chart.js';
+            this.adminDashboardChartStatus.assignees.error = 'No se pudo cargar Chart.js';
+            this.adminDashboardChartStatus.areas.error = 'No se pudo cargar Chart.js';
             return;
           }
+
+          this.adminDashboardChartStatus.status = { noData: false, error: '' };
+          this.adminDashboardChartStatus.trend = { noData: false, error: '' };
+          this.adminDashboardChartStatus.assignees = { noData: false, error: '' };
+          this.adminDashboardChartStatus.areas = { noData: false, error: '' };
 
           const statusRows = this.adminDashboard.data.solicitudesPorEstado || [];
           const trendRows = this.adminDashboard.data.solicitudesNuevasPorSemana || [];
           const assigneeRows = (this.adminDashboard.data.solicitudesPorResponsable || []).slice(0, 10);
           const areaRows = (this.adminDashboard.data.solicitudesPorArea || []).slice(0, 10);
+
+          const statusHasData = statusRows.some((row) => Number(row.total) > 0);
+          const trendHasData = trendRows.some((row) => Number(row.total) > 0);
+          const assigneeHasData = assigneeRows.some((row) => Number(row.activas) > 0 || Number(row.completadas) > 0);
+          const areaHasData = areaRows.some((row) => Number(row.total) > 0);
+
+          this.adminDashboardChartStatus.status.noData = !statusHasData;
+          this.adminDashboardChartStatus.trend.noData = !trendHasData;
+          this.adminDashboardChartStatus.assignees.noData = !assigneeHasData;
+          this.adminDashboardChartStatus.areas.noData = !areaHasData;
+
+          const safeStatusRows = statusHasData ? statusRows : [{ status: 'pending', total: 0 }];
+          const safeTrendRows = trendHasData ? trendRows : [{ label: 'Sin datos', total: 0 }];
+          const safeAssigneeRows = assigneeHasData ? assigneeRows : [{ responsable: 'Sin datos', activas: 0, completadas: 0 }];
+          const safeAreaRows = areaHasData ? areaRows : [{ area: 'Sin área', total: 0 }];
 
           const buildOrReplace = (chartKey, canvasId, config) => {
             const ctx = this.getChartContext(canvasId);
@@ -3882,9 +3936,9 @@
           buildOrReplace('status', 'chartAdminStatus', {
             type: 'doughnut',
             data: {
-              labels: statusRows.map((row) => this.getStatusLabel(row.status)),
+              labels: safeStatusRows.map((row) => this.getStatusLabel(row.status)),
               datasets: [{
-                data: statusRows.map((row) => Number(row.total) || 0),
+                data: safeStatusRows.map((row) => Number(row.total) || 0),
                 backgroundColor: ['#FFB549', '#A78BFA', '#60A5FA', '#818CF8', '#22C55E', '#F87171'],
                 borderWidth: 0
               }]
@@ -3895,10 +3949,10 @@
           buildOrReplace('trend', 'chartAdminTrend', {
             type: 'line',
             data: {
-              labels: trendRows.map((row) => row.label),
+              labels: safeTrendRows.map((row) => row.label),
               datasets: [{
                 label: 'Solicitudes nuevas',
-                data: trendRows.map((row) => Number(row.total) || 0),
+                data: safeTrendRows.map((row) => Number(row.total) || 0),
                 borderColor: '#280071',
                 backgroundColor: 'rgba(40, 0, 113, 0.12)',
                 fill: true,
@@ -3911,10 +3965,10 @@
           buildOrReplace('assignees', 'chartAdminAssignees', {
             type: 'bar',
             data: {
-              labels: assigneeRows.map((row) => row.responsable || 'Sin nombre'),
+              labels: safeAssigneeRows.map((row) => row.responsable || 'Sin nombre'),
               datasets: [
-                { label: 'Activas', data: assigneeRows.map((row) => Number(row.activas) || 0), backgroundColor: 'rgba(59, 130, 246, 0.75)' },
-                { label: 'Completadas', data: assigneeRows.map((row) => Number(row.completadas) || 0), backgroundColor: 'rgba(34, 197, 94, 0.75)' }
+                { label: 'Activas', data: safeAssigneeRows.map((row) => Number(row.activas) || 0), backgroundColor: 'rgba(59, 130, 246, 0.75)' },
+                { label: 'Completadas', data: safeAssigneeRows.map((row) => Number(row.completadas) || 0), backgroundColor: 'rgba(34, 197, 94, 0.75)' }
               ]
             },
             options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: false, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
@@ -3923,10 +3977,10 @@
           buildOrReplace('areas', 'chartAdminAreas', {
             type: 'bar',
             data: {
-              labels: areaRows.map((row) => row.area || 'Sin área'),
+              labels: safeAreaRows.map((row) => row.area || 'Sin área'),
               datasets: [{
                 label: 'Solicitudes',
-                data: areaRows.map((row) => Number(row.total) || 0),
+                data: safeAreaRows.map((row) => Number(row.total) || 0),
                 backgroundColor: 'rgba(40, 0, 113, 0.75)',
                 borderRadius: 6,
                 maxBarThickness: 28
