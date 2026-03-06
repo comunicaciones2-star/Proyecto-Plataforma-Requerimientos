@@ -2160,6 +2160,10 @@
                 <span>Montaje</span>
               </label>
               <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" value="valla" x-model="newRequest.type" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
+                <span>Valla</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm text-gray-700">
                 <input type="checkbox" value="otro" x-model="newRequest.type" class="rounded border-gray-300 text-fenalco-green focus:ring-fenalco-green">
                 <span>Otro</span>
               </label>
@@ -2337,6 +2341,38 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">URL de referencia *</label>
             <input type="url" x-model="newRequest.categoryDetails.landing.referenceUrl" :required="getRequestCategoryGroup(newRequest.type) === 'landing'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="https://ejemplo.com/landing">
+          </div>
+        </div>
+
+        <div x-show="isRequestTypeSelected('valla')" class="space-y-4 border rounded-lg p-4 bg-gray-50">
+          <h4 class="font-semibold text-gray-800">Campos esenciales: Valla</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de valla *</label>
+              <select x-model="newRequest.categoryDetails.valla.kind" :required="isRequestTypeSelected('valla')" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+                <option value="">Seleccionar...</option>
+                <option value="digital">Valla digital</option>
+                <option value="estatica">Valla estática</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Resolución *</label>
+              <input type="text" x-model="newRequest.categoryDetails.valla.resolution" :required="isRequestTypeSelected('valla')" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Ej: 1920x1080, 400x200 px">
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Formatos *</label>
+              <input type="text" x-model="newRequest.categoryDetails.valla.formats" :required="isRequestTypeSelected('valla')" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Ej: JPG, PNG, MP4, MOV">
+            </div>
+            <div x-show="newRequest.categoryDetails.valla.kind === 'estatica'">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Medidas *</label>
+              <input type="text" x-model="newRequest.categoryDetails.valla.measures" :required="isRequestTypeSelected('valla') && newRequest.categoryDetails.valla.kind === 'estatica'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Ej: 6.4 x 6.7 m">
+            </div>
+            <div x-show="newRequest.categoryDetails.valla.kind === 'digital'">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Duración *</label>
+              <input type="text" x-model="newRequest.categoryDetails.valla.duration" :required="isRequestTypeSelected('valla') && newRequest.categoryDetails.valla.kind === 'digital'" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green" placeholder="Ej: 10s, 15s, 20s">
+            </div>
           </div>
         </div>
         
@@ -2631,6 +2667,12 @@
 
                 <p x-show="selectedRequest?.categoryDetails?.landing?.sections"><strong>Estructura:</strong> <span x-text="selectedRequest?.categoryDetails?.landing?.sections"></span></p>
                 <p x-show="selectedRequest?.categoryDetails?.landing?.referenceUrl"><strong>URL referencia:</strong> <span x-text="selectedRequest?.categoryDetails?.landing?.referenceUrl"></span></p>
+
+                <p x-show="selectedRequest?.categoryDetails?.valla?.kind"><strong>Tipo de valla:</strong> <span x-text="selectedRequest?.categoryDetails?.valla?.kind === 'digital' ? 'Valla digital' : selectedRequest?.categoryDetails?.valla?.kind === 'estatica' ? 'Valla estática' : selectedRequest?.categoryDetails?.valla?.kind"></span></p>
+                <p x-show="selectedRequest?.categoryDetails?.valla?.measures"><strong>Medidas:</strong> <span x-text="selectedRequest?.categoryDetails?.valla?.measures"></span></p>
+                <p x-show="selectedRequest?.categoryDetails?.valla?.resolution"><strong>Resolución:</strong> <span x-text="selectedRequest?.categoryDetails?.valla?.resolution"></span></p>
+                <p x-show="selectedRequest?.categoryDetails?.valla?.formats"><strong>Formatos:</strong> <span x-text="selectedRequest?.categoryDetails?.valla?.formats"></span></p>
+                <p x-show="selectedRequest?.categoryDetails?.valla?.duration"><strong>Duración:</strong> <span x-text="selectedRequest?.categoryDetails?.valla?.duration"></span></p>
               </div>
             </div>
           </div>
@@ -5591,6 +5633,13 @@
             landing: {
               sections: '',
               referenceUrl: ''
+            },
+            valla: {
+              kind: '',
+              measures: '',
+              resolution: '',
+              formats: '',
+              duration: ''
             }
           };
         },
@@ -5637,6 +5686,10 @@
             landing: {
               ...base.landing,
               ...(details.landing || {})
+            },
+            valla: {
+              ...base.valla,
+              ...(details.valla || {})
             }
           };
         },
@@ -5780,6 +5833,30 @@
                 await this.showAlert(`Completa formato, publicación y tamaño para ${channel}`, 'Campo requerido');
                 return;
               }
+            }
+          }
+
+          if (this.isRequestTypeSelected('valla')) {
+            const vallaDetails = this.newRequest.categoryDetails?.valla || {};
+
+            if (!vallaDetails.kind) {
+              await this.showAlert('Debes seleccionar el tipo de valla (digital o estática)', 'Campo requerido');
+              return;
+            }
+
+            if (!vallaDetails.resolution || !vallaDetails.formats) {
+              await this.showAlert('Completa resolución y formatos para la valla', 'Campo requerido');
+              return;
+            }
+
+            if (vallaDetails.kind === 'estatica' && !vallaDetails.measures) {
+              await this.showAlert('Debes completar las medidas para valla estática', 'Campo requerido');
+              return;
+            }
+
+            if (vallaDetails.kind === 'digital' && !vallaDetails.duration) {
+              await this.showAlert('Debes completar la duración para valla digital', 'Campo requerido');
+              return;
             }
           }
 

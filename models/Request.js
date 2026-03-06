@@ -14,6 +14,7 @@ const ALLOWED_REQUEST_TYPES = [
   'pagina_web',
   'whatsapp',
   'montaje',
+  'valla',
   'merchandising',
   'emailing',
   'otro'
@@ -258,6 +259,13 @@ const requestSchema = new Schema(
       landing: {
         sections: { type: String, trim: true },
         referenceUrl: { type: String, trim: true }
+      },
+      valla: {
+        kind: { type: String, trim: true },
+        measures: { type: String, trim: true },
+        resolution: { type: String, trim: true },
+        formats: { type: String, trim: true },
+        duration: { type: String, trim: true }
       }
     },
 
