@@ -2815,6 +2815,7 @@
         bellAnimating: false,
         hasUnreadNotifications: false,
         unreadNotificationCount: 0,
+        notificationsInitialized: false,
         customNotificationSoundUrl: '/public/Notification.mp3',
         notificationAudio: null,
         notificationSoundArmed: false,
@@ -3136,6 +3137,7 @@
           this.unbindNotificationSoundUnlock();
           this.notificationAudio = null;
           this.notificationSoundArmed = false;
+          this.notificationsInitialized = false;
           if (this.wsConnection) {
             try {
               this.wsConnection.close();
@@ -3623,6 +3625,10 @@
             }
             
             if (data.success) {
+              const existingNotificationIds = new Set(
+                (this.notifications || []).map((notification) => String(notification?.id || '')).filter(Boolean)
+              );
+
               this.requests = (data.requests || []).map((request) => ({
                 ...request,
                 urgency: request.urgency === 'urgente' ? 'urgent' : request.urgency
@@ -3634,6 +3640,18 @@
               const listNotifications = this.buildNotifications(this.requests);
               this.notifications = [...realtimeNotifications, ...listNotifications].slice(0, 50);
               this.refreshUnreadNotificationState();
+
+              const hasFreshListNotification = listNotifications.some(
+                (notification) => !existingNotificationIds.has(String(notification?.id || ''))
+              );
+
+              if (this.notificationsInitialized && hasFreshListNotification) {
+                this.triggerBellAnimation();
+                this.playNotificationSound();
+              }
+
+              this.notificationsInitialized = true;
+
               const totalPages = this.getTotalRequestPages();
               if (this.requestPagination.page > totalPages) {
                 this.requestPagination.page = Math.max(totalPages, 1);
