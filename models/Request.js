@@ -265,6 +265,7 @@ const requestSchema = new Schema(
         measures: { type: String, trim: true },
         resolution: { type: String, trim: true },
         formats: { type: String, trim: true },
+        aspect: { type: String, trim: true },
         duration: { type: String, trim: true }
       }
     },
