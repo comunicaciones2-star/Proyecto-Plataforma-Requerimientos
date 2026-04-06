@@ -1,6 +1,7 @@
 // routes/reportRoutes.js
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const { authenticate } = require('../middleware/auth');
 const Request = require('../models/Request');
 const User = require('../models/User');
@@ -716,8 +717,9 @@ const getAnalyticsOverview = async (req, res) => {
     }
 
     const roleView = resolveAnalyticsRole(user);
-    const requesterScope = { requester: userId };
-    const executorScope = { assignedTo: userId };
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const requesterScope = { requester: userObjectId };
+    const executorScope = { assignedTo: userObjectId };
     const globalScope = {};
 
     if (roleView === 'requester') {
@@ -727,17 +729,33 @@ const getAnalyticsOverview = async (req, res) => {
         averageCloseDays,
         onTime,
         urgency,
+        byStatus,
         byUrgency,
-        monthlyTrend
+        monthlyTrend,
+        satisfaction
       ] = await Promise.all([
         Request.countDocuments(requesterScope),
         Request.countDocuments({ ...requesterScope, status: { $in: STATUS_GROUPS.completed } }),
         getAverageCloseDays(requesterScope),
         getOnTimeRate(requesterScope),
         getUrgencyMetrics(requesterScope),
+        getDistributionByStatus(requesterScope),
         getDistributionByUrgency(requesterScope),
-        getMonthlyTrend(requesterScope, 6)
+        getMonthlyTrend(requesterScope, 6),
+        getSatisfactionMetrics(requesterScope)
       ]);
+
+      const pendingCount = byStatus
+        .filter((row) => ['pending', 'assigned'].includes(String(row?.status || '').toLowerCase()))
+        .reduce((sum, row) => sum + (Number(row?.total) || 0), 0);
+
+      const inProcessCount = byStatus
+        .filter((row) => String(row?.status || '').toLowerCase() === 'in-process')
+        .reduce((sum, row) => sum + (Number(row?.total) || 0), 0);
+
+      const inReviewCount = byStatus
+        .filter((row) => String(row?.status || '').toLowerCase() === 'review')
+        .reduce((sum, row) => sum + (Number(row?.total) || 0), 0);
 
       return res.json({
         success: true,
@@ -751,19 +769,20 @@ const getAnalyticsOverview = async (req, res) => {
             totalConFechaObjetivo: onTime.total,
             solicitudesUrgentes: urgency.urgent,
             porcentajeUrgentes: urgency.percentage,
-            completadas: completed
+            completadas: completed,
+            satisfaccion: satisfaction
           },
           operacion: {
+            pendientesAsignacion: pendingCount,
+            enProceso: inProcessCount,
+            enRevision: inReviewCount,
+            distribucionEstado: byStatus,
             distribucionUrgencia: byUrgency,
             tendenciaMensual: monthlyTrend
           },
           desempeno: {},
           calidadRiesgo: {
-            satisfaccion: {
-              available: false,
-              averageScore: null,
-              responses: 0
-            }
+            satisfaccion: satisfaction
           }
         }
       });

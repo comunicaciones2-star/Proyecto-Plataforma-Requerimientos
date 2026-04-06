@@ -3799,6 +3799,13 @@
           const operacion = data?.operacion || {};
           const desempeno = data?.desempeno || {};
           const calidadRiesgo = data?.calidadRiesgo || {};
+          const statusRows = Array.isArray(operacion?.distribucionEstado)
+            ? operacion.distribucionEstado
+            : [];
+
+          const aggregateByStatuses = (statuses = []) => statusRows
+            .filter((row) => statuses.includes(String(row?.status || '').toLowerCase()))
+            .reduce((sum, row) => sum + (Number(row?.total) || 0), 0);
 
           if (roleView === 'executor') {
             const ownUrgency = this.getUrgencySummaryFromRows(operacion?.distribucionUrgenciaPropia || []);
@@ -3824,18 +3831,30 @@
           }
 
           const satisfactionAvg = Number(servicio?.satisfaccion?.averageScore) || 0;
-          const satisfaction = servicio?.satisfaccion?.available
-            ? Math.round((satisfactionAvg / 5) * 100)
-            : 0;
+          const fallbackSatisfactionAvg = Number(calidadRiesgo?.satisfaccion?.averageScore) || 0;
+          const hasSatisfaction = Boolean(servicio?.satisfaccion?.available || calidadRiesgo?.satisfaccion?.available);
+          const satisfactionBase = servicio?.satisfaccion?.available ? satisfactionAvg : fallbackSatisfactionAvg;
+          const satisfaction = hasSatisfaction ? Math.round((satisfactionBase / 5) * 100) : 0;
+
+          const totalRequests = Number(servicio?.volumenSolicitudesUsuario)
+            || statusRows.reduce((sum, row) => sum + (Number(row?.total) || 0), 0);
+          const completedRequests = Number(servicio?.completadas)
+            || aggregateByStatuses(['completed']);
+          const inProcessRequests = Number(operacion?.enProceso)
+            || aggregateByStatuses(['in-process']);
+          const pendingRequests = Number(operacion?.pendientesAsignacion)
+            || aggregateByStatuses(['pending', 'assigned']);
+          const completionPercentage = Number(servicio?.porcentajeCumplimiento)
+            || (totalRequests > 0 ? Math.round((completedRequests / totalRequests) * 100) : 0);
 
           return {
-            totalRequests: Number(servicio?.volumenSolicitudesUsuario) || 0,
-            completedRequests: Number(servicio?.completadas) || 0,
-            inProcessRequests: Number(operacion?.enProceso) || 0,
-            pendingRequests: Number(operacion?.pendientesAsignacion) || 0,
+            totalRequests,
+            completedRequests,
+            inProcessRequests,
+            pendingRequests,
             urgentRequests: Number(servicio?.solicitudesUrgentes) || 0,
             urgentPercentage: Number(servicio?.porcentajeUrgentes) || 0,
-            completionPercentage: Number(servicio?.porcentajeCumplimiento) || 0,
+            completionPercentage,
             averageTime: Number(servicio?.tiempoPromedioCierreDias) || 0,
             satisfaction
           };

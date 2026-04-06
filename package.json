@@ -11,6 +11,7 @@
     "smoke": "node scripts/smoke-test.js",
     "smoke:queue": "node scripts/smoke-queue.js",
     "smoke:deadline": "node scripts/validate-deadline-routing.js",
+    "smoke:dashboard": "node scripts/smoke-dashboard-kpis.js",
     "morning": "powershell -ExecutionPolicy Bypass -File scripts/morning-start.ps1",
     "build": "vite build",
     "preview": "vite preview",
