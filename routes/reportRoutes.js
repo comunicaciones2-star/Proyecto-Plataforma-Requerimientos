@@ -1060,6 +1060,10 @@ const getAnalyticsOverview = async (req, res) => {
     return res.json({
       success: true,
       roleView: 'requester',
+      meta: {
+        fallback: true,
+        reason: error?.message || 'analytics-error'
+      },
       data: {
         servicio: {
           volumenSolicitudesUsuario: 0,

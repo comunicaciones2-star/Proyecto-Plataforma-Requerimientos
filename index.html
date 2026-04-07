@@ -657,6 +657,7 @@
                   Exportar PDF
                 </button>
               </div>
+              <p x-show="dashboardAnalyticsFallback.active" class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3" x-text="dashboardAnalyticsFallback.message" x-cloak></p>
             </div>
 
             <!-- Análisis de Solicitudes -->
@@ -2996,6 +2997,10 @@
           averageTime: 0,
           satisfaction: 0
         },
+        dashboardAnalyticsFallback: {
+          active: false,
+          message: ''
+        },
         dashboardRoleView: 'requester',
         adminDashboard: {
           loading: false,
@@ -3792,6 +3797,93 @@
           return { total, urgent, percentage };
         },
 
+        normalizeDashboardStatus(statusValue) {
+          const status = String(statusValue || '').trim().toLowerCase();
+
+          if (['completed', 'completada'].includes(status)) return 'completed';
+          if (['in-process', 'in_process', 'en_proceso'].includes(status)) return 'in-process';
+          if (['review', 'revision', 'en_revision'].includes(status)) return 'review';
+          if (['assigned', 'asignada'].includes(status)) return 'assigned';
+          if (['rejected', 'cancelled', 'cancelada', 'rechazada'].includes(status)) return 'rejected';
+          return 'pending';
+        },
+
+        buildDashboardStatsFromRequests(requests = []) {
+          const rows = Array.isArray(requests) ? requests : [];
+          const totalRequests = rows.length;
+          let completedRequests = 0;
+          let inProcessRequests = 0;
+          let pendingRequests = 0;
+          let urgentRequests = 0;
+          let totalCompletedDays = 0;
+          let completedWithDates = 0;
+
+          rows.forEach((request) => {
+            const normalizedStatus = this.normalizeDashboardStatus(request?.status);
+
+            if (normalizedStatus === 'completed') {
+              completedRequests += 1;
+
+              const startDateRaw = request?.requestDate || request?.createdAt;
+              const endDateRaw = request?.completedDate || request?.completedAt || request?.updatedAt;
+              const startDate = startDateRaw ? new Date(startDateRaw) : null;
+              const endDate = endDateRaw ? new Date(endDateRaw) : null;
+
+              if (startDate && endDate && !Number.isNaN(startDate.getTime()) && !Number.isNaN(endDate.getTime())) {
+                const diffDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
+                if (Number.isFinite(diffDays) && diffDays >= 0) {
+                  totalCompletedDays += diffDays;
+                  completedWithDates += 1;
+                }
+              }
+            } else if (normalizedStatus === 'in-process' || normalizedStatus === 'review') {
+              inProcessRequests += 1;
+            } else if (normalizedStatus === 'pending' || normalizedStatus === 'assigned') {
+              pendingRequests += 1;
+            }
+
+            const urgency = String(request?.urgency || '').trim().toLowerCase();
+            if (urgency === 'urgent' || urgency === 'urgente' || urgency === 'express') {
+              urgentRequests += 1;
+            }
+          });
+
+          const completionPercentage = totalRequests > 0 ? Math.round((completedRequests / totalRequests) * 100) : 0;
+          const urgentPercentage = totalRequests > 0 ? Math.round((urgentRequests / totalRequests) * 100) : 0;
+          const averageTime = completedWithDates > 0
+            ? Math.round((totalCompletedDays / completedWithDates) * 10) / 10
+            : 0;
+
+          return {
+            totalRequests,
+            completedRequests,
+            inProcessRequests,
+            pendingRequests,
+            urgentRequests,
+            urgentPercentage,
+            completionPercentage,
+            averageTime,
+            satisfaction: 0
+          };
+        },
+
+        syncDashboardFallbackFromRequests(reason = '') {
+          if (this.isAdminUser()) {
+            this.dashboardAnalyticsFallback.active = false;
+            this.dashboardAnalyticsFallback.message = '';
+            return;
+          }
+
+          this.dashboardStats = {
+            ...this.dashboardStats,
+            ...this.buildDashboardStatsFromRequests(this.requests)
+          };
+
+          const baseMessage = 'Se aplicó respaldo del dashboard con tus solicitudes por una inconsistencia temporal en analítica.';
+          this.dashboardAnalyticsFallback.active = true;
+          this.dashboardAnalyticsFallback.message = reason ? `${baseMessage} Detalle: ${reason}` : baseMessage;
+        },
+
         buildDashboardStatsFromAnalytics(analytics = {}) {
           const roleView = analytics?.roleView || 'requester';
           const data = analytics?.data || {};
@@ -3943,6 +4035,8 @@
         async loadDashboard() {
           try {
             const token = localStorage.getItem('token');
+            this.dashboardAnalyticsFallback.active = false;
+            this.dashboardAnalyticsFallback.message = '';
 
             if (!token) {
               throw new Error('No hay sesión activa para cargar el dashboard');
@@ -4008,6 +4102,12 @@
               throw new Error(analyticsPayload?.message || 'No fue posible cargar la analítica del dashboard');
             }
 
+            if (analyticsPayload?.meta?.fallback) {
+              this.syncDashboardFallbackFromRequests(analyticsPayload?.meta?.reason || 'analytics-fallback');
+              this.scheduleDashboardChartsRender();
+              return;
+            }
+
             this.dashboardRoleView = analyticsPayload.roleView || 'requester';
 
             if (this.dashboardRoleView === 'admin') {
@@ -4052,6 +4152,8 @@
             this.adminDashboard.loading = false;
             if (this.isAdminUser()) {
               this.adminDashboard.error = error?.message || 'Error cargando dashboard administrativo';
+            } else {
+              this.syncDashboardFallbackFromRequests(error?.message || 'Error cargando analítica');
             }
             console.error('Error loading dashboard:', error);
           }
@@ -4085,6 +4187,14 @@
                 ...request,
                 urgency: request.urgency === 'urgente' ? 'urgent' : request.urgency
               }));
+
+              if (this.dashboardAnalyticsFallback.active && !this.isAdminUser()) {
+                this.dashboardStats = {
+                  ...this.dashboardStats,
+                  ...this.buildDashboardStatsFromRequests(this.requests)
+                };
+              }
+
               this.updateProfileStats();
               const realtimeNotifications = this.notifications.filter((notification) =>
                 notification.id && notification.id.toString().startsWith('rt-')
