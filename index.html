@@ -4153,12 +4153,28 @@
 
           const statusRows = this.adminDashboard.data.solicitudesPorEstado || [];
           const trendRows = this.adminDashboard.data.solicitudesNuevasPorSemana || [];
-          const assigneeRows = (this.adminDashboard.data.solicitudesPorResponsable || []).slice(0, 10);
+          const assigneeRows = (this.adminDashboard.data.solicitudesPorResponsable || []).slice(0, 10).map((row) => {
+            const total = Number(row?.total) || 0;
+            let activas = Number(row?.activas ?? row?.active) || 0;
+            const completadas = Number(row?.completadas ?? row?.completed) || 0;
+
+            if (activas === 0 && completadas === 0 && total > 0) {
+              activas = total;
+            }
+
+            return {
+              ...row,
+              responsable: row?.responsable || row?.responsible || 'Sin nombre',
+              total,
+              activas,
+              completadas
+            };
+          });
           const areaRows = (this.adminDashboard.data.solicitudesPorArea || []).slice(0, 10);
 
           const statusHasData = statusRows.some((row) => Number(row.total) > 0);
           const trendHasData = trendRows.some((row) => Number(row.total) > 0);
-          const assigneeHasData = assigneeRows.some((row) => Number(row.activas) > 0 || Number(row.completadas) > 0);
+          const assigneeHasData = assigneeRows.some((row) => Number(row.activas) > 0 || Number(row.completadas) > 0 || Number(row.total) > 0);
           const areaHasData = areaRows.some((row) => Number(row.total) > 0);
 
           this.adminDashboardChartStatus.status.noData = !statusHasData;
@@ -5338,7 +5354,55 @@
           this.hasUnreadNotifications = unreadCount > 0;
         },
 
+        getNotificationReadStorageKey() {
+          const userId = String(this.user?._id || this.user?.id || '').trim();
+          if (!userId) return '';
+          return `fenalco:notifications:read:${userId}`;
+        },
+
+        getReadNotificationsState() {
+          const storageKey = this.getNotificationReadStorageKey();
+          if (!storageKey) return {};
+
+          try {
+            const rawValue = localStorage.getItem(storageKey);
+            if (!rawValue) return {};
+            const parsed = JSON.parse(rawValue);
+            return parsed && typeof parsed === 'object' ? parsed : {};
+          } catch (error) {
+            console.warn('No se pudo leer estado de notificaciones:', error);
+            return {};
+          }
+        },
+
+        persistReadNotificationsState(state = {}) {
+          const storageKey = this.getNotificationReadStorageKey();
+          if (!storageKey) return;
+
+          const entries = Object.entries(state).filter(([key, value]) => key && value);
+          const limitedEntries = entries.slice(-1000);
+
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(Object.fromEntries(limitedEntries)));
+          } catch (error) {
+            console.warn('No se pudo guardar estado de notificaciones:', error);
+          }
+        },
+
+        markNotificationAsReadPersisted(notification) {
+          const notificationId = String(notification?.requestId || notification?.id || '').trim();
+          if (!notificationId || notificationId.startsWith('rt-')) return;
+
+          const currentState = this.getReadNotificationsState();
+          currentState[notificationId] = Date.now();
+          this.persistReadNotificationsState(currentState);
+        },
+
         markNotificationsRead() {
+          this.notifications.forEach((notification) => {
+            this.markNotificationAsReadPersisted(notification);
+          });
+
           this.notifications = this.notifications.map((notification) => ({
             ...notification,
             isUnread: false
@@ -5353,6 +5417,7 @@
 
           this.notifications = this.notifications.map((notification) => {
             if (notification.id === notificationId) {
+              this.markNotificationAsReadPersisted(notification);
               return {
                 ...notification,
                 isUnread: false
@@ -5607,6 +5672,7 @@
         buildNotifications(requests) {
           const sortedRequests = [...(requests || [])]
             .sort((a, b) => new Date(b.createdAt || b.updatedAt || 0) - new Date(a.createdAt || a.updatedAt || 0));
+          const readNotificationsState = this.getReadNotificationsState();
 
           const existingNotificationsById = new Map(
             (this.notifications || []).map((notification) => [String(notification.id), notification])
@@ -5638,13 +5704,18 @@
             const config = statusConfig[request.status] || statusConfig.pending;
             const requestId = String(request._id || '');
             const existingNotification = existingNotificationsById.get(requestId);
+            const isPersistedRead = Boolean(readNotificationsState[requestId]);
+            const isUnread = existingNotification
+              ? existingNotification.isUnread !== false && !isPersistedRead
+              : !isPersistedRead;
+
             return {
               id: requestId,
               requestId,
               title: request.title || request.requestNumber || 'Solicitud',
               subtitle: config.subtitle,
               time: this.getRelativeTime(request.createdAt || request.updatedAt),
-              isUnread: existingNotification ? existingNotification.isUnread !== false : true,
+              isUnread,
               iconClass: config.iconClass,
               bgClass: config.bgClass
             };

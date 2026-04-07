@@ -3,8 +3,10 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const mongoose = require('mongoose');
 const { authenticate } = require('../middleware/auth');
 const Request = require('../models/Request');
+const User = require('../models/User');
 const { sendNewRequestEmail, sendStatusChangeEmail } = require('../config/email');
 const { notifyNewRequest, notifyStatusChange, notifyNewComment, notifyRequestUpdated } = require('../utils/websocket');
 const { autoAssignRequest } = require('../utils/autoAssign');
@@ -16,11 +18,66 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const REQUEST_ALLOWED_STATUSES = ['pending', 'in-process', 'review', 'completed', 'rejected'];
 const EXECUTOR_ROLES = ['diseñador', 'practicante', 'designer', 'disenador_grafico'];
 const MANAGER_ROLES = ['manager', 'gerente', 'gerente_comunicaciones'];
+const EXECUTOR_TYPES = new Set(['gerente', 'diseñador', 'practicante', 'manager', 'designer']);
 const WORKFLOW_TRANSITIONS = {
   pending: ['in-process'],
   'in-process': ['review'],
   review: ['completed', 'rejected']
 };
+
+function normalizeRoleValue(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function buildUserIdentityValues(userId) {
+  const values = [String(userId || '').trim()].filter(Boolean);
+
+  if (mongoose.Types.ObjectId.isValid(userId)) {
+    values.push(new mongoose.Types.ObjectId(userId));
+  }
+
+  return values;
+}
+
+async function buildRequestVisibilityFilter(authUser = {}) {
+  const userId = String(authUser.id || '').trim();
+  if (!userId) return { _id: null };
+
+  const normalizedTokenRole = normalizeRoleValue(authUser.role);
+  if (normalizedTokenRole === 'admin') {
+    return {};
+  }
+
+  const userDoc = await User.findById(userId).select('role executorProfile').lean();
+  const normalizedDbRole = normalizeRoleValue(userDoc?.role);
+  const normalizedExecutorType = normalizeRoleValue(userDoc?.executorProfile?.executorType);
+  const identityValues = buildUserIdentityValues(userId);
+
+  const requesterMatchers = [
+    { requester: { $in: identityValues } },
+    { requestedBy: { $in: identityValues } },
+    { requesterId: userId },
+    { requestedById: userId }
+  ];
+
+  const isExecutor = EXECUTOR_TYPES.has(normalizedExecutorType) || EXECUTOR_TYPES.has(normalizedDbRole);
+
+  if (isExecutor) {
+    return {
+      $or: [
+        ...requesterMatchers,
+        { assignedTo: { $in: identityValues } },
+        { assignedToId: userId }
+      ]
+    };
+  }
+
+  return { $or: requesterMatchers };
+}
 
 async function getActiveQueueRequests() {
   return Request.find({ status: { $in: ACTIVE_QUEUE_STATUSES } })
@@ -230,10 +287,7 @@ router.get('/', async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    const filter = {};
-    if (req.user.role === 'collaborator') {
-      filter.requester = req.user.id;
-    }
+    const filter = await buildRequestVisibilityFilter(req.user);
 
     // Obtener total de documentos para paginación
     const total = await Request.countDocuments(filter);

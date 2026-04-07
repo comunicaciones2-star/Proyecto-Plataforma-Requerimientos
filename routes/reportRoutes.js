@@ -51,6 +51,36 @@ function resolveAnalyticsRole(userDoc) {
   return 'requester';
 }
 
+function buildIdentityValues(userObjectId, userId) {
+  return [userObjectId, String(userId || '').trim()].filter(Boolean);
+}
+
+function buildRequesterScope(userObjectId, userId) {
+  const identityValues = buildIdentityValues(userObjectId, userId);
+  const userIdString = String(userId || '').trim();
+
+  return {
+    $or: [
+      { requester: { $in: identityValues } },
+      { requestedBy: { $in: identityValues } },
+      { requesterId: userIdString },
+      { requestedById: userIdString }
+    ]
+  };
+}
+
+function buildExecutorScope(userObjectId, userId) {
+  const identityValues = buildIdentityValues(userObjectId, userId);
+  const userIdString = String(userId || '').trim();
+
+  return {
+    $or: [
+      { assignedTo: { $in: identityValues } },
+      { assignedToId: userIdString }
+    ]
+  };
+}
+
 function getIsoWeekParts(dateValue) {
   const date = new Date(Date.UTC(dateValue.getFullYear(), dateValue.getMonth(), dateValue.getDate()));
   const dayNum = date.getUTCDay() || 7;
@@ -716,10 +746,17 @@ const getAnalyticsOverview = async (req, res) => {
       });
     }
 
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(401).json({
+        success: false,
+        message: 'No autorizado: identificador de usuario inválido'
+      });
+    }
+
     const roleView = resolveAnalyticsRole(user);
     const userObjectId = new mongoose.Types.ObjectId(userId);
-    const requesterScope = { requester: userObjectId };
-    const executorScope = { assignedTo: userObjectId };
+    const requesterScope = buildRequesterScope(userObjectId, userId);
+    const executorScope = buildExecutorScope(userObjectId, userId);
     const globalScope = {};
 
     if (roleView === 'requester') {
