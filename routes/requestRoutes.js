@@ -20,8 +20,8 @@ const EXECUTOR_ROLES = ['diseñador', 'practicante', 'designer', 'disenador_graf
 const MANAGER_ROLES = ['manager', 'gerente', 'gerente_comunicaciones'];
 const EXECUTOR_TYPES = new Set(['gerente', 'diseñador', 'practicante', 'manager', 'designer']);
 const WORKFLOW_TRANSITIONS = {
-  pending: ['in-process'],
-  'in-process': ['review'],
+  pending: ['in-process', 'rejected'],
+  'in-process': ['review', 'rejected'],
   review: ['completed', 'rejected']
 };
 
