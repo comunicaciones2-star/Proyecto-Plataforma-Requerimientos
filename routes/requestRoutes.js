@@ -43,6 +43,15 @@ function buildUserIdentityValues(userId) {
   return values;
 }
 
+function isManagerialPosition(positionValue = '') {
+  const normalizedPosition = normalizeRoleValue(positionValue);
+  if (!normalizedPosition) return false;
+
+  return ['gerente', 'manager', 'director', 'coordinador', 'jefe', 'lider'].some((keyword) =>
+    normalizedPosition.includes(keyword)
+  );
+}
+
 async function buildRequestVisibilityFilter(authUser = {}) {
   const userId = String(authUser.id || '').trim();
   if (!userId) return { _id: null };
@@ -52,9 +61,10 @@ async function buildRequestVisibilityFilter(authUser = {}) {
     return {};
   }
 
-  const userDoc = await User.findById(userId).select('role executorProfile').lean();
+  const userDoc = await User.findById(userId).select('role executorProfile position').lean();
   const normalizedDbRole = normalizeRoleValue(userDoc?.role);
   const normalizedExecutorType = normalizeRoleValue(userDoc?.executorProfile?.executorType);
+  const hasManagerialCargo = isManagerialPosition(authUser?.position) || isManagerialPosition(userDoc?.position);
   const identityValues = buildUserIdentityValues(userId);
 
   const requesterMatchers = [
@@ -64,16 +74,12 @@ async function buildRequestVisibilityFilter(authUser = {}) {
     { requestedById: userId }
   ];
 
+  const isManagerRole = MANAGER_ROLES.includes(normalizedTokenRole) || MANAGER_ROLES.includes(normalizedDbRole);
   const isExecutor = EXECUTOR_TYPES.has(normalizedExecutorType) || EXECUTOR_TYPES.has(normalizedDbRole);
 
-  if (isExecutor) {
-    return {
-      $or: [
-        ...requesterMatchers,
-        { assignedTo: { $in: identityValues } },
-        { assignedToId: userId }
-      ]
-    };
+  // Roles de gestión/ejecución y cargos gerenciales pueden consultar todas las solicitudes.
+  if (isManagerRole || isExecutor || hasManagerialCargo) {
+    return {};
   }
 
   return { $or: requesterMatchers };
