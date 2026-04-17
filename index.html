@@ -2613,7 +2613,7 @@
             Adjuntar Archivos
           </label>
           <input type="file" x-ref="requestFilesInput" @change="handleFileUpload($event)" multiple 
-                 accept="image/*,.pdf,.doc,.docx,.ppt,.pptx"
+               accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.heic,.heif,.webp"
                  class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-fenalco-green file:text-white hover:file:bg-green-600">
           <p class="text-xs text-gray-500 mt-1">Máx. 5 archivos, 10 MB por archivo. Formatos: imágenes, PDF, Word, PowerPoint</p>
           <div x-show="newRequest.selectedFiles && newRequest.selectedFiles.length > 0" class="mt-2">

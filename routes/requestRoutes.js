@@ -15,6 +15,19 @@ const { ACTIVE_QUEUE_STATUSES, attachQueueInfoToRequests, getQueueInfoForRequest
 const router = express.Router();
 const MAX_FILES_PER_UPLOAD = 5;
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_UPLOAD_EXTENSIONS = new Set([
+  '.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif',
+  '.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx'
+]);
+const ALLOWED_UPLOAD_MIME_TYPES = new Set([
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+]);
 const REQUEST_ALLOWED_STATUSES = ['pending', 'in-process', 'review', 'completed', 'rejected'];
 const EXECUTOR_ROLES = ['diseñador', 'practicante', 'designer', 'disenador_grafico'];
 const MANAGER_ROLES = ['manager', 'gerente', 'gerente_comunicaciones'];
@@ -116,16 +129,25 @@ const upload = multer({
     files: MAX_FILES_PER_UPLOAD
   },
   fileFilter: (req, file, cb) => {
-    // Tipos de archivo permitidos
-    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|ppt|pptx|xls|xlsx/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    
-    if (mimetype && extname) {
+    const extension = path.extname(String(file.originalname || '')).toLowerCase();
+    const mimeType = String(file.mimetype || '').toLowerCase();
+
+    const hasAllowedExtension = ALLOWED_UPLOAD_EXTENSIONS.has(extension);
+    const isImageMime = mimeType.startsWith('image/');
+    const hasAllowedMime = isImageMime || ALLOWED_UPLOAD_MIME_TYPES.has(mimeType);
+    const isGenericMime = mimeType === 'application/octet-stream';
+
+    // Algunos navegadores/OS envían octet-stream para Office: permitimos por extensión.
+    if (hasAllowedExtension && (hasAllowedMime || isGenericMime)) {
       return cb(null, true);
-    } else {
-      cb(new Error('Tipo de archivo no permitido'));
     }
+
+    const validationError = new Error(
+      `Tipo de archivo no permitido (${file.originalname || 'archivo'}). ` +
+      'Formatos válidos: imágenes, PDF, Word, PowerPoint y Excel.'
+    );
+    validationError.statusCode = 400;
+    return cb(validationError);
   }
 });
 
