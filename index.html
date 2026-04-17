@@ -1961,13 +1961,14 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-            <input type="email" x-model="adminUserForm.email" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
+            <input type="email" name="email" autocomplete="username" x-model="adminUserForm.email" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green">
           </div>
           <div>
             <label x-show="adminUserForm.id" class="block text-sm font-medium text-gray-700 mb-1">Contraseña actual</label>
             <div x-show="adminUserForm.id" class="relative">
               <input
                 :type="adminUserPasswordVisibility.current ? 'text' : 'password'"
+                name="current-password"
                 x-model="adminUserForm.currentPassword"
                 autocomplete="current-password"
                 class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-fenalco-green pr-10"
@@ -1982,6 +1983,12 @@
                 <i :class="adminUserPasswordVisibility.current ? 'ri-eye-off-line' : 'ri-eye-line'"></i>
               </button>
             </div>
+            <p
+              x-show="adminUserForm.id && !adminUserForm.currentPassword"
+              class="text-xs text-amber-700 mt-1"
+            >
+              La contraseña actual no se muestra por seguridad. Si la tienes guardada en el navegador, puede autocompletarse.
+            </p>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1" x-text="adminUserForm.id ? 'Nueva contraseña (opcional)' : 'Contraseña *'"></label>
@@ -7287,7 +7294,7 @@
               email: adminUser.email || '',
               firstName: adminUser.firstName || '',
               lastName: adminUser.lastName || '',
-              currentPassword: '',
+              currentPassword: adminUser.currentPassword || adminUser.temporaryPassword || '',
               password: '',
               confirmPassword: '',
               role: this.normalizeAppRole(adminUser.role),
