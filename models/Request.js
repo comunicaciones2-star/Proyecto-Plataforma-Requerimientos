@@ -61,6 +61,19 @@ const attachmentSchema = new Schema(
     mimetype: {
       type: String
     },
+    type: {
+      type: String,
+      enum: ['image', 'document', 'video', 'backup'],
+      default: 'document'
+    },
+    storageProvider: {
+      type: String,
+      enum: ['local', 'cloudinary', 'drive'],
+      default: 'local'
+    },
+    referenceId: {
+      type: String
+    },
     cloudinaryUrl: {
       type: String,
       required: false
@@ -68,6 +81,22 @@ const attachmentSchema = new Schema(
     publicId: {
       type: String,
       required: false
+    },
+    driveFileId: {
+      type: String,
+      required: false
+    },
+    driveUrl: {
+      type: String,
+      required: false
+    },
+    uploadedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
     }
   },
   { _id: false }

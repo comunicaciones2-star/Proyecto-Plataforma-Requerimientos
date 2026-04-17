@@ -33,28 +33,37 @@ router.get('/:filename', authenticate, async (req, res) => {
   }
 
   const uploadsDir = path.join(__dirname, '..', 'uploads');
-  const absoluteFilePath = path.join(uploadsDir, safeFilename);
-
-  if (!fs.existsSync(absoluteFilePath)) {
-    return res.status(404).json({
-      success: false,
-      message: 'Archivo no encontrado'
-    });
-  }
 
   let requestWithAttachment = null;
   let downloadName = safeFilename;
+  let attachment = null;
   try {
     requestWithAttachment = await Request.findOne(
-      { 'attachments.filename': safeFilename },
+      {
+        $or: [
+          { 'attachments.filename': safeFilename },
+          { 'attachments.referenceId': safeFilename },
+          { 'attachments.publicId': safeFilename },
+          { 'attachments.driveFileId': safeFilename }
+        ]
+      },
       {
         requester: 1,
         assignedTo: 1,
-        attachments: { $elemMatch: { filename: safeFilename } }
+        attachments: 1
       }
     ).lean();
 
-    const originalName = requestWithAttachment?.attachments?.[0]?.originalName;
+    attachment = (requestWithAttachment?.attachments || []).find((item) => {
+      return [
+        String(item?.filename || ''),
+        String(item?.referenceId || ''),
+        String(item?.publicId || ''),
+        String(item?.driveFileId || '')
+      ].includes(safeFilename);
+    }) || null;
+
+    const originalName = attachment?.originalName;
     if (originalName) {
       downloadName = originalName;
     }
@@ -73,6 +82,25 @@ router.get('/:filename', authenticate, async (req, res) => {
     return res.status(403).json({
       success: false,
       message: 'No tiene permisos para acceder a este archivo'
+    });
+  }
+
+  // Adjuntos híbridos (Drive/Cloudinary): redirección segura tras validar permisos.
+  const provider = String(attachment?.storageProvider || '').trim().toLowerCase();
+  if (provider === 'cloudinary' && attachment?.cloudinaryUrl) {
+    return res.redirect(302, attachment.cloudinaryUrl);
+  }
+
+  if (provider === 'drive' && attachment?.driveUrl) {
+    return res.redirect(302, attachment.driveUrl);
+  }
+
+  const localName = String(attachment?.filename || safeFilename).trim();
+  const absoluteFilePath = path.join(uploadsDir, localName);
+  if (!fs.existsSync(absoluteFilePath)) {
+    return res.status(404).json({
+      success: false,
+      message: 'Archivo no encontrado'
     });
   }
 

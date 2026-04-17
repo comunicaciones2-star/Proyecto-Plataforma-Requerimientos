@@ -1,8 +1,6 @@
 // routes/requestRoutes.js
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const mongoose = require('mongoose');
 const { authenticate } = require('../middleware/auth');
 const Request = require('../models/Request');
@@ -11,23 +9,16 @@ const { sendNewRequestEmail, sendStatusChangeEmail } = require('../config/email'
 const { notifyNewRequest, notifyStatusChange, notifyNewComment, notifyRequestUpdated } = require('../utils/websocket');
 const { autoAssignRequest } = require('../utils/autoAssign');
 const { ACTIVE_QUEUE_STATUSES, attachQueueInfoToRequests, getQueueInfoForRequest, isQueueActiveStatus } = require('../utils/queue');
+const {
+  uploadFile: uploadHybridFile,
+  validateFileForStorage,
+  detectFileTypeFromMime,
+  FILE_SIZE_LIMITS
+} = require('../services/storage/storage.factory');
 
 const router = express.Router();
 const MAX_FILES_PER_UPLOAD = 5;
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-const ALLOWED_UPLOAD_EXTENSIONS = new Set([
-  '.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif',
-  '.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx'
-]);
-const ALLOWED_UPLOAD_MIME_TYPES = new Set([
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-powerpoint',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-]);
+const MAX_FILE_SIZE_BYTES = FILE_SIZE_LIMITS.video;
 const REQUEST_ALLOWED_STATUSES = ['pending', 'in-process', 'review', 'completed', 'rejected'];
 const EXECUTOR_ROLES = ['diseñador', 'practicante', 'designer', 'disenador_grafico'];
 const MANAGER_ROLES = ['manager', 'gerente', 'gerente_comunicaciones'];
@@ -104,23 +95,28 @@ async function getActiveQueueRequests() {
     .lean();
 }
 
-// Configuración de Multer para almacenamiento local
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '..', 'uploads');
-    // Crear directorio si no existe
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    // Generar nombre único: timestamp + random + extensión original
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, uniqueSuffix + ext);
-  }
-});
+function buildAttachmentFromStorageRecord(file, storageRecord) {
+  return {
+    originalName: file.originalname,
+    filename: storageRecord.fileName,
+    path: null,
+    url: storageRecord.url,
+    size: Number(file.size) || Number(storageRecord.bytes) || 0,
+    mimetype: file.mimetype,
+    type: storageRecord.type,
+    storageProvider: storageRecord.storageProvider,
+    referenceId: storageRecord.referenceId,
+    cloudinaryUrl: storageRecord.cloudinaryUrl || null,
+    publicId: storageRecord.publicId || null,
+    driveFileId: storageRecord.driveFileId || null,
+    driveUrl: storageRecord.driveUrl || null,
+    uploadedBy: storageRecord.uploadedBy || null,
+    createdAt: storageRecord.createdAt || new Date()
+  };
+}
+
+// Multer en memoria: la persistencia final la define storage.factory.
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage,
@@ -129,25 +125,14 @@ const upload = multer({
     files: MAX_FILES_PER_UPLOAD
   },
   fileFilter: (req, file, cb) => {
-    const extension = path.extname(String(file.originalname || '')).toLowerCase();
-    const mimeType = String(file.mimetype || '').toLowerCase();
-
-    const hasAllowedExtension = ALLOWED_UPLOAD_EXTENSIONS.has(extension);
-    const isImageMime = mimeType.startsWith('image/');
-    const hasAllowedMime = isImageMime || ALLOWED_UPLOAD_MIME_TYPES.has(mimeType);
-    const isGenericMime = mimeType === 'application/octet-stream';
-
-    // Algunos navegadores/OS envían octet-stream para Office: permitimos por extensión.
-    if (hasAllowedExtension && (hasAllowedMime || isGenericMime)) {
+    try {
+      const detectedType = detectFileTypeFromMime(file.mimetype, file.originalname);
+      validateFileForStorage(file, detectedType);
       return cb(null, true);
+    } catch (error) {
+      error.statusCode = error.statusCode || 400;
+      return cb(error);
     }
-
-    const validationError = new Error(
-      `Tipo de archivo no permitido (${file.originalname || 'archivo'}). ` +
-      'Formatos válidos: imágenes, PDF, Word, PowerPoint y Excel.'
-    );
-    validationError.statusCode = 400;
-    return cb(validationError);
   }
 });
 
@@ -196,19 +181,14 @@ router.post('/', upload.array('files', MAX_FILES_PER_UPLOAD), async (req, res) =
 
     const attachments = [];
 
-    // Guardar archivos localmente
+    // Guardar archivos usando arquitectura híbrida por tipo
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        attachments.push({
-          originalName: file.originalname,
-          filename: file.filename,
-          path: file.path,
-          url: `/api/files/${encodeURIComponent(file.filename)}`,
-          size: file.size,
-          mimetype: file.mimetype
-        });
+        const detectedType = detectFileTypeFromMime(file.mimetype, file.originalname);
+        const stored = await uploadHybridFile(file, detectedType, { uploadedBy: req.user.id });
+        attachments.push(buildAttachmentFromStorageRecord(file, stored));
       }
-      console.log(`✅ ${req.files.length} archivo(s) guardado(s) localmente`);
+      console.log(`✅ ${req.files.length} archivo(s) almacenado(s) en provider híbrido`);
     }
 
     const request = new Request({
@@ -280,6 +260,8 @@ router.post('/', upload.array('files', MAX_FILES_PER_UPLOAD), async (req, res) =
       queuePosition: request.queuePosition || null
     });
   } catch (error) {
+    const statusCode = Number(error?.statusCode) || 500;
+
     if (error?.name === 'ValidationError') {
       return res.status(400).json({
         success: false,
@@ -289,12 +271,20 @@ router.post('/', upload.array('files', MAX_FILES_PER_UPLOAD), async (req, res) =
       });
     }
 
+    if (statusCode >= 400 && statusCode < 500) {
+      return res.status(statusCode).json({
+        success: false,
+        message: error.message || 'No fue posible procesar los archivos adjuntos',
+        error: error.code || 'UPLOAD_VALIDATION_ERROR'
+      });
+    }
+
     console.error('❌ ERROR al crear solicitud:', error.message);
     console.error('Stack:', error.stack);
     console.error('Body recibido:', req.body);
-    res.status(500).json({
+    res.status(statusCode).json({
       success: false,
-      message: 'Error al crear solicitud',
+      message: statusCode >= 500 ? 'Error al crear solicitud' : (error.message || 'Error en carga de archivos'),
       error: error.message,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
@@ -492,14 +482,12 @@ router.patch('/:id', upload.array('files', MAX_FILES_PER_UPLOAD), async (req, re
         });
       }
 
-      const newAttachments = req.files.map((file) => ({
-        originalName: file.originalname,
-        filename: file.filename,
-        path: file.path,
-        url: `/api/files/${encodeURIComponent(file.filename)}`,
-        size: file.size,
-        mimetype: file.mimetype
-      }));
+      const newAttachments = [];
+      for (const file of req.files) {
+        const detectedType = detectFileTypeFromMime(file.mimetype, file.originalname);
+        const stored = await uploadHybridFile(file, detectedType, { uploadedBy: req.user.id });
+        newAttachments.push(buildAttachmentFromStorageRecord(file, stored));
+      }
 
       request.attachments = [...(request.attachments || []), ...newAttachments];
     }
@@ -648,10 +636,12 @@ router.patch('/:id', upload.array('files', MAX_FILES_PER_UPLOAD), async (req, re
       request
     });
   } catch (error) {
+    const statusCode = Number(error?.statusCode) || 500;
+
     console.error('Error al actualizar solicitud:', error);
-    res.status(500).json({
+    res.status(statusCode).json({
       success: false,
-      message: 'Error al actualizar solicitud'
+      message: statusCode >= 500 ? 'Error al actualizar solicitud' : (error.message || 'No fue posible guardar adjuntos')
     });
   }
 });
