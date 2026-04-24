@@ -703,7 +703,7 @@ router.post('/:id/comment', async (req, res) => {
  * PUT /api/requests/:id/edit
  * Editar una solicitud existente (solo el solicitante)
  */
-router.put('/:id/edit', async (req, res) => {
+router.put('/:id/edit', upload.array('files', MAX_FILES_PER_UPLOAD), async (req, res) => {
   try {
     const request = await Request.findById(req.params.id).populate('assignedTo', 'firstName lastName email notificationPreferences');
 
@@ -725,7 +725,7 @@ router.put('/:id/edit', async (req, res) => {
       });
     }
 
-    const {
+    let {
       title,
       description,
       urgency,
@@ -736,6 +736,17 @@ router.put('/:id/edit', async (req, res) => {
       referenceLinks,
       categoryDetails
     } = req.body;
+
+    if (typeof categoryDetails === 'string') {
+      try {
+        categoryDetails = JSON.parse(categoryDetails);
+      } catch (parseError) {
+        return res.status(400).json({
+          success: false,
+          message: 'categoryDetails no tiene un formato JSON válido'
+        });
+      }
+    }
     
     // Guardar cambios para historial
     const changes = [];
@@ -761,6 +772,18 @@ router.put('/:id/edit', async (req, res) => {
     if (typeof categoryDetails !== 'undefined') {
       request.categoryDetails = categoryDetails;
       request.markModified('categoryDetails');
+    }
+
+    if (req.files && req.files.length > 0) {
+      const newAttachments = [];
+      for (const file of req.files) {
+        const detectedType = detectFileTypeFromMime(file.mimetype, file.originalname);
+        const stored = await uploadHybridFile(file, detectedType, { uploadedBy: req.user.id });
+        newAttachments.push(buildAttachmentFromStorageRecord(file, stored));
+      }
+
+      request.attachments = [...(request.attachments || []), ...newAttachments];
+      changes.push(`${newAttachments.length} adjunto(s) agregado(s)`);
     }
 
     // Agregar al historial
