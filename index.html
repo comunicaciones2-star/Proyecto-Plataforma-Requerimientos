@@ -6334,7 +6334,7 @@
             if (orderedMatch) {
               if (currentList !== 'ol') {
                 closeCurrentList();
-                htmlParts.push('<ol class="list-decimal pl-6 space-y-1">');
+                htmlParts.push('<ol class="list-decimal pl-6 space-y-0.5">');
                 currentList = 'ol';
               }
               htmlParts.push(`<li>${this.escapeHtml(orderedMatch[2])}</li>`);
@@ -6344,7 +6344,7 @@
             if (unorderedMatch) {
               if (currentList !== 'ul') {
                 closeCurrentList();
-                htmlParts.push('<ul class="list-disc pl-6 space-y-1">');
+                htmlParts.push('<ul class="list-disc pl-6 space-y-0.5">');
                 currentList = 'ul';
               }
               htmlParts.push(`<li>${this.escapeHtml(unorderedMatch[1])}</li>`);
