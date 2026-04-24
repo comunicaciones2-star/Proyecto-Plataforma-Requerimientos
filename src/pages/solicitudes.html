@@ -181,7 +181,7 @@
                     </div>
                     <div>
                       <h4 class="font-semibold text-gray-800" x-text="request.title"></h4>
-                      <p class="text-sm text-gray-600 mt-1" x-text="request.description"></p>
+                      <div class="text-sm text-gray-600 mt-1" x-html="formatDescriptionHtml(request.description)"></div>
                       <div class="flex gap-4 mt-2 text-xs text-gray-500">
                         <span><i class="ri-map-pin-line mr-1"></i><span x-text="request.area"></span></span>
                         <span><i class="ri-calendar-line mr-1"></i><span x-text="formatDate(request.createdAt)"></span></span>
@@ -403,6 +403,75 @@
             'rejected': 'Rechazada'
           };
           return labels[status] || status;
+        },
+
+        escapeHtml(value) {
+          const entityMap = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+          };
+          return String(value ?? '').replace(/[&<>"']/g, (char) => entityMap[char] || char);
+        },
+
+        formatDescriptionHtml(rawText) {
+          const normalized = String(rawText ?? '').replace(/\r\n/g, '\n').trim();
+          if (!normalized) return '<p class="whitespace-pre-line">Sin descripción</p>';
+
+          const lines = normalized.split('\n');
+          const hasListMarkers = lines.some((line) => /^\s*(?:[-*]\s+|\d+[\.)]\s+)/.test(line));
+
+          if (!hasListMarkers) {
+            return `<p class="whitespace-pre-line">${this.escapeHtml(normalized)}</p>`;
+          }
+
+          const htmlParts = [];
+          let currentList = null;
+
+          const closeCurrentList = () => {
+            if (currentList === 'ul') htmlParts.push('</ul>');
+            if (currentList === 'ol') htmlParts.push('</ol>');
+            currentList = null;
+          };
+
+          lines.forEach((line) => {
+            const orderedMatch = line.match(/^\s*(\d+)[\.)]\s+(.*)$/);
+            const unorderedMatch = line.match(/^\s*[-*]\s+(.*)$/);
+
+            if (orderedMatch) {
+              if (currentList !== 'ol') {
+                closeCurrentList();
+                htmlParts.push('<ol class="list-decimal pl-6 space-y-1">');
+                currentList = 'ol';
+              }
+              htmlParts.push(`<li>${this.escapeHtml(orderedMatch[2])}</li>`);
+              return;
+            }
+
+            if (unorderedMatch) {
+              if (currentList !== 'ul') {
+                closeCurrentList();
+                htmlParts.push('<ul class="list-disc pl-6 space-y-1">');
+                currentList = 'ul';
+              }
+              htmlParts.push(`<li>${this.escapeHtml(unorderedMatch[1])}</li>`);
+              return;
+            }
+
+            closeCurrentList();
+
+            if (!line.trim()) {
+              htmlParts.push('<br>');
+              return;
+            }
+
+            htmlParts.push(`<p>${this.escapeHtml(line)}</p>`);
+          });
+
+          closeCurrentList();
+          return htmlParts.join('');
         },
 
         getStatusColor(status) {
