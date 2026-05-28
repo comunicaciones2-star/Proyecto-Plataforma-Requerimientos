@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node check-request.js)",
+      "Bash(grep -v \"^$\")"
+    ]
+  }
+}
